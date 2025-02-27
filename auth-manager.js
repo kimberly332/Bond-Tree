@@ -1,0 +1,165 @@
+// Authentication Manager Class
+class AuthManager {
+    constructor() {
+      // Initialize users array from localStorage if available
+      this.loadFromStorage();
+    }
+  
+    // Helper to load data from localStorage
+    loadFromStorage() {
+      try {
+        // Load users array
+        const storedUsers = localStorage.getItem('bondTreeUsers');
+        window.bondTreeUsers = storedUsers ? JSON.parse(storedUsers) : [];
+        
+        // Load current user session
+        const storedUser = localStorage.getItem('currentUser');
+        window.currentUser = storedUser ? JSON.parse(storedUser) : null;
+      } catch (error) {
+        console.error('Error loading from localStorage:', error);
+        window.bondTreeUsers = [];
+        window.currentUser = null;
+      }
+    }
+  
+    // Helper to save data to localStorage
+    saveToStorage() {
+      try {
+        localStorage.setItem('bondTreeUsers', JSON.stringify(window.bondTreeUsers));
+        localStorage.setItem('currentUser', JSON.stringify(window.currentUser));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
+    }
+  
+    signup(name, email, password) {
+      // Make sure data is loaded from storage
+      this.loadFromStorage();
+      
+      // Check if user already exists
+      if (window.bondTreeUsers.some(user => user.email === email)) {
+        return false;
+      }
+  
+      // Create new user
+      const newUser = {
+        id: Date.now().toString(),
+        name,
+        email,
+        password,
+        friends: [],
+        savedMoods: []
+      };
+  
+      window.bondTreeUsers.push(newUser);
+      this.saveToStorage();
+      return true;
+    }
+  
+    login(email, password) {
+      // Make sure data is loaded from storage
+      this.loadFromStorage();
+      
+      const user = window.bondTreeUsers.find(
+        u => u.email === email && u.password === password
+      );
+      
+      if (user) {
+        // Create a deep copy of the user to avoid direct reference issues
+        window.currentUser = JSON.parse(JSON.stringify(user));
+        this.saveToStorage();
+        return true;
+      }
+      return false;
+    }
+  
+    logout() {
+      window.currentUser = null;
+      localStorage.removeItem('currentUser');
+    }
+  
+    addFriend(friendEmail) {
+      if (!window.currentUser) return false;
+  
+      // Ensure data is fresh
+      this.loadFromStorage();
+  
+      // Check if friend exists and is not already added
+      const friendUser = window.bondTreeUsers.find(u => u.email === friendEmail);
+      if (!friendUser || window.currentUser.friends.includes(friendEmail)) {
+        return false;
+      }
+  
+      window.currentUser.friends.push(friendEmail);
+      
+      // Update users array
+      const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
+      if (userIndex !== -1) {
+        window.bondTreeUsers[userIndex].friends = [...window.currentUser.friends];
+      }
+  
+      this.saveToStorage();
+      return true;
+    }
+  
+    getFriends() {
+      if (!window.currentUser) return [];
+      // Ensure data is fresh
+      this.loadFromStorage();
+      return window.currentUser.friends;
+    }
+  
+    // Save mood with synchronization to users array
+    saveMood(moods) {
+      if (!window.currentUser) return false;
+  
+      // Ensure data is fresh
+      this.loadFromStorage();
+  
+      const today = new Date();
+      const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
+  
+      // Add mood to current user's saved moods
+      window.currentUser.savedMoods = window.currentUser.savedMoods || [];
+      window.currentUser.savedMoods.push({
+        date: formattedDate,
+        moods: [...moods]
+      });
+  
+      // Update users array
+      const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
+      if (userIndex !== -1) {
+        window.bondTreeUsers[userIndex].savedMoods = [...window.currentUser.savedMoods];
+      }
+  
+      this.saveToStorage();
+      return true;
+    }
+  
+    // Get saved moods
+    getSavedMoods() {
+      if (!window.currentUser) return [];
+      // Ensure data is fresh
+      this.loadFromStorage();
+      return window.currentUser.savedMoods || [];
+    }
+  }
+  
+  // Pre-populate with some sample users function
+  function initializeSampleUsers() {
+    // Create an instance of AuthManager
+    const authManager = new AuthManager();
+    
+    // Only add sample users if no users exist
+    if (!window.bondTreeUsers || window.bondTreeUsers.length === 0) {
+      authManager.signup('John Doe', 'john@example.com', 'password123');
+      authManager.signup('Jane Smith', 'jane@example.com', 'password456');
+    }
+  }
+  
+  // Attach to window to make globally accessible
+  window.AuthManager = AuthManager;
+  window.initializeSampleUsers = initializeSampleUsers;
+  
+  // Call initialization immediately
+  initializeSampleUsers();

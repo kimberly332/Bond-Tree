@@ -4,129 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bond Tree - Authentication</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f5f5f7;
-      color: #333;
-      line-height: 1.6;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 15px;
-    }
-    
-    .auth-container {
-      background-color: white;
-      border-radius: 15px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 400px;
-      padding: 30px;
-      text-align: center;
-    }
-    
-    .logo {
-      font-size: 2.5rem;
-      color: #4a90e2;
-      margin-bottom: 20px;
-      font-weight: bold;
-    }
-    
-    .auth-form {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .form-group {
-      margin-bottom: 15px;
-      text-align: left;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      color: #666;
-    }
-    
-    .form-group input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 1rem;
-    }
-    
-    .btn {
-      background-color: #4a90e2;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background-color 0.3s;
-      margin-top: 10px;
-    }
-    
-    .btn:hover {
-      background-color: #3a7bc8;
-    }
-    
-    .toggle-form {
-      margin-top: 15px;
-      font-size: 0.9rem;
-      color: #666;
-    }
-    
-    .toggle-form a {
-      color: #4a90e2;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    
-    .error-message {
-      color: #d9534f;
-      margin-bottom: 15px;
-      display: none;
-    }
-    
-    .dashboard {
-      display: none;
-      text-align: center;
-    }
-    
-    .dashboard-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      margin-top: 20px;
-    }
-    
-    .dashboard-btn {
-      background-color: #4a90e2;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background-color 0.3s;
-      text-decoration: none;
-      display: block;
-    }
-    
-    .dashboard-btn:hover {
-      background-color: #3a7bc8;
-    }
-  </style>
+  <link rel="stylesheet" href="auth.css">
+  <link rel="icon" href="data:;base64,=">
+  <!-- Load auth-manager.js first to ensure it's available before other scripts -->
+  <script src="auth-manager.js"></script>
 </head>
 <body>
   <div class="auth-container">
@@ -187,7 +68,7 @@
     <div id="dashboard" class="dashboard">
       <h2>Welcome, <span id="user-name"></span>!</h2>
       <div class="dashboard-buttons">
-        <a href="paste.txt" class="dashboard-btn">Create Your Mood</a>
+        <button id="create-mood-btn" class="dashboard-btn">Create Your Mood</button>
         <button class="dashboard-btn" id="add-friend-btn">Add Friend</button>
         <button class="dashboard-btn" id="view-friends-btn">View Friend's List</button>
         <button class="dashboard-btn" id="logout-btn">Log Out</button>
@@ -195,198 +76,22 @@
     </div>
   </div>
 
+  <!-- Load auth.js after auth-manager.js has been loaded -->
+  <script src="auth.js"></script>
+
   <script>
-    // Simple authentication management using in-memory storage
-    class AuthManager {
-      constructor() {
-        // Use a global variable instead of localStorage
-        window.bondTreeUsers = window.bondTreeUsers || [];
-        window.currentUser = null;
-      }
-
-      signup(name, email, password) {
-        // Check if user already exists
-        if (window.bondTreeUsers.some(user => user.email === email)) {
-          return false;
-        }
-
-        // Create new user
-        const newUser = {
-          id: Date.now().toString(),
-          name,
-          email,
-          password,
-          friends: []
-        };
-
-        window.bondTreeUsers.push(newUser);
-        return true;
-      }
-
-      login(email, password) {
-        const user = window.bondTreeUsers.find(
-          u => u.email === email && u.password === password
-        );
-
-        if (user) {
-          window.currentUser = user;
-          return true;
-        }
-        return false;
-      }
-
-      logout() {
-        window.currentUser = null;
-      }
-
-      addFriend(friendEmail) {
-        if (!window.currentUser) return false;
-
-        // Check if friend exists and is not already added
-        const friendUser = window.bondTreeUsers.find(u => u.email === friendEmail);
-        if (!friendUser || window.currentUser.friends.includes(friendEmail)) {
-          return false;
-        }
-
-        window.currentUser.friends.push(friendEmail);
-        
-        // Update users array
-        const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
-        if (userIndex !== -1) {
-          window.bondTreeUsers[userIndex] = window.currentUser;
-        }
-
-        return true;
-      }
-
-      getFriends() {
-        if (!window.currentUser) return [];
-        return window.currentUser.friends;
-      }
-    }
-
-    // Initialize authentication manager
-    const authManager = new AuthManager();
-
-    // DOM Elements
-    const loginForm = document.getElementById('login-form');
-    const signupForm = document.getElementById('signup-form');
-    const dashboardForm = document.getElementById('dashboard');
-    
-    const loginBtn = document.getElementById('login-btn');
-    const signupBtn = document.getElementById('signup-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const addFriendBtn = document.getElementById('add-friend-btn');
-    const viewFriendsBtn = document.getElementById('view-friends-btn');
-    
-    const showSignupLink = document.getElementById('show-signup');
-    const showLoginLink = document.getElementById('show-login');
-    
-    const loginError = document.getElementById('login-error');
-    const signupError = document.getElementById('signup-error');
-    const userNameSpan = document.getElementById('user-name');
-
-    // Toggle between login and signup forms
-    showSignupLink.addEventListener('click', () => {
-      loginForm.style.display = 'none';
-      signupForm.style.display = 'block';
-      loginError.style.display = 'none';
-    });
-
-    showLoginLink.addEventListener('click', () => {
-      signupForm.style.display = 'none';
-      loginForm.style.display = 'block';
-      signupError.style.display = 'none';
-    });
-
-    // Login functionality
-    loginBtn.addEventListener('click', () => {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-
-      if (authManager.login(email, password)) {
-        // Show dashboard
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'none';
-        dashboardForm.style.display = 'block';
-        userNameSpan.textContent = window.currentUser.name;
-        loginError.style.display = 'none';
-      } else {
-        loginError.textContent = 'Invalid email or password';
-        loginError.style.display = 'block';
+    // Check if user is already logged in to show dashboard directly
+    document.addEventListener('DOMContentLoaded', () => {
+      const authManager = new window.AuthManager();
+      
+      if (window.currentUser) {
+        // User is already logged in, show dashboard
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('signup-form').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('user-name').textContent = window.currentUser.name;
       }
     });
-
-    // Signup functionality
-    signupBtn.addEventListener('click', () => {
-      const name = document.getElementById('signup-name').value;
-      const email = document.getElementById('signup-email').value;
-      const password = document.getElementById('signup-password').value;
-      const confirmPassword = document.getElementById('signup-confirm-password').value;
-
-      // Validate inputs
-      if (!name || !email || !password) {
-        signupError.textContent = 'Please fill in all fields';
-        signupError.style.display = 'block';
-        return;
-      }
-
-      if (password !== confirmPassword) {
-        signupError.textContent = 'Passwords do not match';
-        signupError.style.display = 'block';
-        return;
-      }
-
-      if (authManager.signup(name, email, password)) {
-        // Automatically log in after signup
-        authManager.login(email, password);
-        
-        // Show dashboard
-        loginForm.style.display = 'none';
-        signupForm.style.display = 'none';
-        dashboardForm.style.display = 'block';
-        userNameSpan.textContent = name;
-        signupError.style.display = 'none';
-      } else {
-        signupError.textContent = 'Email already exists';
-        signupError.style.display = 'block';
-      }
-    });
-
-    // Logout functionality
-    logoutBtn.addEventListener('click', () => {
-      authManager.logout();
-      dashboardForm.style.display = 'none';
-      loginForm.style.display = 'block';
-    });
-
-    // Add Friend functionality
-    addFriendBtn.addEventListener('click', () => {
-      const friendEmail = prompt('Enter your friend\'s email:');
-      if (friendEmail) {
-        if (authManager.addFriend(friendEmail)) {
-          alert('Friend added successfully!');
-        } else {
-          alert('Could not add friend. They may not exist or are already in your list.');
-        }
-      }
-    });
-
-    // View Friends functionality
-    viewFriendsBtn.addEventListener('click', () => {
-      const friends = authManager.getFriends();
-      if (friends.length > 0) {
-        alert('Your friends:\n' + friends.join('\n'));
-      } else {
-        alert('You have no friends added yet.');
-      }
-    });
-
-    // Pre-populate with some sample users
-    if (window.bondTreeUsers.length === 0) {
-      authManager.signup('John Doe', 'john@example.com', 'password123');
-      authManager.signup('Jane Smith', 'jane@example.com', 'password456');
-    }
   </script>
 </body>
 </html>

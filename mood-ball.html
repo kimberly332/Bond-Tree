@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bond Tree - Mood Ball</title>
+  <link rel="stylesheet" href="mood-ball.css">
+  <link rel="icon" href="data:;base64,=">
+  <!-- Load auth-manager.js first to ensure it's available before other scripts -->
+  <script src="auth-manager.js"></script>
+</head>
+<body>
+  <div id="login-warning" style="display: none; color: red; text-align: center; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 30px auto; max-width: 500px;">
+    <h3>Please log in first!</h3>
+    <p>You need to be logged in to use this feature.</p>
+    <a href="index.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: #4a90e2; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
+  </div>
+
+  <button class="back-btn" id="back-to-dashboard">←</button>
+  
+  <header>
+    <h1>Bond Tree</h1>
+    <div class="tagline">Let's grow your bondship</div>
+  </header>
+  
+  <div class="container">
+    <div class="section">
+      <h2 class="section-title">Let's create your mood ball!</h2>
+      
+      <div class="mood-display">
+        <div class="mood-ball" id="current-mood-ball">
+          <!-- Mood sections will be added by JavaScript -->
+        </div>
+        <div class="selection-info" id="selection-info">
+          Select up to 3 emotions
+        </div>
+      </div>
+      
+      <h3 class="section-title">Choose your feelings</h3>
+      
+      <div class="mood-colors">
+        <div class="color-option" data-color="#8BC34A" data-name="Calm">
+          <div class="color-sample">
+            <div style="background-color: #8BC34A; width: 100%; height: 100%;"></div>
+          </div>
+          <span class="color-name">Calm</span>
+        </div>
+        
+        <div class="color-option" data-color="#3F51B5" data-name="Sad">
+          <div class="color-sample">
+            <div style="background-color: #3F51B5; width: 100%; height: 100%;"></div>
+          </div>
+          <span class="color-name">Sad</span>
+        </div>
+        
+        <div class="color-option" data-color="#9C27B0" data-name="Tired">
+          <div class="color-sample">
+            <div style="background-color: #9C27B0; width: 100%; height: 100%;"></div>
+          </div>
+          <span class="color-name">Tired</span>
+        </div>
+        
+        <div class="color-option" data-color="#FF9800" data-name="Anxiety">
+          <div class="color-sample">
+            <div style="background-color: #FF9800; width: 100%; height: 100%;"></div>
+          </div>
+          <span class="color-name">Anxiety</span>
+        </div>
+        
+        <div class="color-option" data-color="#FFEB3B" data-name="Happy">
+          <div class="color-sample">
+            <div style="background-color: #FFEB3B; width: 100%; height: 100%;"></div>
+          </div>
+          <span class="color-name">Happy</span>
+        </div>
+        
+        <div class="color-option" data-color="#E91E63" data-name="Angry">
+          <div class="color-sample">
+            <div style="background-color: #E91E63; width: 100%; height: 100%;"></div>
+          </div>
+          <span class="color-name">Angry</span>
+        </div>
+      </div>
+      
+      <div class="save-section">
+        <button id="save-button">Save Today's Mood</button>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">Your Mood History</h2>
+      <div class="saved-moods" id="saved-moods-container">
+        <!-- Saved moods will be added here by JavaScript -->
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <p>Bond Tree - Connect with your emotions and share with friends</p>
+  </footer>
+
+  <!-- Load mood-ball.js after DOM content is ready -->
+  <script src="mood-ball.js"></script>
+</body>
+</html>
