@@ -151,266 +151,264 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  // Function to create and show the friends modal
-  function showFriendsModal(authManager) {
-    // Remove any existing modal first
-    const existingModal = document.querySelector('.modal-overlay');
-    if (existingModal) {
-      document.body.removeChild(existingModal);
-    }
-    
-    // Create the modal structure
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'modal-overlay';
-    
-    const modalHTML = `
-      <div class="modal-container">
-        <div class="modal-header">
-          <h2 class="modal-title">Friends List</h2>
-          <button class="modal-close">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div class="friends-list">
-            <!-- Friends will be added here -->
-          </div>
+  // Updated showFriendsModal function with new card-based layout
+function showFriendsModal(authManager) {
+  // Remove any existing modal first
+  const existingModal = document.querySelector('.modal-overlay');
+  if (existingModal) {
+    document.body.removeChild(existingModal);
+  }
+  
+  // Create the modal structure
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
+  
+  const modalHTML = `
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">Friend's Mood</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="bondship-container">
+          <!-- Tree and status will be added dynamically -->
         </div>
       </div>
-    `;
-    
-    modalOverlay.innerHTML = modalHTML;
-    document.body.appendChild(modalOverlay);
-    
-    // Add close button functionality
-    const closeButton = modalOverlay.querySelector('.modal-close');
-    closeButton.addEventListener('click', () => {
+    </div>
+  `;
+  
+  modalOverlay.innerHTML = modalHTML;
+  document.body.appendChild(modalOverlay);
+  
+  // Add close button functionality
+  const closeButton = modalOverlay.querySelector('.modal-close');
+  closeButton.addEventListener('click', () => {
+    document.body.removeChild(modalOverlay);
+  });
+  
+  // Click outside to close
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
       document.body.removeChild(modalOverlay);
-    });
-    
-    // Click outside to close
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        document.body.removeChild(modalOverlay);
-      }
-    });
-    
-    // Get the friends list element
-    const friendsList = modalOverlay.querySelector('.friends-list');
-    
-    // Get friends data
-    const friendsData = authManager.getFriendsData ? 
-                       authManager.getFriendsData() : 
-                       getFriendsDataFallback(authManager);
-    
-    // Display empty state if no friends
-    if (!friendsData || friendsData.length === 0) {
-      friendsList.innerHTML = `
-        <div class="empty-message">
-          <p>You have no friends added yet. Use the "Add Friend" button to connect with others.</p>
-        </div>
-      `;
-      return;
     }
-    
-    // Display each friend
-    let friendsHTML = '';
-    
-    friendsData.forEach(friend => {
-      const moodsHTML = generateMoodsHTML(friend.savedMoods || []);
-      
-      friendsHTML += `
-        <div class="friend-card">
-          <div class="friend-info">
-            <h3 class="friend-name">${friend.name}</h3>
-            <p class="friend-email">${friend.email}</p>
-          </div>
-          
-          <h4 class="moods-title">Recent Moods</h4>
-          ${moodsHTML}
+  });
+  
+  // Get the bondship container
+  const bondshipContainer = modalOverlay.querySelector('.bondship-container');
+  
+  // Get friends data
+  const friendsData = authManager.getFriendsData ? 
+                     authManager.getFriendsData() : 
+                     getFriendsDataFallback(authManager);
+  
+  // Display empty state if no friends
+  if (!friendsData || friendsData.length === 0) {
+    bondshipContainer.innerHTML = `
+      <div class="empty-message">
+        <p>You have no friends added yet. Use the "Add Friend" button to connect with others.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Create the tree and status section
+  const treeHTML = `
+    <div class="bondship-tree">
+      <div class="tree-container">
+        <div class="tree-icon">
+          <!-- SVG tree can be added here -->
         </div>
-      `;
-    });
-    
-    friendsList.innerHTML = friendsHTML;
-    
-    // Now add the mood sections dynamically (this can't be done in innerHTML)
-    const moodBalls = modalOverlay.querySelectorAll('.mood-ball');
-    moodBalls.forEach(ball => {
-      const moodsData = JSON.parse(ball.getAttribute('data-moods'));
-      const sectionHeight = 100 / moodsData.length;
-      
-      moodsData.forEach((mood, index) => {
-        const section = document.createElement('div');
-        section.className = 'mood-section';
-        section.style.backgroundColor = mood.color;
-        section.style.height = `${sectionHeight}%`;
-        section.style.top = `${index * sectionHeight}%`;
-        ball.appendChild(section);
-      });
-    });
-    
-    // Set up note indicators for viewing notes
-    setupNoteIndicators();
+        <div class="tree-pot"></div>
+      </div>
+    </div>
+    <div class="bondship-status">
+      <h3>${getBondshipStatus(friendsData)}</h3>
+    </div>
+    <div class="friend-cards-container">
+      <!-- Friend cards will be added here -->
+    </div>
+  `;
+  
+  bondshipContainer.innerHTML = treeHTML;
+  
+  // Get the cards container
+  const cardsContainer = bondshipContainer.querySelector('.friend-cards-container');
+  
+  // Add current user card first
+  const currentUserMoods = window.currentUser.savedMoods || [];
+  const latestUserMood = currentUserMoods.length > 0 ? 
+    currentUserMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+  
+  if (latestUserMood) {
+    const userCard = createFriendCard('Me', latestUserMood, true);
+    cardsContainer.appendChild(userCard);
   }
   
-  // Generate HTML for mood items
-  function generateMoodsHTML(moods) {
-    if (!moods || moods.length === 0) {
-      return `<div class="no-moods">No moods shared yet.</div>`;
+  // Add friend cards
+  friendsData.forEach(friend => {
+    const latestMood = friend.savedMoods && friend.savedMoods.length > 0 ? 
+      friend.savedMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+    
+    if (latestMood) {
+      const friendCard = createFriendCard(friend.name, latestMood, false);
+      cardsContainer.appendChild(friendCard);
     }
-    
-    // Only show the 5 most recent moods
-    // Sort by timestamp if available
-    const sortedMoods = [...moods].sort((a, b) => {
-      if (a.timestamp && b.timestamp) {
-        return b.timestamp - a.timestamp; // Newest first
-      }
-      return 0; // Keep original order if no timestamp
-    });
-    
-    const recentMoods = sortedMoods.slice(0, 5); // Just take the first 5 after sorting
-    
-    let moodsHTML = `<div class="moods-container">`;
-    
-    recentMoods.forEach(mood => {
-      // Store the mood data as a JSON string in the data attribute
-      const moodsData = JSON.stringify(mood.moods);
-      const moodNames = mood.moods.map(m => m.name).join(', ');
-      
-      // Create time display information
-      const timeInfo = mood.time ? 
-        `<span class="mood-time" title="Recorded at ${mood.time}">${mood.time}</span>` : '';
-      
-      // Add note icon if there are notes
-      const noteIndicator = mood.notes ? 
-        `<span class="mood-note-indicator" data-notes="${encodeURIComponent(mood.notes)}" data-date="${mood.date}" data-time="${mood.time || ''}">📝</span>` : '';
-      
-      moodsHTML += `
-        <div class="mood-item">
-          <div class="mood-ball" data-moods='${moodsData}'></div>
-          <span class="mood-date">${mood.date}</span>
-          ${timeInfo}
-          <span class="mood-names" title="${moodNames}">${moodNames}</span>
-          ${noteIndicator}
-        </div>
-      `;
-    });
-    
-    moodsHTML += `</div>`;
-    return moodsHTML;
+  });
+  
+  // Add the tree icon SVG
+  const treeIconElement = bondshipContainer.querySelector('.tree-icon');
+  treeIconElement.innerHTML = generateTreeSvg(getBondshipHealth(friendsData));
+  
+  // Set up note indicators for viewing notes
+  setupNoteIndicators();
+}
+
+// Helper function to create a friend card
+function createFriendCard(name, mood, isCurrentUser) {
+  const card = document.createElement('div');
+  card.className = 'friend-card';
+  
+  // Create mood gradient
+  const moodColors = getMoodGradient(mood.moods);
+  
+  // Create card HTML
+  card.innerHTML = `
+    <div class="friend-name">${name}</div>
+    <div class="friend-mood-circle" style="background: ${moodColors}"></div>
+    <div class="friend-mood-name">${getMoodName(mood.moods)}</div>
+    <div class="mood-reactions">
+      <div class="reaction-emoji reaction-emoji-happy">😊</div>
+      <div class="reaction-emoji reaction-emoji-ok">😐</div>
+      <div class="reaction-emoji reaction-emoji-sad">😔</div>
+    </div>
+  `;
+  
+  // Add note indicator if there are notes
+  if (mood.notes) {
+    const moodName = card.querySelector('.friend-mood-name');
+    const noteIndicator = document.createElement('div');
+    noteIndicator.className = 'mood-note-indicator';
+    noteIndicator.setAttribute('data-notes', encodeURIComponent(mood.notes));
+    noteIndicator.setAttribute('data-date', mood.date);
+    noteIndicator.setAttribute('data-time', mood.time || '');
+    noteIndicator.textContent = '📝';
+    noteIndicator.style.marginLeft = '5px';
+    noteIndicator.style.cursor = 'pointer';
+    moodName.appendChild(noteIndicator);
   }
   
-  // Setup note indicators for viewing notes
-  function setupNoteIndicators() {
-    // Find all note indicators in the modal
-    const noteIndicators = document.querySelectorAll('.mood-note-indicator');
-    
-    noteIndicators.forEach(indicator => {
-      indicator.addEventListener('click', (e) => {
-        // Get note data from data attributes
-        const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
-        const date = indicator.getAttribute('data-date');
-        const time = indicator.getAttribute('data-time');
-        
-        // Create and show the note modal
-        showFriendNoteModal(notes, date, time);
-        
-        // Prevent event from bubbling up
-        e.stopPropagation();
-      });
-    });
+  return card;
+}
+
+// Helper function to generate mood gradient
+function getMoodGradient(moods) {
+  if (!moods || moods.length === 0) {
+    return 'linear-gradient(to bottom, #f0f0f0, #d0d0d0)';
   }
   
-  // Show the note modal for friends' notes
-  function showFriendNoteModal(notes, date, time) {
-    try {
-      // Remove any existing modal
-      const existingModal = document.querySelector('.friend-note-modal');
-      if (existingModal) {
-        document.body.removeChild(existingModal);
-      }
-      
-      // Create modal elements
-      const modal = document.createElement('div');
-      modal.className = 'friend-note-modal';
-      
-      const modalContent = document.createElement('div');
-      modalContent.className = 'friend-note-modal-content';
-      
-      // Create header with date and close button
-      const header = document.createElement('div');
-      header.className = 'friend-note-header';
-      
-      const dateDisplay = document.createElement('div');
-      dateDisplay.className = 'friend-note-date';
-      dateDisplay.textContent = time ? `${date} at ${time}` : date;
-      
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'friend-note-close';
-      closeBtn.innerHTML = '&times;';
-      closeBtn.setAttribute('aria-label', 'Close');
-      closeBtn.addEventListener('click', () => {
-        document.body.removeChild(modal);
-      });
-      
-      header.appendChild(dateDisplay);
-      header.appendChild(closeBtn);
-      
-      // Create note body
-      const body = document.createElement('div');
-      body.className = 'friend-note-body';
-      body.textContent = notes;
-      
-      // Assemble the modal
-      modalContent.appendChild(header);
-      modalContent.appendChild(body);
-      modal.appendChild(modalContent);
-      
-      // Add click handler to close when clicking outside the content
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          document.body.removeChild(modal);
-        }
-      });
-      
-      // Add keyboard handling for accessibility
-      modal.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          document.body.removeChild(modal);
-        }
-      });
-      
-      // Add to document body
-      document.body.appendChild(modal);
-      
-      // Focus the close button for keyboard accessibility
-      setTimeout(() => closeBtn.focus(), 100);
-    } catch (error) {
-      console.error("Error showing friend note modal:", error);
-      alert(`Note from ${date}: ${notes}`);
-    }
+  if (moods.length === 1) {
+    return moods[0].color;
   }
   
-  // Fallback method to get friends data if the enhanced AuthManager method isn't available
-  function getFriendsDataFallback(authManager) {
-    if (!window.currentUser) return [];
-    
-    const friendEmails = authManager.getFriends();
-    const friendsData = [];
-    
-    friendEmails.forEach(email => {
-      // Find the user in bondTreeUsers
-      const user = window.bondTreeUsers.find(u => u.email === email);
-      if (user) {
-        // Create a safe copy without the password
-        const safeUser = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          savedMoods: user.savedMoods || []
-        };
-        friendsData.push(safeUser);
-      }
-    });
-    
-    return friendsData;
+  // For two or more moods, create a gradient
+  const colorStops = moods.map((mood, index) => {
+    const percent = (index * 100) / (moods.length - 1);
+    return `${mood.color} ${percent}%`;
+  }).join(', ');
+  
+  return `linear-gradient(to bottom, ${colorStops})`;
+}
+
+// Helper function to get mood name
+function getMoodName(moods) {
+  if (!moods || moods.length === 0) {
+    return 'No Mood';
   }
+  
+  if (moods.length === 1) {
+    return moods[0].name;
+  }
+  
+  // For multiple moods, create a compound name or use the first
+  // You can customize this logic based on your preference
+  if (moods.length === 2) {
+    return `${moods[0].name} + ${moods[1].name}`;
+  }
+  
+  return `${moods[0].name} & more`;
+}
+
+// Helper function to get bondship status text
+function getBondshipStatus(friendsData) {
+  const health = getBondshipHealth(friendsData);
+  
+  if (health >= 80) {
+    return 'Blossoming Bondship!';
+  } else if (health >= 60) {
+    return 'A Healthy Bondship!';
+  } else if (health >= 40) {
+    return 'Growing Bondship!';
+  } else if (health >= 20) {
+    return 'New Bondship!';
+  } else {
+    return 'Plant Your Bondship!';
+  }
+}
+
+// Helper function to calculate bondship health (0-100)
+function getBondshipHealth(friendsData) {
+  if (!friendsData || friendsData.length === 0) {
+    return 0;
+  }
+  
+  // Simple health calculation based on number of friends and mood entries
+  const friendCount = friendsData.length;
+  const totalMoodEntries = friendsData.reduce((sum, friend) => 
+    sum + (friend.savedMoods ? friend.savedMoods.length : 0), 0);
+  
+  // Current user mood entries
+  const currentUserMoods = window.currentUser.savedMoods ? 
+    window.currentUser.savedMoods.length : 0;
+  
+  // Calculate health (customize this logic as needed)
+  let health = 20; // Base health
+  
+  // Add points for friends
+  health += Math.min(40, friendCount * 10);
+  
+  // Add points for engagement (mood entries)
+  const totalEntries = totalMoodEntries + currentUserMoods;
+  health += Math.min(40, totalEntries * 2);
+  
+  return Math.min(100, health);
+}
+
+// Helper function to generate tree SVG
+function generateTreeSvg(health) {
+  // Choose color based on health
+  let leafColor;
+  
+  if (health >= 80) {
+    leafColor = '#FF80AB'; // Pink for blossoming
+  } else if (health >= 50) {
+    leafColor = '#8BC34A'; // Green for healthy
+  } else if (health >= 30) {
+    leafColor = '#AED581'; // Light green for growing
+  } else {
+    leafColor = '#C5E1A5'; // Very light green for new
+  }
+  
+  return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+    <!-- Tree trunk -->
+    <path d="M50 100 Q45 80 55 60 Q60 50 50 30 Q45 25 50 20" stroke="#8B4513" stroke-width="8" fill="none"/>
+    
+    <!-- Tree branches -->
+    <path d="M50 60 Q35 55 30 65" stroke="#8B4513" stroke-width="5" fill="none"/>
+    <path d="M53 50 Q70 45 75 55" stroke="#8B4513" stroke-width="5" fill="none"/>
+    
+    <!-- Tree leaves -->
+    <ellipse cx="30" cy="55" rx="15" ry="10" fill="${leafColor}"/>
+    <ellipse cx="50" cy="30" rx="20" ry="15" fill="${leafColor}"/>
+    <ellipse cx="75" cy="45" rx="15" ry="10" fill="${leafColor}"/>
+  </svg>`;
+}
