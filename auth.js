@@ -1,5 +1,7 @@
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM loaded - initializing auth.js");
+    
     // Initialize sample users
     window.initializeSampleUsers();
   
@@ -24,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginError = document.getElementById('login-error');
     const signupError = document.getElementById('signup-error');
     const userNameSpan = document.getElementById('user-name');
+  
+    console.log("DOM elements initialized");
   
     // Toggle between login and signup forms
     if (showSignupLink) {
@@ -243,64 +247,13 @@ document.addEventListener('DOMContentLoaded', () => {
         ball.appendChild(section);
       });
     });
+    
+    // Set up note indicators for viewing notes
+    setupNoteIndicators();
   }
   
   // Generate HTML for mood items
   function generateMoodsHTML(moods) {
-    if (!moods || moods.length === 0) {
-      return `<div class="no-moods">No moods shared yet.</div>`;
-    }
-    
-    // Only show the 5 most recent moods
-    const recentMoods = moods.slice(-5).reverse();
-    
-    let moodsHTML = `<div class="moods-container">`;
-    
-    recentMoods.forEach(mood => {
-      // Store the mood data as a JSON string in the data attribute
-      const moodsData = JSON.stringify(mood.moods);
-      const moodNames = mood.moods.map(m => m.name).join(', ');
-      
-      moodsHTML += `
-        <div class="mood-item">
-          <div class="mood-ball" data-moods='${moodsData}'></div>
-          <span class="mood-date">${mood.date}</span>
-          <span class="mood-names" title="${moodNames}">${moodNames}</span>
-        </div>
-      `;
-    });
-    
-    moodsHTML += `</div>`;
-    return moodsHTML;
-  }
-  
-  // Fallback method to get friends data if the enhanced AuthManager method isn't available
-  function getFriendsDataFallback(authManager) {
-    if (!window.currentUser) return [];
-    
-    const friendEmails = authManager.getFriends();
-    const friendsData = [];
-    
-    friendEmails.forEach(email => {
-      // Find the user in bondTreeUsers
-      const user = window.bondTreeUsers.find(u => u.email === email);
-      if (user) {
-        // Create a safe copy without the password
-        const safeUser = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          savedMoods: user.savedMoods || []
-        };
-        friendsData.push(safeUser);
-      }
-    });
-    
-    return friendsData;
-  }
-
-  // Generate HTML for mood items
-function generateMoodsHTML(moods) {
     if (!moods || moods.length === 0) {
       return `<div class="no-moods">No moods shared yet.</div>`;
     }
@@ -327,16 +280,137 @@ function generateMoodsHTML(moods) {
       const timeInfo = mood.time ? 
         `<span class="mood-time" title="Recorded at ${mood.time}">${mood.time}</span>` : '';
       
+      // Add note icon if there are notes
+      const noteIndicator = mood.notes ? 
+        `<span class="mood-note-indicator" data-notes="${encodeURIComponent(mood.notes)}" data-date="${mood.date}" data-time="${mood.time || ''}">📝</span>` : '';
+      
       moodsHTML += `
         <div class="mood-item">
           <div class="mood-ball" data-moods='${moodsData}'></div>
           <span class="mood-date">${mood.date}</span>
           ${timeInfo}
           <span class="mood-names" title="${moodNames}">${moodNames}</span>
+          ${noteIndicator}
         </div>
       `;
     });
     
     moodsHTML += `</div>`;
     return moodsHTML;
+  }
+  
+  // Setup note indicators for viewing notes
+  function setupNoteIndicators() {
+    // Find all note indicators in the modal
+    const noteIndicators = document.querySelectorAll('.mood-note-indicator');
+    
+    noteIndicators.forEach(indicator => {
+      indicator.addEventListener('click', (e) => {
+        // Get note data from data attributes
+        const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
+        const date = indicator.getAttribute('data-date');
+        const time = indicator.getAttribute('data-time');
+        
+        // Create and show the note modal
+        showFriendNoteModal(notes, date, time);
+        
+        // Prevent event from bubbling up
+        e.stopPropagation();
+      });
+    });
+  }
+  
+  // Show the note modal for friends' notes
+  function showFriendNoteModal(notes, date, time) {
+    try {
+      // Remove any existing modal
+      const existingModal = document.querySelector('.friend-note-modal');
+      if (existingModal) {
+        document.body.removeChild(existingModal);
+      }
+      
+      // Create modal elements
+      const modal = document.createElement('div');
+      modal.className = 'friend-note-modal';
+      
+      const modalContent = document.createElement('div');
+      modalContent.className = 'friend-note-modal-content';
+      
+      // Create header with date and close button
+      const header = document.createElement('div');
+      header.className = 'friend-note-header';
+      
+      const dateDisplay = document.createElement('div');
+      dateDisplay.className = 'friend-note-date';
+      dateDisplay.textContent = time ? `${date} at ${time}` : date;
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'friend-note-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.setAttribute('aria-label', 'Close');
+      closeBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+      });
+      
+      header.appendChild(dateDisplay);
+      header.appendChild(closeBtn);
+      
+      // Create note body
+      const body = document.createElement('div');
+      body.className = 'friend-note-body';
+      body.textContent = notes;
+      
+      // Assemble the modal
+      modalContent.appendChild(header);
+      modalContent.appendChild(body);
+      modal.appendChild(modalContent);
+      
+      // Add click handler to close when clicking outside the content
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          document.body.removeChild(modal);
+        }
+      });
+      
+      // Add keyboard handling for accessibility
+      modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          document.body.removeChild(modal);
+        }
+      });
+      
+      // Add to document body
+      document.body.appendChild(modal);
+      
+      // Focus the close button for keyboard accessibility
+      setTimeout(() => closeBtn.focus(), 100);
+    } catch (error) {
+      console.error("Error showing friend note modal:", error);
+      alert(`Note from ${date}: ${notes}`);
+    }
+  }
+  
+  // Fallback method to get friends data if the enhanced AuthManager method isn't available
+  function getFriendsDataFallback(authManager) {
+    if (!window.currentUser) return [];
+    
+    const friendEmails = authManager.getFriends();
+    const friendsData = [];
+    
+    friendEmails.forEach(email => {
+      // Find the user in bondTreeUsers
+      const user = window.bondTreeUsers.find(u => u.email === email);
+      if (user) {
+        // Create a safe copy without the password
+        const safeUser = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          savedMoods: user.savedMoods || []
+        };
+        friendsData.push(safeUser);
+      }
+    });
+    
+    return friendsData;
   }

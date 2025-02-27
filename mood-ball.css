@@ -123,6 +123,11 @@
     background-color: #3a7bc8;
   }
   
+  button:disabled {
+    background-color: #a9c7e8;
+    cursor: not-allowed;
+  }
+  
   .section-title {
     text-align: center;
     margin: 15px 0;
@@ -179,8 +184,9 @@
   
   .saved-mood {
     flex: 0 0 auto;
-    width: min(80px, 20vw);
+    width: min(100px, 24vw);
     text-align: center;
+    margin-bottom: 5px;
   }
   
   .saved-mood-ball {
@@ -193,46 +199,6 @@
     position: relative;
   }
   
-  .date {
-    font-size: clamp(0.6rem, 2vw, 0.8rem);
-    color: #666;
-  }
-  
-  .selection-info {
-    text-align: center;
-    margin-top: 5px;
-    font-size: clamp(0.8rem, 2.5vw, 0.9rem);
-    color: #666;
-  }
-  
-  .back-btn {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    background-color: #f0f0f0;
-    color: #333;
-    border: none;
-    padding: 10px;
-    border-radius: 50%;
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 10;
-  }
-  
-  .back-btn:hover {
-    background-color: #e0e0e0;
-  }
-  
-  .back-btn::before {
-    content: '←';
-    font-size: 1.2rem;
-  }
-
   .mood-date-container {
     display: flex;
     flex-direction: column;
@@ -251,9 +217,192 @@
     color: #888;
   }
   
-  /* Update for saved-mood to accommodate time display */
-  .saved-mood {
-    flex: 0 0 auto;
-    width: min(90px, 22vw); /* Slightly wider to fit the time */
+  .selection-info {
     text-align: center;
+    margin-top: 5px;
+    font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+    color: #666;
+  }
+  
+  .back-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background-color: #f0f0f0;
+    color: #333;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 10;
+    padding: 0;
+  }
+  
+  /* Remove the existing ::before pseudo-element */
+  .back-btn::before {
+    content: none;
+  }
+  
+  .back-btn:hover {
+    background-color: #e0e0e0;
+  }
+  
+  /* Mood Notes Section */
+  .mood-notes-section {
+    margin: 20px 0;
+  }
+  
+  .form-group {
+    position: relative;
+    margin-bottom: 10px;
+  }
+  
+  #mood-notes {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 1rem;
+    min-height: 80px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    transition: border-color 0.3s;
+  }
+  
+  #mood-notes:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+  
+  .char-counter {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 0.75rem;
+    color: #999;
+    pointer-events: none;
+  }
+  
+  /* Styles for displaying saved notes */
+  .saved-mood-details {
+    margin-top: 10px;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .mood-note-preview {
+    font-size: clamp(0.6rem, 2vw, 0.75rem);
+    color: #777;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+    margin: 0 auto;
+    cursor: pointer;
+  }
+  
+  .mood-note-icon {
+    display: inline-block;
+    margin-right: 3px;
+    color: #999;
+  }
+  
+  /* Modal for displaying full note - Fixed styling */
+  .note-modal, .friend-note-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  
+  .note-modal-content, .friend-note-modal-content {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  
+  /* Improved header styling */
+  .note-header, .friend-note-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    position: relative;
+    padding: 15px 40px 15px 15px; /* Extra padding for close button */
+  }
+  
+  /* Fixed close button positioning */
+  .note-close, .friend-note-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #777;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 20px;
+  }
+  
+  .note-close:hover, .friend-note-close:hover {
+    background-color: rgba(0,0,0,0.05);
+    color: #333;
+  }
+  
+  /* Make the date more prominent */
+  .note-date, .friend-note-date {
+    font-weight: bold;
+    color: #4a90e2;
+    text-align: center;
+  }
+  
+  /* Better content styling */
+  .note-body, .friend-note-body {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    padding: 10px 0;
+    color: #333;
+  }
+  
+  /* Note indicator in friends modal */
+  .mood-note-indicator {
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin-top: 3px;
+    color: #888;
+    transition: transform 0.2s;
+  }
+  
+  .mood-note-indicator:hover {
+    transform: scale(1.2);
+    color: #4a90e2;
   }

@@ -110,41 +110,48 @@ class AuthManager {
     }
   
     // Save mood with synchronization to users array
-    saveMood(moods) {
+    // Support both old and new method signatures for backward compatibility
+    saveMood(moods, notes = '') {
       if (!window.currentUser) return false;
   
-      // Ensure data is fresh
-      this.loadFromStorage();
+      try {
+        // Ensure data is fresh
+        this.loadFromStorage();
   
-      const now = new Date();
-      
-      // Format the date as MM/DD
-      const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
-      
-      // Format the time as HH:MM
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const formattedHours = hours % 12 || 12; // Convert to 12-hour format
-      const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+        const now = new Date();
+        
+        // Format the date as MM/DD
+        const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
+        
+        // Format the time as HH:MM
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHours = hours % 12 || 12; // Convert to 12-hour format
+        const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
   
-      // Add mood to current user's saved moods with timestamp
-      window.currentUser.savedMoods = window.currentUser.savedMoods || [];
-      window.currentUser.savedMoods.push({
-        date: formattedDate,
-        time: formattedTime,
-        timestamp: now.getTime(), // Store timestamp for sorting
-        moods: [...moods]
-      });
+        // Add mood to current user's saved moods with timestamp and notes
+        window.currentUser.savedMoods = window.currentUser.savedMoods || [];
+        window.currentUser.savedMoods.push({
+          date: formattedDate,
+          time: formattedTime,
+          timestamp: now.getTime(), // Store timestamp for sorting
+          moods: [...moods],
+          notes: notes.trim() // Store notes if provided
+        });
   
-      // Update users array
-      const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
-      if (userIndex !== -1) {
-        window.bondTreeUsers[userIndex].savedMoods = [...window.currentUser.savedMoods];
+        // Update users array
+        const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
+        if (userIndex !== -1) {
+          window.bondTreeUsers[userIndex].savedMoods = [...window.currentUser.savedMoods];
+        }
+  
+        this.saveToStorage();
+        return true;
+      } catch (error) {
+        console.error("Error saving mood:", error);
+        return false;
       }
-  
-      this.saveToStorage();
-      return true;
     }
   
     // Get saved moods
