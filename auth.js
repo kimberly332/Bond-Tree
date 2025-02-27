@@ -298,3 +298,45 @@ document.addEventListener('DOMContentLoaded', () => {
     
     return friendsData;
   }
+
+  // Generate HTML for mood items
+function generateMoodsHTML(moods) {
+    if (!moods || moods.length === 0) {
+      return `<div class="no-moods">No moods shared yet.</div>`;
+    }
+    
+    // Only show the 5 most recent moods
+    // Sort by timestamp if available
+    const sortedMoods = [...moods].sort((a, b) => {
+      if (a.timestamp && b.timestamp) {
+        return b.timestamp - a.timestamp; // Newest first
+      }
+      return 0; // Keep original order if no timestamp
+    });
+    
+    const recentMoods = sortedMoods.slice(0, 5); // Just take the first 5 after sorting
+    
+    let moodsHTML = `<div class="moods-container">`;
+    
+    recentMoods.forEach(mood => {
+      // Store the mood data as a JSON string in the data attribute
+      const moodsData = JSON.stringify(mood.moods);
+      const moodNames = mood.moods.map(m => m.name).join(', ');
+      
+      // Create time display information
+      const timeInfo = mood.time ? 
+        `<span class="mood-time" title="Recorded at ${mood.time}">${mood.time}</span>` : '';
+      
+      moodsHTML += `
+        <div class="mood-item">
+          <div class="mood-ball" data-moods='${moodsData}'></div>
+          <span class="mood-date">${mood.date}</span>
+          ${timeInfo}
+          <span class="mood-names" title="${moodNames}">${moodNames}</span>
+        </div>
+      `;
+    });
+    
+    moodsHTML += `</div>`;
+    return moodsHTML;
+  }

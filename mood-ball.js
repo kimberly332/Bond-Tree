@@ -161,7 +161,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
-      savedMoods.forEach(saved => {
+      // Sort moods by timestamp if available, otherwise keep original order
+      const sortedMoods = [...savedMoods].sort((a, b) => {
+        if (a.timestamp && b.timestamp) {
+          return b.timestamp - a.timestamp; // Newest first
+        }
+        return 0; // Keep original order if no timestamp
+      });
+      
+      sortedMoods.forEach(saved => {
         const savedMoodElement = document.createElement('div');
         savedMoodElement.className = 'saved-mood';
         
@@ -181,12 +189,24 @@ document.addEventListener('DOMContentLoaded', () => {
           savedBall.appendChild(section);
         });
         
+        const dateContainer = document.createElement('div');
+        dateContainer.className = 'mood-date-container';
+        
         const dateElement = document.createElement('div');
         dateElement.className = 'date';
         dateElement.textContent = saved.date;
+        dateContainer.appendChild(dateElement);
+        
+        // Add time if available
+        if (saved.time) {
+          const timeElement = document.createElement('div');
+          timeElement.className = 'time';
+          timeElement.textContent = saved.time;
+          dateContainer.appendChild(timeElement);
+        }
         
         savedMoodElement.appendChild(savedBall);
-        savedMoodElement.appendChild(dateElement);
+        savedMoodElement.appendChild(dateContainer);
         
         savedMoodsContainer.appendChild(savedMoodElement);
       });

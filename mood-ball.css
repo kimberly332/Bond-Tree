@@ -232,3 +232,28 @@
     content: '←';
     font-size: 1.2rem;
   }
+
+  .mood-date-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 5px;
+  }
+  
+  .date {
+    font-size: clamp(0.6rem, 2vw, 0.8rem);
+    color: #666;
+    margin-bottom: 2px;
+  }
+  
+  .time {
+    font-size: clamp(0.55rem, 1.8vw, 0.7rem);
+    color: #888;
+  }
+  
+  /* Update for saved-mood to accommodate time display */
+  .saved-mood {
+    flex: 0 0 auto;
+    width: min(90px, 22vw); /* Slightly wider to fit the time */
+    text-align: center;
+  }

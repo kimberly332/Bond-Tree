@@ -116,13 +116,24 @@ class AuthManager {
       // Ensure data is fresh
       this.loadFromStorage();
   
-      const today = new Date();
-      const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
+      const now = new Date();
+      
+      // Format the date as MM/DD
+      const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
+      
+      // Format the time as HH:MM
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12; // Convert to 12-hour format
+      const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
   
-      // Add mood to current user's saved moods
+      // Add mood to current user's saved moods with timestamp
       window.currentUser.savedMoods = window.currentUser.savedMoods || [];
       window.currentUser.savedMoods.push({
         date: formattedDate,
+        time: formattedTime,
+        timestamp: now.getTime(), // Store timestamp for sorting
         moods: [...moods]
       });
   
