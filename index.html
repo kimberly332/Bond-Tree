@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mood Ball Creator</title>
+  <title>Bond Tree - Authentication</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,530 +16,377 @@
       background-color: #f5f5f7;
       color: #333;
       line-height: 1.6;
-    }
-    
-    header {
-      background-color: #4a90e2;
-      color: white;
-      padding: 15px 10px;
-      text-align: center;
-    }
-    
-    h1 {
-      margin: 0;
-      font-size: clamp(1.5rem, 5vw, 2rem);
-    }
-    
-    .tagline {
-      font-style: italic;
-      margin-top: 5px;
-      font-size: clamp(0.8rem, 3vw, 1rem);
-    }
-    
-    .container {
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
       padding: 15px;
     }
     
-    .mood-display {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    
-    .mood-ball {
-      width: min(200px, 50vw);
-      height: min(200px, 50vw);
-      border-radius: 50%;
-      margin: 20px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      transition: all 0.3s ease;
-      overflow: hidden;
-      position: relative;
-      background-color: #fff;
-    }
-    
-    .mood-colors {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-      gap: 15px;
-      justify-content: center;
-      margin-bottom: 30px;
+    .auth-container {
+      background-color: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
       width: 100%;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
+      max-width: 400px;
+      padding: 30px;
+      text-align: center;
     }
     
-    .color-option {
+    .logo {
+      font-size: 2.5rem;
+      color: #4a90e2;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    
+    .auth-form {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-      transition: transform 0.2s;
-      padding: 5px;
     }
     
-    .color-option:hover {
-      transform: scale(1.05);
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
     }
     
-    .color-option.selected {
-      background-color: rgba(0,0,0,0.05);
-      border-radius: 10px;
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #666;
     }
     
-    .color-sample {
-      width: min(60px, 15vw);
-      height: min(60px, 15vw);
-      border-radius: 50%;
-      border: 2px solid #ddd;
-      overflow: hidden;
-      position: relative;
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
     }
     
-    .color-name {
-      margin-top: 5px;
-      font-size: clamp(0.7rem, 2.5vw, 0.9rem);
-      font-weight: bold;
-      text-align: center;
-    }
-    
-    .save-section {
-      text-align: center;
-      margin-top: 20px;
-    }
-    
-    button {
+    .btn {
       background-color: #4a90e2;
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
+      padding: 12px;
+      border-radius: 5px;
       cursor: pointer;
-      font-size: clamp(0.8rem, 3vw, 1rem);
+      font-size: 1rem;
       transition: background-color 0.3s;
-      width: 100%;
-      max-width: 250px;
+      margin-top: 10px;
     }
     
-    button:hover {
+    .btn:hover {
       background-color: #3a7bc8;
     }
     
-    .section-title {
-      text-align: center;
-      margin: 15px 0;
-      font-size: clamp(1.2rem, 4vw, 1.5rem);
-      color: #4a90e2;
-    }
-    
-    .section {
-      background-color: white;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      width: 100%;
-    }
-    
-    footer {
-      text-align: center;
-      padding: 15px;
+    .toggle-form {
+      margin-top: 15px;
+      font-size: 0.9rem;
       color: #666;
-      font-size: clamp(0.7rem, 2.5vw, 0.8rem);
-      background-color: #f0f0f0;
+    }
+    
+    .toggle-form a {
+      color: #4a90e2;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .error-message {
+      color: #d9534f;
+      margin-bottom: 15px;
+      display: none;
+    }
+    
+    .dashboard {
+      display: none;
+      text-align: center;
+    }
+    
+    .dashboard-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
       margin-top: 20px;
     }
     
-    .mood-section {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-    }
-    
-    .saved-moods {
-      display: flex;
-      overflow-x: auto;
-      padding: 10px 0;
-      gap: 15px;
-      scrollbar-width: thin;
-      scrollbar-color: #4a90e2 #f0f0f0;
-    }
-    
-    .saved-moods::-webkit-scrollbar {
-      height: 8px;
-    }
-    
-    .saved-moods::-webkit-scrollbar-track {
-      background: #f0f0f0;
-      border-radius: 4px;
-    }
-    
-    .saved-moods::-webkit-scrollbar-thumb {
+    .dashboard-btn {
       background-color: #4a90e2;
-      border-radius: 4px;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.3s;
+      text-decoration: none;
+      display: block;
     }
     
-    .saved-mood {
-      flex: 0 0 auto;
-      width: min(80px, 20vw);
-      text-align: center;
-    }
-    
-    .saved-mood-ball {
-      width: min(60px, 15vw);
-      height: min(60px, 15vw);
-      border-radius: 50%;
-      margin: 0 auto 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      overflow: hidden;
-      position: relative;
-    }
-    
-    .date {
-      font-size: clamp(0.6rem, 2vw, 0.8rem);
-      color: #666;
-    }
-    
-    /* Specific media queries for additional fine-tuning */
-    @media (max-width: 480px) {
-      .container {
-        padding: 10px;
-      }
-      
-      .section {
-        padding: 12px;
-      }
-      
-      .mood-ball {
-        margin: 15px;
-      }
-      
-      .mood-colors {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-    
-    @media (max-width: 320px) {
-      .container {
-        padding: 8px;
-      }
-      
-      .mood-ball {
-        margin: 10px;
-      }
-      
-      .section-title {
-        margin: 10px 0;
-      }
-    }
-    
-    /* Visual feedback indicator for selected emotions */
-    .selection-info {
-      text-align: center;
-      margin-top: 5px;
-      font-size: clamp(0.8rem, 2.5vw, 0.9rem);
-      color: #666;
+    .dashboard-btn:hover {
+      background-color: #3a7bc8;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Bond Tree</h1>
-    <div class="tagline">Let's grow your bondship</div>
-  </header>
-  
-  <div class="container">
-    <div class="section">
-      <h2 class="section-title">Let's create your mood ball!</h2>
+  <div class="auth-container">
+    <div class="logo">Bond Tree</div>
+    
+    <div id="login-form" class="auth-form">
+      <h2>Login</h2>
+      <div id="login-error" class="error-message"></div>
       
-      <div class="mood-display">
-        <div class="mood-ball" id="current-mood-ball">
-          <!-- Mood sections will be added by JavaScript -->
-        </div>
-        <div class="selection-info" id="selection-info">
-          Select up to 3 emotions
-        </div>
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" required>
       </div>
       
-      <h3 class="section-title">Choose your feelings</h3>
-      
-      <div class="mood-colors">
-        <div class="color-option" data-color="#8BC34A" data-name="Calm">
-          <div class="color-sample">
-            <div style="background-color: #8BC34A; width: 100%; height: 100%;"></div>
-          </div>
-          <span class="color-name">Calm</span>
-        </div>
-        
-        <div class="color-option" data-color="#3F51B5" data-name="Sad">
-          <div class="color-sample">
-            <div style="background-color: #3F51B5; width: 100%; height: 100%;"></div>
-          </div>
-          <span class="color-name">Sad</span>
-        </div>
-        
-        <div class="color-option" data-color="#9C27B0" data-name="Tired">
-          <div class="color-sample">
-            <div style="background-color: #9C27B0; width: 100%; height: 100%;"></div>
-          </div>
-          <span class="color-name">Tired</span>
-        </div>
-        
-        <div class="color-option" data-color="#FF9800" data-name="Anxiety">
-          <div class="color-sample">
-            <div style="background-color: #FF9800; width: 100%; height: 100%;"></div>
-          </div>
-          <span class="color-name">Anxiety</span>
-        </div>
-        
-        <div class="color-option" data-color="#FFEB3B" data-name="Happy">
-          <div class="color-sample">
-            <div style="background-color: #FFEB3B; width: 100%; height: 100%;"></div>
-          </div>
-          <span class="color-name">Happy</span>
-        </div>
-        
-        <div class="color-option" data-color="#E91E63" data-name="Angry">
-          <div class="color-sample">
-            <div style="background-color: #E91E63; width: 100%; height: 100%;"></div>
-          </div>
-          <span class="color-name">Angry</span>
-        </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" required>
       </div>
       
-      <div class="save-section">
-        <button id="save-button">Save Today's Mood</button>
+      <button class="btn" id="login-btn">Log In</button>
+      
+      <div class="toggle-form">
+        Don't have an account? <a id="show-signup">Sign Up</a>
       </div>
     </div>
     
-    <div class="section">
-      <h2 class="section-title">Your Mood History</h2>
-      <div class="saved-moods" id="saved-moods-container">
-        <!-- Saved moods will be added here by JavaScript -->
+    <div id="signup-form" class="auth-form" style="display: none;">
+      <h2>Sign Up</h2>
+      <div id="signup-error" class="error-message"></div>
+      
+      <div class="form-group">
+        <label for="signup-name">Full Name</label>
+        <input type="text" id="signup-name" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="signup-confirm-password">Confirm Password</label>
+        <input type="password" id="signup-confirm-password" required>
+      </div>
+      
+      <button class="btn" id="signup-btn">Create Account</button>
+      
+      <div class="toggle-form">
+        Already have an account? <a id="show-login">Log In</a>
+      </div>
+    </div>
+    
+    <div id="dashboard" class="dashboard">
+      <h2>Welcome, <span id="user-name"></span>!</h2>
+      <div class="dashboard-buttons">
+        <a href="paste.txt" class="dashboard-btn">Create Your Mood</a>
+        <button class="dashboard-btn" id="add-friend-btn">Add Friend</button>
+        <button class="dashboard-btn" id="view-friends-btn">View Friend's List</button>
+        <button class="dashboard-btn" id="logout-btn">Log Out</button>
       </div>
     </div>
   </div>
-  
-  <footer>
-    <p>Bond Tree - Connect with your emotions and share with friends</p>
-  </footer>
-  
+
   <script>
-    // Selected moods array
-    let selectedMoods = [];
-    let savedMoods = [];
-    
-    // DOM elements
-    const moodBall = document.getElementById('current-mood-ball');
-    const colorOptions = document.querySelectorAll('.color-option');
-    const saveButton = document.getElementById('save-button');
-    const savedMoodsContainer = document.getElementById('saved-moods-container');
-    const selectionInfo = document.getElementById('selection-info');
-    
-    // Add event listeners to color options
-    colorOptions.forEach(option => {
-      option.addEventListener('click', () => {
-        const color = option.getAttribute('data-color');
-        const name = option.getAttribute('data-name');
-        
-        // Check if already selected
-        const existingIndex = selectedMoods.findIndex(mood => mood.name === name);
-        
-        if (existingIndex >= 0) {
-          // Remove if already selected
-          selectedMoods.splice(existingIndex, 1);
-          option.classList.remove('selected');
-        } else {
-          // Add if not selected (max 3)
-          if (selectedMoods.length < 3) {
-            selectedMoods.push({ color, name });
-            option.classList.add('selected');
-          } else {
-            // Replace the first one if already have 3
-            const oldOption = Array.from(colorOptions).find(opt => 
-              opt.getAttribute('data-name') === selectedMoods[0].name
-            );
-            if (oldOption) {
-              oldOption.classList.remove('selected');
-            }
-            
-            selectedMoods.shift();
-            selectedMoods.push({ color, name });
-            option.classList.add('selected');
-          }
+    // Simple authentication management using in-memory storage
+    class AuthManager {
+      constructor() {
+        // Use a global variable instead of localStorage
+        window.bondTreeUsers = window.bondTreeUsers || [];
+        window.currentUser = null;
+      }
+
+      signup(name, email, password) {
+        // Check if user already exists
+        if (window.bondTreeUsers.some(user => user.email === email)) {
+          return false;
         }
-        
-        updateMoodBall();
-        updateSelectionInfo();
-      });
-    });
-    
-    // Save button click handler
-    saveButton.addEventListener('click', () => {
-      if (selectedMoods.length > 0) {
-        const today = new Date();
-        const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
-        
-        savedMoods.push({
-          date: formattedDate,
-          moods: [...selectedMoods]
-        });
-        
-        updateSavedMoods();
-        
-        // Show saved confirmation
-        saveButton.textContent = "Saved!";
-        saveButton.disabled = true;
-        
-        setTimeout(() => {
-          saveButton.textContent = "Save Today's Mood";
-          saveButton.disabled = false;
-        }, 1500);
+
+        // Create new user
+        const newUser = {
+          id: Date.now().toString(),
+          name,
+          email,
+          password,
+          friends: []
+        };
+
+        window.bondTreeUsers.push(newUser);
+        return true;
       }
-    });
-    
-    // Update the selection info text
-    function updateSelectionInfo() {
-      if (selectedMoods.length === 0) {
-        selectionInfo.textContent = "Select up to 3 emotions";
-      } else {
-        const moodNames = selectedMoods.map(mood => mood.name).join(", ");
-        selectionInfo.textContent = `Selected: ${moodNames}`;
+
+      login(email, password) {
+        const user = window.bondTreeUsers.find(
+          u => u.email === email && u.password === password
+        );
+
+        if (user) {
+          window.currentUser = user;
+          return true;
+        }
+        return false;
       }
-    }
-    
-    // Update the mood ball display
-    function updateMoodBall() {
-      // Clear existing content
-      moodBall.innerHTML = '';
-      
-      if (selectedMoods.length === 0) {
-        // Empty state
-        moodBall.style.backgroundColor = '#FFFFFF';
-      } else {
-        // Create sections for each mood
-        const sectionHeight = 100 / selectedMoods.length;
+
+      logout() {
+        window.currentUser = null;
+      }
+
+      addFriend(friendEmail) {
+        if (!window.currentUser) return false;
+
+        // Check if friend exists and is not already added
+        const friendUser = window.bondTreeUsers.find(u => u.email === friendEmail);
+        if (!friendUser || window.currentUser.friends.includes(friendEmail)) {
+          return false;
+        }
+
+        window.currentUser.friends.push(friendEmail);
         
-        selectedMoods.forEach((mood, index) => {
-          const section = document.createElement('div');
-          section.className = 'mood-section';
-          section.style.backgroundColor = mood.color;
-          section.style.top = `${index * sectionHeight}%`;
-          section.style.height = `${sectionHeight}%`;
-          
-          moodBall.appendChild(section);
-        });
+        // Update users array
+        const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
+        if (userIndex !== -1) {
+          window.bondTreeUsers[userIndex] = window.currentUser;
+        }
+
+        return true;
+      }
+
+      getFriends() {
+        if (!window.currentUser) return [];
+        return window.currentUser.friends;
       }
     }
+
+    // Initialize authentication manager
+    const authManager = new AuthManager();
+
+    // DOM Elements
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const dashboardForm = document.getElementById('dashboard');
     
-    // Update saved moods display
-    function updateSavedMoods() {
-      savedMoodsContainer.innerHTML = '';
-      
-      if (savedMoods.length === 0) {
-        const emptyMessage = document.createElement('p');
-        emptyMessage.textContent = "No saved moods yet. Save your first mood!";
-        emptyMessage.style.textAlign = "center";
-        emptyMessage.style.color = "#666";
-        emptyMessage.style.padding = "20px 0";
-        savedMoodsContainer.appendChild(emptyMessage);
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const addFriendBtn = document.getElementById('add-friend-btn');
+    const viewFriendsBtn = document.getElementById('view-friends-btn');
+    
+    const showSignupLink = document.getElementById('show-signup');
+    const showLoginLink = document.getElementById('show-login');
+    
+    const loginError = document.getElementById('login-error');
+    const signupError = document.getElementById('signup-error');
+    const userNameSpan = document.getElementById('user-name');
+
+    // Toggle between login and signup forms
+    showSignupLink.addEventListener('click', () => {
+      loginForm.style.display = 'none';
+      signupForm.style.display = 'block';
+      loginError.style.display = 'none';
+    });
+
+    showLoginLink.addEventListener('click', () => {
+      signupForm.style.display = 'none';
+      loginForm.style.display = 'block';
+      signupError.style.display = 'none';
+    });
+
+    // Login functionality
+    loginBtn.addEventListener('click', () => {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      if (authManager.login(email, password)) {
+        // Show dashboard
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'none';
+        dashboardForm.style.display = 'block';
+        userNameSpan.textContent = window.currentUser.name;
+        loginError.style.display = 'none';
+      } else {
+        loginError.textContent = 'Invalid email or password';
+        loginError.style.display = 'block';
+      }
+    });
+
+    // Signup functionality
+    signupBtn.addEventListener('click', () => {
+      const name = document.getElementById('signup-name').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const confirmPassword = document.getElementById('signup-confirm-password').value;
+
+      // Validate inputs
+      if (!name || !email || !password) {
+        signupError.textContent = 'Please fill in all fields';
+        signupError.style.display = 'block';
         return;
       }
-      
-      savedMoods.forEach(saved => {
-        const savedMoodElement = document.createElement('div');
-        savedMoodElement.className = 'saved-mood';
-        
-        const savedBall = document.createElement('div');
-        savedBall.className = 'saved-mood-ball';
-        
-        // Create sections for the saved mood
-        const sectionHeight = 100 / saved.moods.length;
-        
-        saved.moods.forEach((mood, index) => {
-          const section = document.createElement('div');
-          section.className = 'mood-section';
-          section.style.backgroundColor = mood.color;
-          section.style.top = `${index * sectionHeight}%`;
-          section.style.height = `${sectionHeight}%`;
-          
-          savedBall.appendChild(section);
-        });
-        
-        const dateElement = document.createElement('div');
-        dateElement.className = 'date';
-        dateElement.textContent = saved.date;
-        
-        savedMoodElement.appendChild(savedBall);
-        savedMoodElement.appendChild(dateElement);
-        
-        savedMoodsContainer.appendChild(savedMoodElement);
-      });
-    }
-    
-    // Reset selection (helper function)
-    function resetSelection() {
-      selectedMoods = [];
-      colorOptions.forEach(option => {
-        option.classList.remove('selected');
-      });
-      updateMoodBall();
-      updateSelectionInfo();
-    }
-    
-    // For mobile devices - improve touch experience
-    document.addEventListener('DOMContentLoaded', function() {
-      // Adjust for mobile touch targets
-      if (window.innerWidth < 768) {
-        const colorOptions = document.querySelectorAll('.color-option');
-        colorOptions.forEach(option => {
-          option.style.padding = '8px';
-        });
+
+      if (password !== confirmPassword) {
+        signupError.textContent = 'Passwords do not match';
+        signupError.style.display = 'block';
+        return;
       }
-      
-      // Handle orientation changes
-      window.addEventListener('resize', function() {
-        updateMoodBall();
-        updateSavedMoods();
-      });
+
+      if (authManager.signup(name, email, password)) {
+        // Automatically log in after signup
+        authManager.login(email, password);
+        
+        // Show dashboard
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'none';
+        dashboardForm.style.display = 'block';
+        userNameSpan.textContent = name;
+        signupError.style.display = 'none';
+      } else {
+        signupError.textContent = 'Email already exists';
+        signupError.style.display = 'block';
+      }
     });
-    
-    // Initialize with empty mood ball
-    updateMoodBall();
-    updateSelectionInfo();
-    
-    // Add some sample saved moods
-    savedMoods = [
-      {
-        date: '2/24',
-        moods: [
-          { color: '#E91E63', name: 'Angry' },
-          { color: '#3F51B5', name: 'Sad' }
-        ]
-      },
-      {
-        date: '2/25',
-        moods: [
-          { color: '#FFEB3B', name: 'Happy' },
-          { color: '#8BC34A', name: 'Calm' }
-        ]
-      },
-      {
-        date: '2/26',
-        moods: [
-          { color: '#FF9800', name: 'Anxiety' },
-          { color: '#9C27B0', name: 'Tired' },
-          { color: '#8BC34A', name: 'Calm' }
-        ]
+
+    // Logout functionality
+    logoutBtn.addEventListener('click', () => {
+      authManager.logout();
+      dashboardForm.style.display = 'none';
+      loginForm.style.display = 'block';
+    });
+
+    // Add Friend functionality
+    addFriendBtn.addEventListener('click', () => {
+      const friendEmail = prompt('Enter your friend\'s email:');
+      if (friendEmail) {
+        if (authManager.addFriend(friendEmail)) {
+          alert('Friend added successfully!');
+        } else {
+          alert('Could not add friend. They may not exist or are already in your list.');
+        }
       }
-    ];
-    
-    updateSavedMoods();
+    });
+
+    // View Friends functionality
+    viewFriendsBtn.addEventListener('click', () => {
+      const friends = authManager.getFriends();
+      if (friends.length > 0) {
+        alert('Your friends:\n' + friends.join('\n'));
+      } else {
+        alert('You have no friends added yet.');
+      }
+    });
+
+    // Pre-populate with some sample users
+    if (window.bondTreeUsers.length === 0) {
+      authManager.signup('John Doe', 'john@example.com', 'password123');
+      authManager.signup('Jane Smith', 'jane@example.com', 'password456');
+    }
   </script>
 </body>
 </html>
