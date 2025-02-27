@@ -106,7 +106,7 @@ class AuthManager {
       if (!window.currentUser) return [];
       // Ensure data is fresh
       this.loadFromStorage();
-      return window.currentUser.friends;
+      return window.currentUser.friends || [];
     }
   
     // Save mood with synchronization to users array
@@ -142,6 +142,42 @@ class AuthManager {
       // Ensure data is fresh
       this.loadFromStorage();
       return window.currentUser.savedMoods || [];
+    }
+    
+    /**
+     * Get all friends' data including their moods
+     * @returns {Array} Array of friend objects with safe data
+     */
+    getFriendsData() {
+      if (!window.currentUser) return [];
+      
+      // Ensure data is fresh
+      this.loadFromStorage();
+      
+      const friendsData = [];
+      
+      // Get friends emails from current user
+      const friendEmails = window.currentUser.friends || [];
+      
+      // Loop through each friend email and get their data
+      for (const friendEmail of friendEmails) {
+        // Find the friend in the users array
+        const friendUser = window.bondTreeUsers.find(u => u.email === friendEmail);
+        
+        if (friendUser) {
+          // Create a safe copy without password
+          const safeFriendData = {
+            id: friendUser.id,
+            name: friendUser.name,
+            email: friendUser.email,
+            savedMoods: friendUser.savedMoods || []
+          };
+          
+          friendsData.push(safeFriendData);
+        }
+      }
+      
+      return friendsData;
     }
   }
   
