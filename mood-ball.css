@@ -55,14 +55,15 @@
     background-color: #fff;
   }
   
-  .mood-colors {
+  /* Updated CSS for the mood colors grid to better accommodate more options */
+.mood-colors {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 12px;
     justify-content: center;
     margin-bottom: 30px;
     width: 100%;
-    max-width: 500px;
+    max-width: 600px; /* Increased from 500px to accommodate more items */
     margin-left: auto;
     margin-right: auto;
   }
@@ -83,11 +84,13 @@
   .color-option.selected {
     background-color: rgba(0,0,0,0.05);
     border-radius: 10px;
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
   .color-sample {
-    width: min(60px, 15vw);
-    height: min(60px, 15vw);
+    width: min(50px, 15vw); /* Slightly smaller to fit more on smaller screens */
+    height: min(50px, 15vw);
     border-radius: 50%;
     border: 2px solid #ddd;
     overflow: hidden;
@@ -96,9 +99,22 @@
   
   .color-name {
     margin-top: 5px;
-    font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+    font-size: clamp(0.65rem, 2.3vw, 0.85rem); /* Slightly smaller font */
     font-weight: bold;
     text-align: center;
+  }
+  
+  /* Media query for smaller screens */
+  @media (max-width: 500px) {
+    .mood-colors {
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 8px;
+    }
+    
+    .color-sample {
+      width: min(45px, 14vw);
+      height: min(45px, 14vw);
+    }
   }
   
   .save-section {
