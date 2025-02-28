@@ -101,10 +101,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = document.getElementById('signup-email').value;
       const password = document.getElementById('signup-password').value;
       const confirmPassword = document.getElementById('signup-confirm-password').value;
-
+        
       // Validate inputs
       if (!name || !email || !password) {
         signupError.textContent = 'Please fill in all fields';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      // Check password strength
+    if (password.length < 6) {
+        signupError.textContent = 'Password must be at least 6 characters long';
         signupError.style.display = 'block';
         return;
       }
@@ -120,9 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       try {
         // Attempt to sign up
-        const success = await authManager.signup(name, email, password);
+        const result = await authManager.signup(name, email, password);
         
-        if (success) {
+        if (result.success) {
           // Show dashboard
           loginForm.style.display = 'none';
           signupForm.style.display = 'none';
@@ -130,12 +137,13 @@ document.addEventListener('DOMContentLoaded', () => {
           userNameSpan.textContent = name;
           signupError.style.display = 'none';
         } else {
-          signupError.textContent = 'Email already exists or signup failed';
+          // Show the specific error message
+          signupError.textContent = result.message;
           signupError.style.display = 'block';
         }
       } catch (error) {
         console.error('Signup error:', error);
-        signupError.textContent = `Error: ${error.message || 'Signup failed'}`;
+        signupError.textContent = 'An unexpected error occurred. Please try again.';
         signupError.style.display = 'block';
       } finally {
         signupBtn.disabled = false;
@@ -195,16 +203,44 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Set up Firebase auth state listener for UI updates
-  auth.onAuthStateChanged(user => {
-    if (user && authManager.currentUser) {
+auth.onAuthStateChanged(user => {
+    // Hide the loading screen
+  const loadingContainer = document.getElementById('loading-container');
+  if (loadingContainer) {
+    loadingContainer.style.display = 'none';
+  }
+
+  // Show the auth container
+  const authContainer = document.querySelector('.auth-container');
+  if (authContainer) {
+    authContainer.style.display = 'block';
+  }
+    // Check if we're returning from mood-ball page
+    const returnToDashboard = sessionStorage.getItem('returnToDashboard');
+    
+    if (user) {
       // User is logged in, show dashboard
       if (loginForm) loginForm.style.display = 'none';
       if (signupForm) signupForm.style.display = 'none';
       if (dashboardForm) {
         dashboardForm.style.display = 'block';
-        if (userNameSpan && authManager.currentUser) {
-          userNameSpan.textContent = authManager.currentUser.name;
-        }
+        
+        // Set up a function to update the username once data is available
+        const updateUsername = () => {
+          if (userNameSpan && authManager.currentUser) {
+            userNameSpan.textContent = authManager.currentUser.name;
+            // Clear the flag after using it
+            if (returnToDashboard) {
+              sessionStorage.removeItem('returnToDashboard');
+            }
+          } else {
+            // If currentUser isn't available yet, wait a short time and try again
+            setTimeout(updateUsername, 100);
+          }
+        };
+        
+        // Start trying to update the username
+        updateUsername();
       }
     } else {
       // User is logged out, show login form

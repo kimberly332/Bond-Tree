@@ -45,30 +45,52 @@ export default class AuthManager {
 
     async signup(name, email, password) {
         try {
-            // Create user in Firebase Authentication
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Create user document in Firestore
-            const userData = {
-                id: user.uid,
-                name,
-                email,
-                friends: [],
-                savedMoods: []
-            };
-
-            await setDoc(doc(db, 'users', user.uid), userData);
-
-            // Set current user
-            this.currentUser = userData;
-
-            return true;
+          // Create user in Firebase Authentication
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+      
+          // Create user document in Firestore
+          const userData = {
+            id: user.uid,
+            name,
+            email,
+            friends: [],
+            savedMoods: []
+          };
+      
+          await setDoc(doc(db, 'users', user.uid), userData);
+      
+          // Set current user
+          this.currentUser = userData;
+      
+          return { success: true };
         } catch (error) {
-            console.error("Signup error:", error);
-            return false;
+          console.error("Signup error:", error);
+          
+          // Return error information
+          return { 
+            success: false, 
+            code: error.code,
+            message: this.getErrorMessage(error.code)
+          };
         }
-    }
+      }
+      
+      // Helper method to get user-friendly error messages
+      getErrorMessage(errorCode) {
+        switch(errorCode) {
+          case 'auth/email-already-in-use':
+            return 'This email is already registered';
+          case 'auth/invalid-email':
+            return 'Please provide a valid email address';
+          case 'auth/weak-password':
+            return 'Password should be at least 6 characters';
+          case 'auth/operation-not-allowed':
+            return 'Account creation is currently disabled';
+          default:
+            return 'An error occurred during signup. Please try again.';
+        }
+      }
 
     async login(email, password) {
         try {
@@ -105,44 +127,40 @@ export default class AuthManager {
 
     async addFriend(friendEmail) {
         if (!this.currentUser) return false;
-
+      
         try {
-            // Find friend's user document
-            const friendQuery = await getDocs(
-                query(collection(db, 'users'), where('email', '==', friendEmail))
-            );
-
-            if (friendQuery.empty) {
-                console.log("No user found with this email");
-                return false;
-            }
-
-            // Get the first matching user (assuming emails are unique)
-            const friendDoc = friendQuery.docs[0];
-
-            // Check if already a friend
-            if (this.currentUser.friends.includes(friendEmail)) {
-                console.log("User is already a friend");
-                return false;
-            }
-
-            // Update current user's friends
-            const userRef = doc(db, 'users', this.currentUser.id);
-            await updateDoc(userRef, {
-                friends: arrayUnion(friendEmail)
-            });
-
-            // Refresh current user data
-            const updatedUserDoc = await getDoc(userRef);
-            this.currentUser = updatedUserDoc.data();
-            this.currentUser.id = userRef.id;
-
-            return true;
-        } catch (error) {
-            console.error("Add friend error:", error);
+          // Check if the friend exists
+          const friendQuery = await getDocs(
+            query(collection(db, 'users'), where('email', '==', friendEmail))
+          );
+      
+          if (friendQuery.empty) {
+            console.log("No user found with this email");
             return false;
+          }
+      
+          // Check if already a friend
+          if (this.currentUser.friends.includes(friendEmail)) {
+            console.log("User is already a friend");
+            return false;
+          }
+      
+          // Update current user's friends
+          const userRef = doc(db, 'users', this.currentUser.id);
+          await updateDoc(userRef, {
+            friends: arrayUnion(friendEmail)
+          });
+      
+          // Update local state
+          this.currentUser.friends = this.currentUser.friends || [];
+          this.currentUser.friends.push(friendEmail);
+      
+          return true;
+        } catch (error) {
+          console.error("Add friend error:", error);
+          return false;
         }
-    }
+      }
 
     getFriends() {
         if (!this.currentUser) return [];

@@ -129,22 +129,18 @@ async function initializeMoodBallPage(authManager) {
   }
 
   // Back to dashboard functionality
-  const backButton = document.getElementById('back-to-dashboard');
-  if (backButton) {
-    backButton.addEventListener('click', () => {
-      // Instead of direct navigation to index.html
-      // window.location.href = 'index.html';
-      
-      // Check if user is logged in
-      if (authManager.currentUser) {
-        // Navigate to index.html with a parameter to show dashboard
-        window.location.href = 'index.html?showDashboard=true';
-      } else {
-        // Fallback to normal navigation if not logged in
-        window.location.href = 'index.html';
-      }
-    });
-  }
+const backButton = document.getElementById('back-to-dashboard');
+if (backButton) {
+  backButton.addEventListener('click', (e) => {
+    e.preventDefault(); // Prevent default navigation
+    
+    // Create a sessionStorage flag to indicate we're returning to dashboard
+    sessionStorage.setItem('returnToDashboard', 'true');
+    
+    // Navigate to index.html
+    window.location.href = 'index.html';
+  });
+}
 
   // Add event listeners to color options
   colorOptions.forEach(option => {
