@@ -1,225 +1,280 @@
-// Authentication Manager Class
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut 
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  updateDoc, 
+  arrayUnion,
+  query,
+  collection,
+  where,
+  getDocs
+} from 'firebase/firestore';
+
+// Firebase configuration (replace with your actual config)
+const firebaseConfig = {
+    apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
+    authDomain: "tree-bond.firebaseapp.com",
+    projectId: "tree-bond",
+    storageBucket: "tree-bond.firebasestorage.app",
+    messagingSenderId: "432958508988",
+    appId: "1:432958508988:web:14e8472cb51f63ce1825b9",
+    measurementId: "G-LKY5BJ10B5"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 class AuthManager {
-    constructor() {
-      // Initialize users array from localStorage if available
-      this.loadFromStorage();
-    }
-  
-    // Helper to load data from localStorage
-    loadFromStorage() {
-      try {
-        // Load users array
-        const storedUsers = localStorage.getItem('bondTreeUsers');
-        window.bondTreeUsers = storedUsers ? JSON.parse(storedUsers) : [];
-        
-        // Load current user session
-        const storedUser = localStorage.getItem('currentUser');
-        window.currentUser = storedUser ? JSON.parse(storedUser) : null;
-      } catch (error) {
-        console.error('Error loading from localStorage:', error);
-        window.bondTreeUsers = [];
+  constructor() {
+    // Set up auth state listener
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // User is signed in, fetch their data
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            window.currentUser = userDoc.data();
+            window.currentUser.id = user.uid;
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      } else {
+        // User is signed out
         window.currentUser = null;
       }
-    }
-  
-    // Helper to save data to localStorage  
-    saveToStorage() {
-      try {
-        localStorage.setItem('bondTreeUsers', JSON.stringify(window.bondTreeUsers));
-        localStorage.setItem('currentUser', JSON.stringify(window.currentUser));
-      } catch (error) {
-        console.error('Error saving to localStorage:', error);
-      }
-    }
-  
-    signup(name, email, password) {
-      // Make sure data is loaded from storage
-      this.loadFromStorage();
-      
-      // Check if user already exists
-      if (window.bondTreeUsers.some(user => user.email === email)) {
-        return false;
-      }
-  
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
+    });
+  }
+
+  async signup(name, email, password) {
+    try {
+      // Create user in Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Create user document in Firestore
+      const userData = {
+        id: user.uid,
         name,
         email,
-        password,
         friends: [],
         savedMoods: []
       };
-  
-      window.bondTreeUsers.push(newUser);
-      this.saveToStorage();
+
+      await setDoc(doc(db, 'users', user.uid), userData);
+
+      // Set current user
+      window.currentUser = userData;
+
       return true;
-    }
-  
-    login(email, password) {
-      // Make sure data is loaded from storage
-      this.loadFromStorage();
+    } catch (error) {
+      console.error("Signup error:", error);
       
-      const user = window.bondTreeUsers.find(
-        u => u.email === email && u.password === password
-      );
-      
-      if (user) {
-        // Create a deep copy of the user to avoid direct reference issues
-        window.currentUser = JSON.parse(JSON.stringify(user));
-        this.saveToStorage();
-        return true;
+      // Handle specific error cases
+      if (error.code === 'auth/email-already-in-use') {
+        console.log("Email already in use");
       }
+      
       return false;
     }
-  
-    logout() {
-      window.currentUser = null;
-      localStorage.removeItem('currentUser');
-    }
-  
-    addFriend(friendEmail) {
-      if (!window.currentUser) return false;
-  
-      // Ensure data is fresh
-      this.loadFromStorage();
-  
-      // Check if friend exists and is not already added
-      const friendUser = window.bondTreeUsers.find(u => u.email === friendEmail);
-      if (!friendUser || window.currentUser.friends.includes(friendEmail)) {
-        return false;
-      }
-  
-      window.currentUser.friends.push(friendEmail);
+  }
+
+  async login(email, password) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Fetch user document
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
       
-      // Update users array
-      const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
-      if (userIndex !== -1) {
-        window.bondTreeUsers[userIndex].friends = [...window.currentUser.friends];
-      }
-  
-      this.saveToStorage();
-      return true;
-    }
-  
-    getFriends() {
-      if (!window.currentUser) return [];
-      // Ensure data is fresh
-      this.loadFromStorage();
-      return window.currentUser.friends || [];
-    }
-  
-    // Save mood with synchronization to users array
-    // Support both old and new method signatures for backward compatibility
-    saveMood(moods, notes = '') {
-      if (!window.currentUser) return false;
-  
-      try {
-        // Ensure data is fresh
-        this.loadFromStorage();
-  
-        const now = new Date();
-        
-        // Format the date as MM/DD
-        const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
-        
-        // Format the time as HH:MM
-        const hours = now.getHours();
-        const minutes = now.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const formattedHours = hours % 12 || 12; // Convert to 12-hour format
-        const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
-  
-        // Add mood to current user's saved moods with timestamp and notes
-        window.currentUser.savedMoods = window.currentUser.savedMoods || [];
-        window.currentUser.savedMoods.push({
-          date: formattedDate,
-          time: formattedTime,
-          timestamp: now.getTime(), // Store timestamp for sorting
-          moods: [...moods],
-          notes: notes.trim() // Store notes if provided
-        });
-  
-        // Update users array
-        const userIndex = window.bondTreeUsers.findIndex(u => u.id === window.currentUser.id);
-        if (userIndex !== -1) {
-          window.bondTreeUsers[userIndex].savedMoods = [...window.currentUser.savedMoods];
-        }
-  
-        this.saveToStorage();
-        
-        // Refresh friends data
-        const friendsData = this.getFriendsData();
-        window.currentUser.friends = friendsData.map(friend => friend.email);
-        this.saveToStorage();
-        
+      if (userDoc.exists()) {
+        window.currentUser = userDoc.data();
+        window.currentUser.id = user.uid;
         return true;
-      } catch (error) {
-        console.error("Error saving mood:", error);
+      } else {
+        console.error("User document not found");
         return false;
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      
+      // Handle specific error cases
+      if (error.code === 'auth/wrong-password') {
+        console.log("Incorrect password");
+      } else if (error.code === 'auth/user-not-found') {
+        console.log("No user found with this email");
+      }
+      
+      return false;
     }
-  
-    // Get saved moods
-    getSavedMoods() {
-      if (!window.currentUser) return [];
-      // Ensure data is fresh
-      this.loadFromStorage();
-      return window.currentUser.savedMoods || [];
+  }
+
+  async logout() {
+    try {
+      await signOut(auth);
+      window.currentUser = null;
+      return true;
+    } catch (error) {
+      console.error("Logout error:", error);
+      return false;
     }
-    
-    /**
-     * Get all friends' data including their moods
-     * @returns {Array} Array of friend objects with safe data
-     */
-    getFriendsData() {
-      if (!window.currentUser) return [];
+  }
+
+  async addFriend(friendEmail) {
+    if (!window.currentUser) return false;
+
+    try {
+      // Find friend's user document
+      const friendQuery = await getDocs(
+        query(collection(db, 'users'), where('email', '==', friendEmail))
+      );
+
+      if (friendQuery.empty) {
+        console.log("No user found with this email");
+        return false;
+      }
+
+      // Get the first matching user (assuming emails are unique)
+      const friendDoc = friendQuery.docs[0];
       
-      // Ensure data is fresh
-      this.loadFromStorage();
+      // Check if already a friend
+      if (window.currentUser.friends.includes(friendEmail)) {
+        console.log("User is already a friend");
+        return false;
+      }
+
+      // Update current user's friends
+      const userRef = doc(db, 'users', window.currentUser.id);
+      await updateDoc(userRef, {
+        friends: arrayUnion(friendEmail)
+      });
+
+      // Refresh current user data
+      const updatedUserDoc = await getDoc(userRef);
+      window.currentUser = updatedUserDoc.data();
+      window.currentUser.id = userRef.id;
+
+      return true;
+    } catch (error) {
+      console.error("Add friend error:", error);
+      return false;
+    }
+  }
+
+  getFriends() {
+    if (!window.currentUser) return [];
+    return window.currentUser.friends || [];
+  }
+
+  async saveMood(moods, notes = '') {
+    if (!window.currentUser) return false;
+
+    try {
+      const now = new Date();
       
-      const friendsData = [];
+      // Format the date as MM/DD
+      const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
       
-      // Get friends emails from current user
+      // Format the time as HH:MM AM/PM
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12;
+      const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+
+      // Create mood entry
+      const moodEntry = {
+        date: formattedDate,
+        time: formattedTime,
+        timestamp: now.getTime(),
+        moods: [...moods],
+        notes: notes.trim()
+      };
+
+      // Update user document
+      const userRef = doc(db, 'users', window.currentUser.id);
+      await updateDoc(userRef, {
+        savedMoods: arrayUnion(moodEntry)
+      });
+
+      // Refresh current user data
+      const updatedUserDoc = await getDoc(userRef);
+      window.currentUser = updatedUserDoc.data();
+      window.currentUser.id = userRef.id;
+
+      return true;
+    } catch (error) {
+      console.error("Error saving mood:", error);
+      return false;
+    }
+  }
+
+  getSavedMoods() {
+    if (!window.currentUser) return [];
+    return window.currentUser.savedMoods || [];
+  }
+
+  async getFriendsData() {
+    if (!window.currentUser) return [];
+
+    try {
       const friendEmails = window.currentUser.friends || [];
-      
-      // Loop through each friend email and get their data
+      const friendsData = [];
+
+      // Fetch data for each friend
       for (const friendEmail of friendEmails) {
-        // Find the friend in the users array
-        const friendUser = window.bondTreeUsers.find(u => u.email === friendEmail);
-        
-        if (friendUser) {
-          // Create a safe copy without password
+        const friendQuery = await getDocs(
+          query(collection(db, 'users'), where('email', '==', friendEmail))
+        );
+
+        if (!friendQuery.empty) {
+          const friendDoc = friendQuery.docs[0];
+          const friendData = friendDoc.data();
+
+          // Create a safe copy without sensitive information
           const safeFriendData = {
-            id: friendUser.id,
-            name: friendUser.name, 
-            email: friendUser.email,
-            savedMoods: friendUser.savedMoods || []
+            id: friendDoc.id,
+            name: friendData.name,
+            email: friendData.email,
+            savedMoods: friendData.savedMoods || []
           };
-          
+
           friendsData.push(safeFriendData);
         }
       }
-      
+
       return friendsData;
+    } catch (error) {
+      console.error("Error getting friends data:", error);
+      return [];
     }
   }
+}
+
+// Expose the class and initialize sample users function
+window.AuthManager = AuthManager;
+
+// Sample users initialization (optional, as Firebase handles user creation)
+function initializeSampleUsers() {
+  const authManager = new AuthManager();
   
-  // Pre-populate with some sample users function
-  function initializeSampleUsers() {
-    // Create an instance of AuthManager
-    const authManager = new AuthManager();
-    
-    // Only add sample users if no users exist
-    if (!window.bondTreeUsers || window.bondTreeUsers.length === 0) {
-      authManager.signup('John Doe', 'john@example.com', 'password123');
-      authManager.signup('Jane Smith', 'jane@example.com', 'password456');
-    }
-  }
-  
-  // Attach to window to make globally accessible
-  window.AuthManager = AuthManager;
-  window.initializeSampleUsers = initializeSampleUsers;
-  
-  // Call initialization immediately
-  initializeSampleUsers();
+  // This is just a placeholder. In Firebase, users are created through signup
+  console.log("Sample users initialization is handled by Firebase Authentication");
+}
+
+window.initializeSampleUsers = initializeSampleUsers;
+
+// Call initialization
+initializeSampleUsers();
+
+export default AuthManager;
