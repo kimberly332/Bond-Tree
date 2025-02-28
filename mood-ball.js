@@ -42,6 +42,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectionInfo = document.getElementById('selection-info');
     const moodNotes = document.getElementById('mood-notes');
     const charsCount = document.getElementById('chars-count');
+
+    // Map mood names to corresponding emojis
+    const moodEmojis = {
+        Calm: '😌',
+        Sad: '😢',
+        Tired: '😴',
+        Anxious: '😰',
+        Happy: '😊',
+        Angry: '😠',
+        Peaceful: '🙂',
+        Grateful: '🙏',
+        Energetic: '⚡',
+        Bored: '😒',
+        Nostalgic: '🌇',
+        Confused: '🤔',
+        Loved: '❤️',
+        Creative: '🎨',
+        Hopeful: '🌟',
+        Relaxed: '😎',
+        Melancholy: '😔',
+        Proud: '😌'
+    };
   
     console.log("DOM elements initialized:", {
       moodBall: !!moodBall,
@@ -187,29 +209,36 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   
-    // Update the mood ball display
-    function updateMoodBall() {
-      if (!moodBall) return;
+    
+// Update the mood ball display
+function updateMoodBall() {
+    if (!moodBall) return;
+    
+    // Clear existing content
+    moodBall.innerHTML = '';
+    
+    if (selectedMoods.length === 0) {
+      // Empty state
+      moodBall.style.backgroundColor = '#FFFFFF';
+    } else {
+      // Create sections for each mood
+      const sectionHeight = 100 / selectedMoods.length;
       
-      // Clear existing content
-      moodBall.innerHTML = '';
-      
-      if (selectedMoods.length === 0) {
-        // Empty state
-        moodBall.style.backgroundColor = '#FFFFFF';
-      } else {
-        // Create sections for each mood
-        const sectionHeight = 100 / selectedMoods.length;
+      selectedMoods.forEach((mood, index) => {
+        const section = document.createElement('div');
+        section.className = 'mood-section';
+        section.style.backgroundColor = mood.color;
+        section.style.top = `${index * sectionHeight}%`;
+        section.style.height = `${sectionHeight}%`;
         
-        selectedMoods.forEach((mood, index) => {
-          const section = document.createElement('div');
-          section.className = 'mood-section';
-          section.style.backgroundColor = mood.color;
-          section.style.top = `${index * sectionHeight}%`;
-          section.style.height = `${sectionHeight}%`;
-          
-          moodBall.appendChild(section);
-        });
+        // Add corresponding emoji
+        const emoji = document.createElement('div');
+        emoji.className = 'mood-emoji';
+        emoji.textContent = moodEmojis[mood.name] || ''; // Use empty string if emoji not found
+        section.appendChild(emoji);
+        
+        moodBall.appendChild(section);
+      });
       }
     }
   

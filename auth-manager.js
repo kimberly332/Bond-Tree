@@ -22,7 +22,7 @@ class AuthManager {
       }
     }
   
-    // Helper to save data to localStorage
+    // Helper to save data to localStorage  
     saveToStorage() {
       try {
         localStorage.setItem('bondTreeUsers', JSON.stringify(window.bondTreeUsers));
@@ -147,6 +147,12 @@ class AuthManager {
         }
   
         this.saveToStorage();
+        
+        // Refresh friends data
+        const friendsData = this.getFriendsData();
+        window.currentUser.friends = friendsData.map(friend => friend.email);
+        this.saveToStorage();
+        
         return true;
       } catch (error) {
         console.error("Error saving mood:", error);
@@ -186,7 +192,7 @@ class AuthManager {
           // Create a safe copy without password
           const safeFriendData = {
             id: friendUser.id,
-            name: friendUser.name,
+            name: friendUser.name, 
             email: friendUser.email,
             savedMoods: friendUser.savedMoods || []
           };
