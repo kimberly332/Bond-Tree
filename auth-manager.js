@@ -43,27 +43,50 @@ export default class AuthManager {
         });
     }
 
-    async signup(name, email, password) {
+    async signup(name, email, password, username) {
         try {
-          // Create user in Firebase Authentication
+          // First create the Firebase Authentication user
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-      
-          // Create user document in Firestore
-          const userData = {
-            id: user.uid,
-            name,
-            email,
-            friends: [],
-            savedMoods: []
-          };
-      
-          await setDoc(doc(db, 'users', user.uid), userData);
-      
-          // Set current user
-          this.currentUser = userData;
-      
-          return { success: true };
+          
+          try {
+            // Now that the user is authenticated, check if username is taken
+            const usernameQuery = await getDocs(
+              query(collection(db, 'users'), where('username', '==', username))
+            );
+            
+            if (!usernameQuery.empty) {
+              // Delete the auth user we just created since username is taken
+              await user.delete();
+              
+              return { 
+                success: false, 
+                code: 'username-exists',
+                message: 'This username is already taken. Please choose another one.'
+              };
+            }
+            
+            // If username is available, create the user document
+            const userData = {
+              id: user.uid,
+              username: username,
+              name,
+              email,
+              friends: [],
+              savedMoods: []
+            };
+        
+            await setDoc(doc(db, 'users', user.uid), userData);
+        
+            // Set current user
+            this.currentUser = userData;
+        
+            return { success: true };
+          } catch (error) {
+            // If something went wrong after creating the auth user, delete it
+            await user.delete();
+            throw error;
+          }
         } catch (error) {
           console.error("Signup error:", error);
           
@@ -125,20 +148,37 @@ export default class AuthManager {
         }
     }
 
-    async addFriend(friendEmail) {
+    async addFriend(friendIdentifier) {
         if (!this.currentUser) return false;
       
         try {
-          // Check if the friend exists
-          const friendQuery = await getDocs(
-            query(collection(db, 'users'), where('email', '==', friendEmail))
-          );
+          // Check if the input is an email or a username
+          const isEmail = friendIdentifier.includes('@');
+          
+          // Create the appropriate query based on the input type
+          let friendQuery;
+          if (isEmail) {
+            // Search by email
+            friendQuery = await getDocs(
+              query(collection(db, 'users'), where('email', '==', friendIdentifier))
+            );
+          } else {
+            // Search by username
+            friendQuery = await getDocs(
+              query(collection(db, 'users'), where('username', '==', friendIdentifier))
+            );
+          }
       
           if (friendQuery.empty) {
-            console.log("No user found with this email");
+            console.log("No user found with this identifier");
             return false;
           }
       
+          // Get the first matching user (assuming emails and usernames are unique)
+          const friendDoc = friendQuery.docs[0];
+          const friendData = friendDoc.data();
+          const friendEmail = friendData.email;
+          
           // Check if already a friend
           if (this.currentUser.friends.includes(friendEmail)) {
             console.log("User is already a friend");

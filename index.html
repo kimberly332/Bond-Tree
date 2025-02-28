@@ -294,6 +294,12 @@
         <label for="signup-name">Full Name</label>
         <input type="text" id="signup-name" required>
       </div>
+
+      <div class="form-group">
+        <label for="signup-username">Username</label>
+        <input type="text" id="signup-username" placeholder="Choose a unique username" required>
+        <small style="color: #666; font-size: 0.8rem;">This will be your unique ID for others to find you</small>
+      </div>
       
       <div class="form-group">
         <label for="signup-email">Email</label>
@@ -318,8 +324,9 @@
     </div>
     
     <div id="dashboard" class="dashboard">
-      <h2>Welcome, <span id="user-name"></span>!</h2>
-      <div class="dashboard-buttons">
+        <h2>Welcome, <span id="user-name"></span>!</h2>
+        <p>Your Username: <span id="user-username" style="font-weight: bold; color: #4a90e2;"></span></p>
+        <div class="dashboard-buttons">
         <button id="create-mood-btn" class="dashboard-btn">Create Your Mood</button>
         <button class="dashboard-btn" id="add-friend-btn">Add Friend</button>
         <button class="dashboard-btn" id="view-friends-btn">View Friend's List</button>

@@ -101,9 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = document.getElementById('signup-email').value;
       const password = document.getElementById('signup-password').value;
       const confirmPassword = document.getElementById('signup-confirm-password').value;
+      const username = document.getElementById('signup-username').value;
         
       // Validate inputs
-      if (!name || !email || !password) {
+    if (!name || !email || !password || !username) {
         signupError.textContent = 'Please fill in all fields';
         signupError.style.display = 'block';
         return;
@@ -112,6 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Check password strength
     if (password.length < 6) {
         signupError.textContent = 'Password must be at least 6 characters long';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      // Validate username format
+    if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
+        signupError.textContent = 'Username must be 3-15 characters and contain only letters, numbers, and underscores';
         signupError.style.display = 'block';
         return;
       }
@@ -127,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       try {
         // Attempt to sign up
-        const result = await authManager.signup(name, email, password);
+        const result = await authManager.signup(name, email, password, username);
         
         if (result.success) {
           // Show dashboard
@@ -175,13 +183,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Add Friend functionality
-  if (addFriendBtn) {
+// Add Friend functionality
+if (addFriendBtn) {
     addFriendBtn.addEventListener('click', async () => {
-      const friendEmail = prompt('Enter your friend\'s email:');
-      if (friendEmail) {
+      // This is the line that needs to be changed
+      const friendIdentifier = prompt('Enter your friend\'s username or email:');
+      
+      if (friendIdentifier) {
         try {
-          const success = await authManager.addFriend(friendEmail);
+          const success = await authManager.addFriend(friendIdentifier);
           if (success) {
             alert('Friend added successfully!');
           } else {
@@ -203,18 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Set up Firebase auth state listener for UI updates
-auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(user => {
     // Hide the loading screen
-  const loadingContainer = document.getElementById('loading-container');
-  if (loadingContainer) {
-    loadingContainer.style.display = 'none';
-  }
-
-  // Show the auth container
-  const authContainer = document.querySelector('.auth-container');
-  if (authContainer) {
-    authContainer.style.display = 'block';
-  }
+    const loadingContainer = document.getElementById('loading-container');
+    if (loadingContainer) {
+      loadingContainer.style.display = 'none';
+    }
+  
+    // Show the auth container
+    const authContainer = document.querySelector('.auth-container');
+    if (authContainer) {
+      authContainer.style.display = 'block';
+    }
+    
     // Check if we're returning from mood-ball page
     const returnToDashboard = sessionStorage.getItem('returnToDashboard');
     
@@ -225,22 +236,41 @@ auth.onAuthStateChanged(user => {
       if (dashboardForm) {
         dashboardForm.style.display = 'block';
         
-        // Set up a function to update the username once data is available
-        const updateUsername = () => {
-          if (userNameSpan && authManager.currentUser) {
-            userNameSpan.textContent = authManager.currentUser.name;
-            // Clear the flag after using it
-            if (returnToDashboard) {
-              sessionStorage.removeItem('returnToDashboard');
+        const updateUserInfo = () => {
+            if (authManager.currentUser) {
+              // Update the user name
+              if (userNameSpan) {
+                userNameSpan.textContent = authManager.currentUser.name;
+              }
+              
+              // Display the username
+              const usernameSpan = document.getElementById('user-username');
+              if (usernameSpan) {
+                // Check if username exists in the user data
+                if (authManager.currentUser.username) {
+                  usernameSpan.textContent = authManager.currentUser.username;
+                } else {
+                  usernameSpan.textContent = "No username set";
+                }
+                
+                // For debugging - log what we're seeing
+                console.log("Current user data:", authManager.currentUser);
+              } else {
+                console.error("Username span element not found!");
+              }
+              
+              // Clear the flag after using it
+              if (returnToDashboard) {
+                sessionStorage.removeItem('returnToDashboard');
+              }
+            } else {
+              // If currentUser isn't available yet, wait a short time and try again
+              setTimeout(updateUserInfo, 100);
             }
-          } else {
-            // If currentUser isn't available yet, wait a short time and try again
-            setTimeout(updateUsername, 100);
-          }
-        };
+          };
         
-        // Start trying to update the username
-        updateUsername();
+        // Start trying to update the user info
+        updateUserInfo();
       }
     } else {
       // User is logged out, show login form
