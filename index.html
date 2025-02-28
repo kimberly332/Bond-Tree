@@ -249,9 +249,6 @@
     }
   </style>
   <link rel="icon" href="data:;base64,=">
-  <!-- Load auth-manager.js first to ensure it's available before other scripts -->
-  <script type="module" src="firebase-config.js"></script>
-  <script type="module" src="auth-manager.js"></script>
 </head>
 <body>
   <div class="auth-container">
@@ -320,20 +317,50 @@
     </div>
   </div>
 
-  <!-- Load auth.js after auth-manager.js has been loaded -->
-  <script src="auth.js"></script>
+  <!-- Firebase configuration -->
+  <script type="module">
+    // Import the Firebase SDK modules
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
+    import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
 
-  <script>
+    // Your Firebase configuration object
+    const firebaseConfig = {
+      apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
+      authDomain: "tree-bond.firebaseapp.com",
+      projectId: "tree-bond",
+      storageBucket: "tree-bond.firebasestorage.app",
+      messagingSenderId: "432958508988",
+      appId: "1:432958508988:web:14e8472cb51f63ce1825b9",
+      measurementId: "G-LKY5BJ10B5"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+  </script>
+
+  <!-- Auth Manager -->
+  <script type="module" src="auth-manager.js"></script>
+
+  <!-- Auth script -->
+  <script type="module" src="auth.js"></script>
+  
+
+  <script type="module">
+    import AuthManager from './auth-manager.js';
+
     // Check if user is already logged in to show dashboard directly
     document.addEventListener('DOMContentLoaded', () => {
-      const authManager = new window.AuthManager();
-      
-      if (window.currentUser) {
+      const authManager = new AuthManager();
+
+      if (authManager.currentUser) {
         // User is already logged in, show dashboard
         document.getElementById('login-form').style.display = 'none';
         document.getElementById('signup-form').style.display = 'none';
         document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('user-name').textContent = window.currentUser.name;
+        document.getElementById('user-name').textContent = authManager.currentUser.name;
       }
     });
   </script>

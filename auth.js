@@ -1,9 +1,18 @@
+import { initializeApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, query, collection, where, getDocs } from 'firebase/firestore';
+import AuthManager from './auth-manager.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize sample users
+    const authManager = new AuthManager();
+
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM loaded - initializing auth.js");
     
     // Initialize sample users
-    window.initializeSampleUsers();
+    // window.initializeSampleUsers();
   
     // Initialize authentication manager
     const authManager = new window.AuthManager();
@@ -502,3 +511,5 @@ function showNoteModal(moodData) {
     // Focus the close button for keyboard accessibility
     setTimeout(() => closeBtn.focus(), 100);
 }
+
+});
