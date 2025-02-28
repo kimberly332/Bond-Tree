@@ -21,13 +21,13 @@ import {
 // Firebase configuration (replace with your actual config)
 const firebaseConfig = {
     apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
-    authDomain: "tree-bond.firebaseapp.com",
+    authDomain: "kimberly332.github.io",
     projectId: "tree-bond",
     storageBucket: "tree-bond.firebasestorage.app",
     messagingSenderId: "432958508988",
     appId: "1:432958508988:web:14e8472cb51f63ce1825b9",
     measurementId: "G-LKY5BJ10B5"
-};
+  };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
