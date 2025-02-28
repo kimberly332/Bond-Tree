@@ -8,7 +8,7 @@ import { getAnalytics } from "firebase/analytics";
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
     apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
-    authDomain: "kimberly332.github.io",
+    authDomain: "tree-bond.firebaseapp.com",
     projectId: "tree-bond",
     storageBucket: "tree-bond.firebasestorage.app",
     messagingSenderId: "432958508988",
