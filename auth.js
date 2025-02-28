@@ -4,8 +4,21 @@ import AuthManager, { initializeSampleUsers, auth } from './auth-manager.js';
 document.addEventListener('DOMContentLoaded', () => {
   console.log("DOM loaded - initializing auth.js with Firebase");
   
-  // Initialize sample users if needed (uncomment if you want to add sample users)
-  // initializeSampleUsers();
+  // Check for dashboard parameter in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const showDashboard = urlParams.get('showDashboard');
+
+  if (showDashboard === 'true') {
+    // Hide login form and show dashboard immediately 
+    // (the auth state listener will verify if user is actually logged in)
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const dashboardForm = document.getElementById('dashboard');
+    
+    if (loginForm) loginForm.style.display = 'none';
+    if (signupForm) signupForm.style.display = 'none';
+    if (dashboardForm) dashboardForm.style.display = 'block';
+  }
 
   // Initialize authentication manager
   const authManager = new AuthManager();

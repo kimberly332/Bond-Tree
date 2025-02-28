@@ -132,8 +132,17 @@ async function initializeMoodBallPage(authManager) {
   const backButton = document.getElementById('back-to-dashboard');
   if (backButton) {
     backButton.addEventListener('click', () => {
-      // Redirect back to the main authentication page
-      window.location.href = 'index.html';
+      // Instead of direct navigation to index.html
+      // window.location.href = 'index.html';
+      
+      // Check if user is logged in
+      if (authManager.currentUser) {
+        // Navigate to index.html with a parameter to show dashboard
+        window.location.href = 'index.html?showDashboard=true';
+      } else {
+        // Fallback to normal navigation if not logged in
+        window.location.href = 'index.html';
+      }
     });
   }
 
