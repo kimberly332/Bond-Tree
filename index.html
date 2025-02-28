@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bond Tree - Authentication</title>
   <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="bond-tree-enhanced-friends.css">
   <!-- Additional styles for friends modal -->
   <style>
     /* Friends Modal Styles - Inline to ensure they're available */
@@ -296,10 +297,11 @@
       </div>
 
       <div class="form-group">
-        <label for="signup-username">Username</label>
-        <input type="text" id="signup-username" placeholder="Choose a unique username" required>
-        <small style="color: #666; font-size: 0.8rem;">This will be your unique ID for others to find you</small>
-      </div>
+  <label for="signup-username">Username</label>
+  <input type="text" id="signup-username" placeholder="Choose a unique username" required>
+  <small style="color: #666; font-size: 0.8rem;">This will be your unique ID for others to find you</small>
+  <span id="username-status" style="display: block; font-size: 0.85rem; margin-top: 5px;"></span>
+</div>
       
       <div class="form-group">
         <label for="signup-email">Email</label>

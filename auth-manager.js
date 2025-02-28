@@ -98,6 +98,7 @@ export default class AuthManager {
           };
         }
       }
+
       
       // Helper method to get user-friendly error messages
       getErrorMessage(errorCode) {
@@ -136,6 +137,20 @@ export default class AuthManager {
             return false;
         }
     }
+
+    // Add this new method
+  async checkUsernameAvailability(username) {
+    try {
+      const usernameQuery = await getDocs(
+        query(collection(db, 'users'), where('username', '==', username))
+      );
+      
+      return usernameQuery.empty;
+    } catch (error) {
+      console.error("Error checking username:", error);
+      return false;
+    }
+  }
 
     async logout() {
         try {
@@ -201,6 +216,54 @@ export default class AuthManager {
           return false;
         }
       }
+
+      async deleteFriend(friendEmail) {
+        if (!this.currentUser) return false;
+      
+        try {
+          // Check if the user has this friend
+          if (!this.currentUser.friends || !this.currentUser.friends.includes(friendEmail)) {
+            return { success: false, message: "This person is not in your friends list" };
+          }
+      
+          // Create a new friends array without the friend to delete
+          const updatedFriends = this.currentUser.friends.filter(email => email !== friendEmail);
+          
+          // Update the current user's document
+          const userRef = doc(db, 'users', this.currentUser.id);
+          await updateDoc(userRef, {
+            friends: updatedFriends
+          });
+      
+          // Update local state
+          this.currentUser.friends = updatedFriends;
+      
+          // Also remove the current user from the friend's list (for reciprocal friendship)
+          const friendQuery = await getDocs(
+            query(collection(db, 'users'), where('email', '==', friendEmail))
+          );
+      
+          if (!friendQuery.empty) {
+            const friendDoc = friendQuery.docs[0];
+            const friendData = friendDoc.data();
+            
+            // Create a new friends array for the friend
+            const friendUpdatedFriends = (friendData.friends || []).filter(email => 
+              email !== this.currentUser.email
+            );
+            
+            // Update the friend's document
+            await updateDoc(doc(db, 'users', friendDoc.id), {
+              friends: friendUpdatedFriends
+            });
+          }
+      
+          return { success: true };
+        } catch (error) {
+          console.error("Error deleting friend:", error);
+          return { success: false, message: "Error removing friend" };
+        }
+      }  
 
     getFriends() {
         if (!this.currentUser) return [];

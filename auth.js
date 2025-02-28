@@ -1,9 +1,10 @@
 import AuthManager, { initializeSampleUsers, auth } from './auth-manager.js';
 
+
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log("DOM loaded - initializing auth.js with Firebase");
-  
+
   // Check for dashboard parameter in URL
   const urlParams = new URLSearchParams(window.location.search);
   const showDashboard = urlParams.get('showDashboard');
@@ -41,6 +42,50 @@ document.addEventListener('DOMContentLoaded', () => {
   const loginError = document.getElementById('login-error');
   const signupError = document.getElementById('signup-error');
   const userNameSpan = document.getElementById('user-name');
+
+  // Add this to the DOMContentLoaded event handler
+const usernameInput = document.getElementById('signup-username');
+const usernameStatus = document.getElementById('username-status');
+let usernameTimer;
+
+if (usernameInput) {
+  usernameInput.addEventListener('input', () => {
+    const username = usernameInput.value.trim();
+    
+    // Clear previous timer
+    clearTimeout(usernameTimer);
+    
+    // Reset status
+    usernameStatus.textContent = '';
+    usernameStatus.style.color = '';
+    
+    // Basic format validation
+    if (username.length > 0) {
+      if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
+        usernameStatus.textContent = 'Username must be 3-15 characters with only letters, numbers, and underscores';
+        usernameStatus.style.color = '#e74c3c';
+        return;
+      }
+      
+      // Show checking message
+      usernameStatus.textContent = 'Checking availability...';
+      usernameStatus.style.color = '#3498db';
+      
+      // Set a small delay to avoid too many requests while typing
+      usernameTimer = setTimeout(async () => {
+        const isAvailable = await authManager.checkUsernameAvailability(username);
+        
+        if (isAvailable) {
+          usernameStatus.textContent = 'Username is available!';
+          usernameStatus.style.color = '#2ecc71';
+        } else {
+          usernameStatus.textContent = 'Username is already taken';
+          usernameStatus.style.color = '#e74c3c';
+        }
+      }, 500); // Wait 500ms after the user stops typing
+    }
+  });
+}
 
   console.log("DOM elements initialized");
 
@@ -110,6 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Check if username is valid
+    if (usernameStatus.style.color !== 'rgb(46, 204, 113)') { // The green color hex #2ecc71
+        signupError.textContent = 'Please choose a valid and available username';
+        signupError.style.display = 'block';
+        return;
+      }
+
       // Check password strength
     if (password.length < 6) {
         signupError.textContent = 'Password must be at least 6 characters long';
@@ -132,6 +184,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Disable button during signup
       signupBtn.disabled = true;
+
+      // Add this line to change the text:
+      signupBtn.textContent = "Creating Account...";
       
       try {
         // Attempt to sign up
@@ -155,6 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
         signupError.style.display = 'block';
       } finally {
         signupBtn.disabled = false;
+        // Add this line to reset the text:
+        signupBtn.textContent = "Create Account";
       }
     });
   }
@@ -383,21 +440,76 @@ async function showFriendsModal(authManager) {
     }
     
     // Add friend cards
-    friendsData.forEach(friend => {
-      const latestMood = friend.savedMoods && friend.savedMoods.length > 0 ? 
-        friend.savedMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+friendsData.forEach(friend => {
+    const latestMood = friend.savedMoods && friend.savedMoods.length > 0 ? 
+      friend.savedMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+    
+    if (latestMood) {
+      // Add the user's email to the mood object
+      latestMood.userEmail = friend.email;
       
-      if (latestMood) {
-        const friendCard = createFriendCard(friend.name, latestMood, false);
-        cardsContainer.appendChild(friendCard);
-      }
-    });
+      const friendCard = createFriendCard(friend.name, latestMood, false);
+      cardsContainer.appendChild(friendCard);
+    }
+  });
     
     // Add the tree icon SVG
     const treeIconElement = bondshipContainer.querySelector('.tree-icon');
     treeIconElement.innerHTML = generateTreeSvg(getBondshipHealth(friendsData));
+
+    if (treeIconElement) {
+        const health = getBondshipHealth(friendsData);
+        const svgContent = generateTreeSvg(health);
+        console.log('SVG Health:', health);
+        console.log('SVG Content:', svgContent);
+        treeIconElement.innerHTML = svgContent;
+      } else {
+        console.error('Tree icon element not found');
+      }
     
     // Set up note indicators for viewing notes
+// Add this at the end of the try block in showFriendsModal
+// Add event listeners to delete friend buttons
+const deleteButtons = cardsContainer.querySelectorAll('.delete-friend-btn');
+deleteButtons.forEach(button => {
+  button.addEventListener('click', async (e) => {
+    e.stopPropagation(); // Prevent modal from closing
+    
+    const email = button.getAttribute('data-email');
+    const friendName = button.closest('.friend-card').querySelector('.friend-name').textContent;
+    
+    // Confirm deletion
+    if (confirm(`Are you sure you want to remove ${friendName} from your friends list?`)) {
+      button.disabled = true;
+      button.textContent = 'Removing...';
+      
+      try {
+        const result = await authManager.deleteFriend(email);
+        if (result.success) {
+          // Remove the friend card from the UI
+          button.closest('.friend-card').remove();
+          
+          // Check if there are any friends left
+          if (cardsContainer.children.length <= 1) { // Only current user left
+            // Reload the modal to show empty state
+            document.body.removeChild(modalOverlay);
+            showFriendsModal(authManager);
+          }
+        } else {
+          alert(result.message || 'Could not remove friend.');
+          button.disabled = false;
+          button.textContent = 'Unfriend';
+        }
+      } catch (error) {
+        console.error('Error removing friend:', error);
+        alert('Error removing friend: ' + error.message);
+        button.disabled = false;
+        button.textContent = 'Unfriend';
+      }
+    }
+  });
+});
+
     setupNoteIndicators();
   } catch (error) {
     console.error('Error showing friends modal:', error);
@@ -435,43 +547,61 @@ const moodEmojis = {
 
 // Helper function to create a friend card
 function createFriendCard(name, mood, isCurrentUser) {
-  const card = document.createElement('div');
-  card.className = 'friend-card';
-  
-  // Create mood gradient
-  const moodColors = getMoodGradient(mood.moods);
-  
-  // Get mood names for display and emojis
-  const moodDisplayName = getMoodName(mood.moods);
-  
-  // Get emojis for the moods
-  const moodEmojisForCard = mood.moods
-      .map(m => moodEmojis[m.name] || '😐') // Default to neutral face if no emoji found
-      .join(' ');
-  
-  // Create card HTML
-  card.innerHTML = `
-      <div class="friend-name">${name}</div>
-      <div class="friend-mood-circle" style="background: ${moodColors}"></div>
-      <div class="friend-mood-name">${moodDisplayName}</div>
-      <div class="mood-emojis">${moodEmojisForCard}</div>
-  `;
-  
-  // Add note indicator if there are notes
-  if (mood.notes) {
-      const moodName = card.querySelector('.friend-mood-name');
-      const noteIndicator = document.createElement('div');
-      noteIndicator.className = 'mood-note-indicator';
-      noteIndicator.setAttribute('data-notes', encodeURIComponent(mood.notes));
-      noteIndicator.setAttribute('data-date', mood.date);
-      noteIndicator.setAttribute('data-time', mood.time || '');
-      noteIndicator.textContent = '📝';
-      noteIndicator.style.marginLeft = '5px';
-      noteIndicator.style.cursor = 'pointer';
-      moodName.appendChild(noteIndicator);
-  }
-  
-  return card;
+    const card = document.createElement('div');
+    card.className = 'friend-card';
+    
+    // Create mood gradient
+    const moodColors = getMoodGradient(mood.moods);
+    
+    // Get mood names for display and emojis
+    const moodDisplayName = getMoodName(mood.moods);
+    
+    // Get emojis for the moods
+    const moodEmojisForCard = mood.moods
+        .map(m => moodEmojis[m.name] || '😐') // Default to neutral face if no emoji found
+        .join(' ');
+    
+    // Add date and time information
+    const dateTimeInfo = `${mood.date} at ${mood.time || ''}`;
+    
+    // Create card HTML - add delete button only for friends (not for current user)
+    let cardHTML = `
+        <div class="friend-name">${name}</div>
+        <div class="friend-mood-circle" style="background: ${moodColors}"></div>
+        <div class="friend-mood-name">${moodDisplayName}</div>
+        <div class="mood-date-time" style="font-size: 0.75rem; color: #666; margin-top: 5px; margin-bottom: 8px;">${dateTimeInfo}</div>
+        <div class="mood-emojis">${moodEmojisForCard}</div>
+    `;
+    
+    // Add delete button only if it's not the current user's card
+    if (!isCurrentUser) {
+      cardHTML += `
+        <button class="delete-friend-btn" data-email="${mood.userEmail}" 
+                style="background-color: #f44336; color: white; border: none; 
+                       padding: 5px 10px; border-radius: 4px; margin-top: 10px; 
+                       cursor: pointer; font-size: 0.8rem;">
+          Unfriend
+        </button>
+      `;
+    }
+    
+    card.innerHTML = cardHTML;
+    
+    // Add note indicator if there are notes
+    if (mood.notes) {
+        const moodName = card.querySelector('.friend-mood-name');
+        const noteIndicator = document.createElement('div');
+        noteIndicator.className = 'mood-note-indicator';
+        noteIndicator.setAttribute('data-notes', encodeURIComponent(mood.notes));
+        noteIndicator.setAttribute('data-date', mood.date);
+        noteIndicator.setAttribute('data-time', mood.time || '');
+        noteIndicator.textContent = '📝';
+        noteIndicator.style.marginLeft = '5px';
+        noteIndicator.style.cursor = 'pointer';
+        moodName.appendChild(noteIndicator);
+    }
+    
+    return card;
 }
 
 // Helper function to generate mood gradient
@@ -531,56 +661,65 @@ function getBondshipStatus(friendsData) {
 
 // Helper function to calculate bondship health (0-100)
 function getBondshipHealth(friendsData) {
-  if (!friendsData || friendsData.length === 0) {
-    return 0;
+    console.log('Friends Data:', friendsData);
+    
+    if (!friendsData || friendsData.length === 0) {
+      console.log('No friends, health is 0');
+      return 0;
+    }
+    
+    const friendCount = friendsData.length;
+    const totalMoodEntries = friendsData.reduce((sum, friend) => 
+      sum + (friend.savedMoods ? friend.savedMoods.length : 0), 0);
+    
+    console.log('Friend Count:', friendCount);
+    console.log('Total Mood Entries:', totalMoodEntries);
+    
+    let health = 20; // Base health
+    
+    // Add points for friends
+    health += Math.min(40, friendCount * 10);
+    
+    // Add points for engagement (mood entries)
+    health += Math.min(40, totalMoodEntries * 2);
+    
+    const finalHealth = Math.min(100, health);
+    console.log('Calculated Health:', finalHealth);
+    
+    return finalHealth;
   }
-  
-  // Simple health calculation based on number of friends and mood entries
-  const friendCount = friendsData.length;
-  const totalMoodEntries = friendsData.reduce((sum, friend) => 
-    sum + (friend.savedMoods ? friend.savedMoods.length : 0), 0);
-  
-  // Calculate health (customize this logic as needed)
-  let health = 20; // Base health
-  
-  // Add points for friends
-  health += Math.min(40, friendCount * 10);
-  
-  // Add points for engagement (mood entries)
-  health += Math.min(40, totalMoodEntries * 2);
-  
-  return Math.min(100, health);
-}
 
 // Helper function to generate tree SVG
 function generateTreeSvg(health) {
-  // Choose color based on health
-  let leafColor;
+    console.log('Generating Tree SVG with health:', health);
+
+    // Dynamic color palette based on health stages
+    const colorStages = [
+        { max: 2, leafColor: '#E8F5E9', trunkColor: '#A1887F' },     // Very light green
+        { max: 4, leafColor: '#A5D6A7', trunkColor: '#795548' },     // Light green
+        { max: 6, leafColor: '#66BB6A', trunkColor: '#6D4C41' },     // Medium green
+        { max: 8, leafColor: '#4CAF50', trunkColor: '#3E2723' },     // Dark green
+        { max: 10, leafColor: '#2E7D32', trunkColor: '#212121' }     // Deep green
+      ];
   
-  if (health >= 80) {
-    leafColor = '#FF80AB'; // Pink for blossoming
-  } else if (health >= 50) {
-    leafColor = '#8BC34A'; // Green for healthy
-  } else if (health >= 30) {
-    leafColor = '#AED581'; // Light green for growing
-  } else {
-    leafColor = '#C5E1A5'; // Very light green for new
-  }
-  
+    // Find the appropriate stage based on health
+  const stage = colorStages.find(stage => health <= stage.max) || colorStages[colorStages.length - 1];
+
   return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <!-- Tree trunk -->
-    <path d="M50 100 Q45 80 55 60 Q60 50 50 30 Q45 25 50 20" stroke="#8B4513" stroke-width="8" fill="none"/>
+    <path d="M50 100 Q45 80 55 60 Q60 50 50 30 Q45 25 50 20" 
+           stroke="${stage.trunkColor}" stroke-width="8" fill="none"/>
     
     <!-- Tree branches -->
-    <path d="M50 60 Q35 55 30 65" stroke="#8B4513" stroke-width="5" fill="none"/>
-    <path d="M53 50 Q70 45 75 55" stroke="#8B4513" stroke-width="5" fill="none"/>
+    <path d="M50 60 Q35 55 30 65" stroke="${stage.trunkColor}" stroke-width="5" fill="none"/>
+    <path d="M53 50 Q70 45 75 55" stroke="${stage.trunkColor}" stroke-width="5" fill="none"/>
    
     <!-- Tree leaves -->
-    <ellipse cx="30" cy="55" rx="15" ry="10" fill="${leafColor}"/>
-    <ellipse cx="50" cy="30" rx="20" ry="15" fill="${leafColor}"/>
-    <ellipse cx="75" cy="45" rx="15" ry="10" fill="${leafColor}"/>
+    <ellipse cx="30" cy="55" rx="15" ry="10" fill="${stage.leafColor}"/>
+    <ellipse cx="50" cy="30" rx="20" ry="15" fill="${stage.leafColor}"/>
+    <ellipse cx="75" cy="45" rx="15" ry="10" fill="${stage.leafColor}"/>
   </svg>`;
-}
+  }
 
 // Setup note indicators function
 function setupNoteIndicators() {
