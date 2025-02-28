@@ -13,22 +13,20 @@ const firebaseConfig = {
     measurementId: "G-LKY5BJ10B5"
 };
 
-// Initialize Firebase
+// Initialize Firebase (only once)
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Export Firebase instances
+export { auth, db };
+
 export default class AuthManager {
     constructor() {
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        this.auth = getAuth(app);
-        this.db = getFirestore(app);
-
         // Set up auth state listener
         this.currentUser = null;
 
-        this.auth.onAuthStateChanged(async (user) => {
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
                 try {
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -48,7 +46,7 @@ export default class AuthManager {
     async signup(name, email, password) {
         try {
             // Create user in Firebase Authentication
-            const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
             // Create user document in Firestore
@@ -60,7 +58,7 @@ export default class AuthManager {
                 savedMoods: []
             };
 
-            await setDoc(doc(this.db, 'users', user.uid), userData);
+            await setDoc(doc(db, 'users', user.uid), userData);
 
             // Set current user
             this.currentUser = userData;
@@ -74,11 +72,11 @@ export default class AuthManager {
 
     async login(email, password) {
         try {
-            const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
             // Fetch user document
-            const userDoc = await getDoc(doc(this.db, 'users', user.uid));
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
 
             if (userDoc.exists()) {
                 this.currentUser = userDoc.data();
@@ -96,7 +94,7 @@ export default class AuthManager {
 
     async logout() {
         try {
-            await signOut(this.auth);
+            await signOut(auth);
             this.currentUser = null;
             return true;
         } catch (error) {
@@ -111,7 +109,7 @@ export default class AuthManager {
         try {
             // Find friend's user document
             const friendQuery = await getDocs(
-                query(collection(this.db, 'users'), where('email', '==', friendEmail))
+                query(collection(db, 'users'), where('email', '==', friendEmail))
             );
 
             if (friendQuery.empty) {
@@ -129,7 +127,7 @@ export default class AuthManager {
             }
 
             // Update current user's friends
-            const userRef = doc(this.db, 'users', this.currentUser.id);
+            const userRef = doc(db, 'users', this.currentUser.id);
             await updateDoc(userRef, {
                 friends: arrayUnion(friendEmail)
             });
@@ -209,7 +207,7 @@ export default class AuthManager {
             // Fetch data for each friend
             for (const friendEmail of friendEmails) {
                 const friendQuery = await getDocs(
-                    query(collection(this.db, 'users'), where('email', '==', friendEmail))
+                    query(collection(db, 'users'), where('email', '==', friendEmail))
                 );
 
                 if (!friendQuery.empty) {
@@ -233,5 +231,25 @@ export default class AuthManager {
             console.error("Error getting friends data:", error);
             return [];
         }
+    }
+}
+
+// Helper function to initialize sample users if needed
+export async function initializeSampleUsers() {
+    try {
+        // Check if there are any users in the database
+        const usersQuery = await getDocs(collection(db, 'users'));
+        
+        if (usersQuery.empty) {
+            const authManager = new AuthManager();
+            
+            // Create sample users
+            await authManager.signup('John Doe', 'john@example.com', 'password123');
+            await authManager.signup('Jane Smith', 'jane@example.com', 'password456');
+            
+            console.log('Sample users created successfully');
+        }
+    } catch (error) {
+        console.error('Error initializing sample users:', error);
     }
 }

@@ -6,8 +6,6 @@
   <title>Bond Tree - Mood Ball</title>
   <link rel="stylesheet" href="mood-ball.css">
   <link rel="icon" href="data:;base64,=">
-  <!-- Load auth-manager.js first to ensure it's available before other scripts -->
-  <script src="auth-manager.js"></script>
 </head>
 <body>
   <div id="login-warning" style="display: none; color: red; text-align: center; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 30px auto; max-width: 500px;">
@@ -199,7 +197,7 @@
     <p>Bond Tree - Connect with your emotions and share with friends</p>
   </footer>
 
-  <!-- Load mood-ball.js after DOM content is ready -->
-  <script src="mood-ball.js"></script>
+  <!-- Load scripts as ES modules -->
+  <script type="module" src="auth-manager.js"></script>
+  <script type="module" src="mood-ball.js"></script>
 </body>
-</html>
