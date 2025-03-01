@@ -8,7 +8,7 @@
  * - Displaying saved mood history
  */
 
-import { defaultAuth as auth } from './firebase-config.js';
+import { auth } from './firebase-config.js';
 import AuthManager from './auth-manager.js';
 
 // Constants and configuration
