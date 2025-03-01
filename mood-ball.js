@@ -2,7 +2,7 @@ import AuthManager, { auth } from './auth-manager.js';
 
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-  // console.log("DOM loaded - initializing mood-ball.js with Firebase");
+  console.log("DOM loaded - initializing mood-ball.js with Firebase");
   
   // Initialize the AuthManager
   const authManager = new AuthManager();
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 auth.onAuthStateChanged(async (user) => {
     try {
       if (!user) {
-        // console.log("No user logged in, showing warning");
+        console.log("No user logged in, showing warning");
         loginWarning.style.display = 'block';
         mainContent.style.display = 'none';
         header.style.display = 'none';
@@ -27,7 +27,7 @@ auth.onAuthStateChanged(async (user) => {
         return; // Exit early
       }
       
-      // console.log("User logged in:", user.email);
+      console.log("User logged in:", user.email);
       loginWarning.style.display = 'none';
       mainContent.style.display = 'block';
       header.style.display = 'block';
@@ -45,7 +45,7 @@ auth.onAuthStateChanged(async (user) => {
             initializeMoodBallPage(authManager);
           } else if (attempts < maxAttempts) {
             attempts++;
-            // console.log(`Waiting for user data... (${attempts}/${maxAttempts})`);
+            console.log(`Waiting for user data... (${attempts}/${maxAttempts})`);
             setTimeout(waitForUserData, 300);
           } else {
             console.error("Failed to load user data after multiple attempts");
@@ -85,7 +85,7 @@ async function initializeMoodBallPage(authManager) {
   // Try to get saved moods from Firebase
   try {
     savedMoods = authManager.getSavedMoods();
-    // console.log("Retrieved saved moods:", savedMoods.length);
+    console.log("Retrieved saved moods:", savedMoods.length);
   } catch (error) {
     console.error("Error getting saved moods:", error);
     savedMoods = [];
@@ -122,7 +122,7 @@ async function initializeMoodBallPage(authManager) {
     Proud: '😌'
   };
 
-  // console.log("DOM elements initialized:", {
+  console.log("DOM elements initialized:", {
     moodBall: !!moodBall,
     colorOptions: colorOptions.length,
     saveButton: !!saveButton,
@@ -205,14 +205,14 @@ if (backButton) {
   if (saveButton) {
     saveButton.addEventListener('click', async function(e) {
       try {
-        // console.log("Save button clicked. Selected moods:", selectedMoods);
+        console.log("Save button clicked. Selected moods:", selectedMoods);
         
         if (selectedMoods.length > 0) {
             try {
               // Get notes from the textarea if it exists
               const notes = moodNotes ? moodNotes.value : '';
               
-              // console.log("Attempting to save mood with notes:", notes);
+              console.log("Attempting to save mood with notes:", notes);
               
               // Disable button during saving
               saveButton.disabled = true;
@@ -222,7 +222,7 @@ if (backButton) {
               const saveResult = await authManager.saveMood(selectedMoods, notes);
               
               if (saveResult) {
-                // console.log("Mood saved successfully");
+                console.log("Mood saved successfully");
                 
                 // Clear the notes field after saving
                 if (moodNotes) {
@@ -378,7 +378,7 @@ if (backButton) {
     try {
       // Get the latest saved moods
       savedMoods = authManager.getSavedMoods();
-      // console.log("Fetched saved moods for display:", savedMoods.length);
+      console.log("Fetched saved moods for display:", savedMoods.length);
       
       savedMoodsContainer.innerHTML = '';
       
