@@ -15,43 +15,64 @@ document.addEventListener('DOMContentLoaded', () => {
   const backButton = document.getElementById('back-to-dashboard');
   
   // Check authentication state with Firebase
-  auth.onAuthStateChanged(async (user) => {
-    if (!user) {
-      console.log("No user logged in, showing warning");
+auth.onAuthStateChanged(async (user) => {
+    try {
+      if (!user) {
+        console.log("No user logged in, showing warning");
+        loginWarning.style.display = 'block';
+        mainContent.style.display = 'none';
+        header.style.display = 'none';
+        footer.style.display = 'none';
+        backButton.style.display = 'none';
+        return; // Exit early
+      }
+      
+      console.log("User logged in:", user.email);
+      loginWarning.style.display = 'none';
+      mainContent.style.display = 'block';
+      header.style.display = 'block';
+      footer.style.display = 'block';
+      backButton.style.display = 'block';
+  
+      // Wait for currentUser to be populated from Firestore
+      // This might take a moment after Firebase auth state changes
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const waitForUserData = async () => {
+        try {
+          if (authManager.currentUser) {
+            initializeMoodBallPage(authManager);
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            console.log(`Waiting for user data... (${attempts}/${maxAttempts})`);
+            setTimeout(waitForUserData, 300);
+          } else {
+            console.error("Failed to load user data after multiple attempts");
+            alert("There was a problem loading your data. Please refresh the page.");
+          }
+        } catch (error) {
+          console.error("Error in waitForUserData:", error);
+          alert("An error occurred while loading your data. Please refresh the page.");
+        }
+      };
+      
+      // Start waiting for user data
+      waitForUserData();
+    } catch (error) {
+      console.error("Error in auth state change handler:", error);
+      // Show error state UI
       loginWarning.style.display = 'block';
+      loginWarning.innerHTML = `
+        <h3>Something went wrong</h3>
+        <p>There was an error loading your profile. Please refresh the page and try again.</p>
+        <a href="index.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: #4a90e2; color: white; text-decoration: none; border-radius: 5px;">Back to Login</a>
+      `;
       mainContent.style.display = 'none';
       header.style.display = 'none';
       footer.style.display = 'none';
       backButton.style.display = 'none';
-      return; // Exit early
     }
-    
-    console.log("User logged in:", user.email);
-    loginWarning.style.display = 'none';
-    mainContent.style.display = 'block';
-    header.style.display = 'block';
-    footer.style.display = 'block';
-    backButton.style.display = 'block';
-
-    // Wait for currentUser to be populated from Firestore
-    // This might take a moment after Firebase auth state changes
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    const waitForUserData = async () => {
-      if (authManager.currentUser) {
-        initializeMoodBallPage(authManager);
-      } else if (attempts < maxAttempts) {
-        attempts++;
-        console.log(`Waiting for user data... (${attempts}/${maxAttempts})`);
-        setTimeout(waitForUserData, 300);
-      } else {
-        console.error("Failed to load user data after multiple attempts");
-        alert("There was a problem loading your data. Please refresh the page.");
-      }
-    };
-    
-    waitForUserData();
   });
 });
 
@@ -182,57 +203,64 @@ if (backButton) {
 
   // Save button click handler - updated for async/await
   if (saveButton) {
-    saveButton.addEventListener('click', async function() {
-      console.log("Save button clicked. Selected moods:", selectedMoods);
-      
-      if (selectedMoods.length > 0) {
-        try {
-          // Get notes from the textarea if it exists
-          const notes = moodNotes ? moodNotes.value : '';
-          
-          console.log("Attempting to save mood with notes:", notes);
-          
-          // Disable button during saving
-          saveButton.disabled = true;
-          saveButton.textContent = "Saving...";
-          
-          // Save to Firebase
-          const saveResult = await authManager.saveMood(selectedMoods, notes);
-          
-          if (saveResult) {
-            console.log("Mood saved successfully");
-            
-            // Clear the notes field after saving
-            if (moodNotes) {
-              moodNotes.value = '';
-              if (charsCount) charsCount.textContent = '0';
-            }
-            
-            // Update saved moods display
-            updateSavedMoods();
-            
-            // Show saved confirmation
-            saveButton.textContent = "Saved!";
-            
-            setTimeout(() => {
+    saveButton.addEventListener('click', async function(e) {
+      try {
+        console.log("Save button clicked. Selected moods:", selectedMoods);
+        
+        if (selectedMoods.length > 0) {
+            try {
+              // Get notes from the textarea if it exists
+              const notes = moodNotes ? moodNotes.value : '';
+              
+              console.log("Attempting to save mood with notes:", notes);
+              
+              // Disable button during saving
+              saveButton.disabled = true;
+              saveButton.textContent = "Saving...";
+              
+              // Save to Firebase
+              const saveResult = await authManager.saveMood(selectedMoods, notes);
+              
+              if (saveResult) {
+                console.log("Mood saved successfully");
+                
+                // Clear the notes field after saving
+                if (moodNotes) {
+                  moodNotes.value = '';
+                  if (charsCount) charsCount.textContent = '0';
+                }
+                
+                // Update saved moods display
+                updateSavedMoods();
+                
+                // Show saved confirmation
+                saveButton.textContent = "Saved!";
+                
+                setTimeout(() => {
+                  saveButton.textContent = "Save Today's Mood";
+                  saveButton.disabled = false;
+                }, 1500);
+              } else {
+                console.error("Failed to save mood - authManager returned false");
+                alert("Sorry, there was a problem saving your mood. Please try again.");
+                saveButton.textContent = "Save Today's Mood";
+                saveButton.disabled = false;
+              }
+            } catch (error) {
+              console.error("Error in save button handler:", error);
+              alert("Sorry, something went wrong. Please try again or refresh the page.");
               saveButton.textContent = "Save Today's Mood";
               saveButton.disabled = false;
-            }, 1500);
+            }
           } else {
-            console.error("Failed to save mood - authManager returned false");
-            alert("Sorry, there was a problem saving your mood. Please try again.");
-            saveButton.textContent = "Save Today's Mood";
-            saveButton.disabled = false;
+            // Remind user to select at least one mood
+            alert("Please select at least one mood before saving.");
           }
-        } catch (error) {
-          console.error("Error in save button handler:", error);
-          alert("Sorry, something went wrong. Please try again or refresh the page.");
-          saveButton.textContent = "Save Today's Mood";
-          saveButton.disabled = false;
-        }
-      } else {
-        // Remind user to select at least one mood
-        alert("Please select at least one mood before saving.");
+      } catch (error) {
+        console.error("Error in save button handler:", error);
+        alert("Sorry, something went wrong. Please try again or refresh the page.");
+        saveButton.textContent = "Save Today's Mood";
+        saveButton.disabled = false;
       }
     });
   }
