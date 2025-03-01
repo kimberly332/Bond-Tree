@@ -626,20 +626,16 @@ function getMoodGradient(moods) {
 
 // Helper function to get mood name
 function getMoodName(moods) {
-  if (!moods || moods.length === 0) {
-      return 'No Mood';
-  }
-  
-  if (moods.length === 1) {
-      return moods[0].name || 'Unknown Mood';
-  }
-  
-  // For multiple moods, create a compound name
-  if (moods.length === 2) {
-      return `${moods[0].name} & ${moods[1].name}`;
-  }
-  
-  return `${moods[0].name} & more`;
+    if (!moods || moods.length === 0) {
+        return 'No Mood';
+    }
+    
+    if (moods.length === 1) {
+        return moods[0].name || 'Unknown Mood';
+    }
+    
+    // For multiple moods, create a compound name with all moods
+    return moods.map(mood => mood.name).join(' & ');
 }
 
 // Helper function to get bondship status text
