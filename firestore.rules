@@ -1,14 +1,19 @@
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
-  arrayUnion, 
-  arrayRemove, 
-  query, 
-  collection, 
-  where, 
-  getDocs,
-  limit 
-} from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read access to user documents for username availability check
+    match /users/{userId} {
+      allow read: if true;
+    }
+    
+    // Existing user document write rules
+    match /users/{userId} {
+      allow create: if request.auth != null 
+                    && request.resource.data.username.size() >= 3 
+                    && request.resource.data.username.size() <= 15
+                    && request.resource.data.username.matches('^[a-zA-Z0-9_]+$');
+      
+      allow update, delete: if request.auth.uid == userId;
+    }
+  }
+}
