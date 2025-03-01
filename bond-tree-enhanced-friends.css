@@ -127,6 +127,8 @@
 
 /* Delete Friend Button */
 .delete-friend-btn {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
   background-color: #e74c3c;
   color: white;
   border: none;
