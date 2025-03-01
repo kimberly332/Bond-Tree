@@ -577,11 +577,11 @@ function createFriendCard(name, mood, isCurrentUser) {
     if (!isCurrentUser) {
       cardHTML += `
         <button class="delete-friend-btn" data-email="${mood.userEmail}" 
-                style="background-color: #f44336; color: white; border: none; 
-                       padding: 5px 10px; border-radius: 4px; margin-top: 10px; 
-                       cursor: pointer; font-size: 0.8rem;">
-          Unfriend
-        </button>
+            style="background-color: #f44336; color: white; border: none; 
+                   padding: 5px 10px; border-radius: 4px; margin-top: 10px; 
+                   cursor: pointer; font-size: 0.8rem; font-family: 'Nunito', sans-serif; font-weight: 600;">
+      Unfriend
+    </button>
       `;
     }
     
