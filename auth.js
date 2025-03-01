@@ -3,7 +3,7 @@ import AuthManager, { initializeSampleUsers, auth } from './auth-manager.js';
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("DOM loaded - initializing auth.js with Firebase");
+  // console.log("DOM loaded - initializing auth.js with Firebase");
 
   // Check for dashboard parameter in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -87,7 +87,7 @@ if (usernameInput) {
   });
 }
 
-  console.log("DOM elements initialized");
+  // console.log("DOM elements initialized");
 
   // Toggle between login and signup forms
   if (showSignupLink) {
@@ -311,7 +311,7 @@ if (addFriendBtn) {
                 }
                 
                 // For debugging - log what we're seeing
-                console.log("Current user data:", authManager.currentUser);
+                // console.log("Current user data:", authManager.currentUser);
               } else {
                 console.error("Username span element not found!");
               }
@@ -460,8 +460,8 @@ friendsData.forEach(friend => {
     if (treeIconElement) {
         const health = getBondshipHealth(friendsData);
         const svgContent = generateTreeSvg(health);
-        console.log('SVG Health:', health);
-        console.log('SVG Content:', svgContent);
+        // console.log('SVG Health:', health);
+        // console.log('SVG Content:', svgContent);
         treeIconElement.innerHTML = svgContent;
       } else {
         console.error('Tree icon element not found');
@@ -657,10 +657,10 @@ function getBondshipStatus(friendsData) {
 
 // Helper function to calculate bondship health (0-100)
 function getBondshipHealth(friendsData) {
-    console.log('Friends Data:', friendsData);
+    // console.log('Friends Data:', friendsData);
     
     if (!friendsData || friendsData.length === 0) {
-      console.log('No friends, health is 0');
+      // console.log('No friends, health is 0');
       return 0;
     }
     
@@ -668,8 +668,8 @@ function getBondshipHealth(friendsData) {
     const totalMoodEntries = friendsData.reduce((sum, friend) => 
       sum + (friend.savedMoods ? friend.savedMoods.length : 0), 0);
     
-    console.log('Friend Count:', friendCount);
-    console.log('Total Mood Entries:', totalMoodEntries);
+    // console.log('Friend Count:', friendCount);
+    // console.log('Total Mood Entries:', totalMoodEntries);
     
     let health = 20; // Base health
     
@@ -680,14 +680,14 @@ function getBondshipHealth(friendsData) {
     health += Math.min(40, totalMoodEntries * 2);
     
     const finalHealth = Math.min(100, health);
-    console.log('Calculated Health:', finalHealth);
+    // console.log('Calculated Health:', finalHealth);
     
     return finalHealth;
   }
 
 // Helper function to generate tree SVG
 function generateTreeSvg(health) {
-    console.log('Generating Tree SVG with health:', health);
+    // console.log('Generating Tree SVG with health:', health);
 
     // Dynamic color palette based on health stages
     const colorStages = [
