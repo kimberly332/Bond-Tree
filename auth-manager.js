@@ -185,7 +185,7 @@ export default class AuthManager {
           }
       
           if (friendQuery.empty) {
-            // // console.log("No user found with this identifier");
+            // console.log("No user found with this identifier");
             return false;
           }
       
@@ -196,7 +196,7 @@ export default class AuthManager {
           
           // Check if already a friend
           if (this.currentUser.friends.includes(friendEmail)) {
-            // console.log("User is already a friend");
+            console.log("User is already a friend");
             return false;
           }
       
@@ -368,7 +368,7 @@ export async function initializeSampleUsers() {
             await authManager.signup('John Doe', 'john@example.com', 'password123');
             await authManager.signup('Jane Smith', 'jane@example.com', 'password456');
             
-            // console.log('Sample users created successfully');
+            console.log('Sample users created successfully');
         }
     } catch (error) {
         console.error('Error initializing sample users:', error);
