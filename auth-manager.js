@@ -1,16 +1,35 @@
+// auth-manager.js - Complete optimized version with security enhancements
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion, query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
+} from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  updateDoc, 
+  arrayUnion, 
+  arrayRemove, 
+  query, 
+  collection, 
+  where, 
+  getDocs 
+} from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
 
 // Firebase configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
-    authDomain: "tree-bond.firebaseapp.com",
-    projectId: "tree-bond",
-    storageBucket: "tree-bond.firebasestorage.app",
-    messagingSenderId: "432958508988",
-    appId: "1:432958508988:web:14e8472cb51f63ce1825b9",
-    measurementId: "G-LKY5BJ10B5"
+  apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
+  authDomain: "tree-bond.firebaseapp.com",
+  projectId: "tree-bond",
+  storageBucket: "tree-bond.firebasestorage.app",
+  messagingSenderId: "432958508988",
+  appId: "1:432958508988:web:14e8472cb51f63ce1825b9",
+  measurementId: "G-LKY5BJ10B5"
 };
 
 // Initialize Firebase (only once)
@@ -21,128 +40,318 @@ const db = getFirestore(app);
 // Export Firebase instances
 export { auth, db };
 
-export default class AuthManager {
-    constructor() {
-        // Set up auth state listener
-        this.currentUser = null;
-
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', user.uid));
-                    if (userDoc.exists()) {
-                        this.currentUser = userDoc.data();
-                        this.currentUser.id = user.uid;
-                    }
-                } catch (error) {
-                    console.error("Error fetching user data:", error);
-                }
-            } else {
-                this.currentUser = null;
-            }
-        });
+// Rate Limiter for API calls
+class RateLimiter {
+  constructor(limit = 10, interval = 60000) {
+    this.timestamps = {};
+    this.limit = limit;
+    this.interval = interval;
+  }
+  
+  isAllowed(userId) {
+    const now = Date.now();
+    
+    // Initialize if first request
+    if (!this.timestamps[userId]) {
+      this.timestamps[userId] = [now];
+      return true;
     }
+    
+    // Filter out old timestamps
+    this.timestamps[userId] = this.timestamps[userId].filter(
+      timestamp => now - timestamp < this.interval
+    );
+    
+    // Check if under limit
+    if (this.timestamps[userId].length < this.limit) {
+      this.timestamps[userId].push(now);
+      return true;
+    }
+    
+    return false;
+  }
+}
 
-    async signup(name, email, password, username) {
+// Input sanitization to prevent XSS
+function sanitizeUserInput(input) {
+  if (typeof input !== 'string') return '';
+  
+  // Basic XSS protection
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Central error handling
+function handleError(error, userMessage) {
+  // Log the detailed error for developers
+  console.error('Error:', error);
+  
+  // Return a user-friendly error message
+  return {
+    success: false,
+    code: error.code || 'unknown-error',
+    message: userMessage || 'An error occurred. Please try again.'
+  };
+}
+
+// CSRF token generation
+function generateCsrfToken() {
+  const token = Math.random().toString(36).substring(2) + 
+                Math.random().toString(36).substring(2);
+  sessionStorage.setItem('csrfToken', token);
+  return token;
+}
+
+// Initialize sample users (for development)
+export async function initializeSampleUsers() {
+  try {
+    // Check if there are any users in the database
+    const usersQuery = await getDocs(collection(db, 'users'));
+    
+    if (usersQuery.empty) {
+      const authManager = new AuthManager();
+      
+      // Create sample users
+      await authManager.signup('John Doe', 'john@example.com', 'password123', 'johndoe');
+      await authManager.signup('Jane Smith', 'jane@example.com', 'password456', 'janesmith');
+      
+      console.log('Sample users created successfully');
+    }
+  } catch (error) {
+    console.error('Error initializing sample users:', error);
+  }
+}
+
+export default class AuthManager {
+  constructor() {
+    // Set up auth state listener
+    this.currentUser = null;
+    this.sessionHeartbeatInterval = null;
+    
+    // Create rate limiter instance
+    this.apiRateLimiter = new RateLimiter(5, 10000); // 5 requests per 10 seconds
+    
+    // Initialize CSRF token if not exists
+    if (!sessionStorage.getItem('csrfToken')) {
+      generateCsrfToken();
+    }
+    
+    // Set up Firebase auth state listener
+    this.unsubscribeFromAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
         try {
-          // First create the Firebase Authentication user
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
+          // Try to get data from IndexedDB cache first (if implemented)
+          // ...
           
-          try {
-            // Now that the user is authenticated, check if username is taken
-            const usernameQuery = await getDocs(
-              query(collection(db, 'users'), where('username', '==', username))
-            );
-            
-            if (!usernameQuery.empty) {
-              // Delete the auth user we just created since username is taken
-              await user.delete();
-              
-              return { 
-                success: false, 
-                code: 'username-exists',
-                message: 'This username is already taken. Please choose another one.'
-              };
-            }
-            
-            // If username is available, create the user document
-            const userData = {
+          // Fetch user document from Firestore
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            this.currentUser = {
+              ...userDoc.data(),
               id: user.uid,
-              username: username,
-              name,
-              email,
-              friends: [],
-              savedMoods: []
+              lastFetched: Date.now()
             };
-        
-            await setDoc(doc(db, 'users', user.uid), userData);
-        
-            // Set current user
-            this.currentUser = userData;
-        
-            return { success: true };
-          } catch (error) {
-            // If something went wrong after creating the auth user, delete it
-            await user.delete();
-            throw error;
+            
+            // Start tracking user session
+            this.trackUserSession();
+          } else {
+            console.error("User document not found");
+            this.currentUser = null;
           }
         } catch (error) {
-          console.error("Signup error:", error);
-          
-          // Return error information
-          return { 
-            success: false, 
-            code: error.code,
-            message: this.getErrorMessage(error.code)
-          };
+          console.error("Error fetching user data:", error);
+          this.currentUser = null;
         }
+      } else {
+        // Cleanup on sign out
+        this.clearSessionHeartbeat();
+        this.currentUser = null;
       }
-
+    });
+  }
+  
+  // Verify user's authentication token
+  async verifyIdToken() {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return false;
       
-      // Helper method to get user-friendly error messages
-      getErrorMessage(errorCode) {
-        switch(errorCode) {
-          case 'auth/email-already-in-use':
-            return 'This email is already registered';
-          case 'auth/invalid-email':
-            return 'Please provide a valid email address';
-          case 'auth/weak-password':
-            return 'Password should be at least 6 characters';
-          case 'auth/operation-not-allowed':
-            return 'Account creation is currently disabled';
-          default:
-            return 'An error occurred during signup. Please try again.';
-        }
+      // Force token refresh if it's close to expiration
+      const tokenResult = await currentUser.getIdTokenResult();
+      const expirationTime = new Date(tokenResult.expirationTime).getTime();
+      const currentTime = Date.now();
+      
+      // If token expires in less than 5 minutes, refresh it
+      if (expirationTime - currentTime < 5 * 60 * 1000) {
+        await currentUser.getIdToken(true);
       }
-
-    async login(email, password) {
-        try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            // Fetch user document
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-
-            if (userDoc.exists()) {
-                this.currentUser = userDoc.data();
-                this.currentUser.id = user.uid;
-                return true;
-            } else {
-                console.error("User document not found");
-                return false;
-            }
-        } catch (error) {
-            console.error("Login error:", error);
-            return false;
-        }
+      
+      return true;
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return false;
     }
+  }
+  
+  // Create a new user account
+  async signup(name, email, password, username) {
+    try {
+      // Apply rate limiting
+      if (this.apiRateLimiter.isAllowed('signup')) {
+        return { 
+          success: false, 
+          message: 'Too many signup attempts. Please try again later.'
+        };
+      }
+      
+      // Validate inputs
+      if (!name || !email || !password || !username) {
+        return { 
+          success: false, 
+          code: 'invalid-input',
+          message: 'Please fill in all required fields'
+        };
+      }
+      
+      // Validate username format
+      if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
+        return { 
+          success: false, 
+          code: 'invalid-username',
+          message: 'Username must be 3-15 characters and contain only letters, numbers, and underscores'
+        };
+      }
+      
+      // Sanitize inputs
+      const sanitizedName = sanitizeUserInput(name);
+      const sanitizedUsername = sanitizeUserInput(username);
+      
+      // First check if username is available
+      const usernameAvailable = await this.checkUsernameAvailability(sanitizedUsername);
+      if (!usernameAvailable) {
+        return { 
+          success: false, 
+          code: 'username-exists',
+          message: 'This username is already taken. Please choose another one.'
+        };
+      }
+      
+      // Create the Firebase Authentication user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      try {
+        // Create the user document
+        const userData = {
+          id: user.uid,
+          username: sanitizedUsername,
+          name: sanitizedName,
+          email,
+          friends: [],
+          savedMoods: [],
+          sessions: [],
+          createdAt: Date.now()
+        };
+    
+        await setDoc(doc(db, 'users', user.uid), userData);
+    
+        // Set current user locally
+        this.currentUser = userData;
+        
+        // Start tracking user session
+        this.trackUserSession();
+    
+        return { success: true };
+      } catch (error) {
+        // If something went wrong after creating the auth user, delete it
+        try {
+          await user.delete();
+        } catch (deleteError) {
+          console.error("Error deleting user after failed signup:", deleteError);
+        }
+        
+        throw error;
+      }
+    } catch (error) {
+      return handleError(
+        error, 
+        this.getErrorMessage(error.code) || 'Signup failed. Please try again.'
+      );
+    }
+  }
+  
+  // Helper method to get user-friendly error messages
+  getErrorMessage(errorCode) {
+    switch(errorCode) {
+      case 'auth/email-already-in-use':
+        return 'This email is already registered';
+      case 'auth/invalid-email':
+        return 'Please provide a valid email address';
+      case 'auth/weak-password':
+        return 'Password should be at least 6 characters';
+      case 'auth/operation-not-allowed':
+        return 'Account creation is currently disabled';
+      default:
+        return 'An error occurred during signup. Please try again.';
+    }
+  }
+  
+  // Log in an existing user
+  async login(email, password) {
+    try {
+      // Apply rate limiting
+      if (!this.apiRateLimiter.isAllowed('login')) {
+        return { 
+          success: false, 
+          message: 'Too many login attempts. Please try again later.'
+        };
+      }
+      
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-    // Add this new method
+      // Fetch user document
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+
+      if (userDoc.exists()) {
+        this.currentUser = {
+          ...userDoc.data(),
+          id: user.uid,
+          lastFetched: Date.now()
+        };
+        
+        // Start tracking user session
+        this.trackUserSession();
+        
+        return { success: true };
+      } else {
+        console.error("User document not found");
+        return { 
+          success: false, 
+          message: 'User data not found. Please contact support.'
+        };
+      }
+    } catch (error) {
+      return handleError(
+        error,
+        error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' 
+          ? 'Invalid email or password' 
+          : 'Login failed. Please try again.'
+      );
+    }
+  }
+  
+  // Check username availability
   async checkUsernameAvailability(username) {
     try {
       const usernameQuery = await getDocs(
-        query(collection(db, 'users'), where('username', '==', username))
+        query(
+          collection(db, 'users'), 
+          where('username', '==', username)
+        )
       );
       
       return usernameQuery.empty;
@@ -151,226 +360,371 @@ export default class AuthManager {
       return false;
     }
   }
-
-    async logout() {
-        try {
-            await signOut(auth);
-            this.currentUser = null;
-            return true;
-        } catch (error) {
-            console.error("Logout error:", error);
-            return false;
-        }
+  
+  // Log out the current user
+  async logout() {
+    try {
+      // Clear the session heartbeat
+      this.clearSessionHeartbeat();
+      
+      // Clear session ID from storage
+      localStorage.removeItem('sessionId');
+      
+      await signOut(auth);
+      this.currentUser = null;
+      return { success: true };
+    } catch (error) {
+      return handleError(error, 'Error logging out');
     }
-
-    async addFriend(friendIdentifier) {
-        if (!this.currentUser) return false;
-      
-        try {
-          // Check if the input is an email or a username
-          const isEmail = friendIdentifier.includes('@');
-          
-          // Create the appropriate query based on the input type
-          let friendQuery;
-          if (isEmail) {
-            // Search by email
-            friendQuery = await getDocs(
-              query(collection(db, 'users'), where('email', '==', friendIdentifier))
-            );
-          } else {
-            // Search by username
-            friendQuery = await getDocs(
-              query(collection(db, 'users'), where('username', '==', friendIdentifier))
-            );
-          }
-      
-          if (friendQuery.empty) {
-            // console.log("No user found with this identifier");
-            return false;
-          }
-      
-          // Get the first matching user (assuming emails and usernames are unique)
-          const friendDoc = friendQuery.docs[0];
-          const friendData = friendDoc.data();
-          const friendEmail = friendData.email;
-          
-          // Check if already a friend
-          if (this.currentUser.friends.includes(friendEmail)) {
-            console.log("User is already a friend");
-            return false;
-          }
-      
-          // Update current user's friends
-          const userRef = doc(db, 'users', this.currentUser.id);
-          await updateDoc(userRef, {
-            friends: arrayUnion(friendEmail)
-          });
-      
-          // Update local state
-          this.currentUser.friends = this.currentUser.friends || [];
-          this.currentUser.friends.push(friendEmail);
-      
-          return true;
-        } catch (error) {
-          console.error("Add friend error:", error);
-          return false;
-        }
+  }
+  
+  // Add a friend by email or username
+  async addFriend(friendIdentifier) {
+    try {
+      // Verify authentication
+      if (!this.currentUser) {
+        return { success: false, message: 'You must be logged in to add friends' };
       }
-
-      async deleteFriend(friendEmail) {
-        if (!this.currentUser) return false;
       
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) {
+        return { success: false, message: 'Authentication error. Please sign in again.' };
+      }
+      
+      // Apply rate limiting
+      if (!this.apiRateLimiter.isAllowed(this.currentUser.id)) {
+        return { success: false, message: 'Please wait before adding more friends' };
+      }
+      
+      // Sanitize input
+      const sanitizedIdentifier = sanitizeUserInput(friendIdentifier);
+      
+      // Check if the input is an email or a username
+      const isEmail = sanitizedIdentifier.includes('@');
+      
+      // Create the appropriate query based on the input type
+      let friendQuery;
+      if (isEmail) {
+        // Search by email
+        friendQuery = await getDocs(
+          query(collection(db, 'users'), where('email', '==', sanitizedIdentifier))
+        );
+      } else {
+        // Search by username
+        friendQuery = await getDocs(
+          query(collection(db, 'users'), where('username', '==', sanitizedIdentifier))
+        );
+      }
+      
+      if (friendQuery.empty) {
+        return { 
+          success: false, 
+          message: 'No user found with this email or username'
+        };
+      }
+      
+      // Get the first matching user (assuming emails and usernames are unique)
+      const friendDoc = friendQuery.docs[0];
+      const friendData = friendDoc.data();
+      const friendEmail = friendData.email;
+      
+      // Cannot add yourself as a friend
+      if (friendEmail === this.currentUser.email) {
+        return { 
+          success: false, 
+          message: 'You cannot add yourself as a friend'
+        };
+      }
+      
+      // Check if already a friend
+      if (this.currentUser.friends && this.currentUser.friends.includes(friendEmail)) {
+        return { 
+          success: false, 
+          message: 'This user is already in your friends list'
+        };
+      }
+      
+      // Update current user's friends
+      const userRef = doc(db, 'users', this.currentUser.id);
+      await updateDoc(userRef, {
+        friends: arrayUnion(friendEmail)
+      });
+      
+      // Update local state
+      this.currentUser.friends = this.currentUser.friends || [];
+      this.currentUser.friends.push(friendEmail);
+      
+      return { success: true };
+    } catch (error) {
+      return handleError(error, 'Error adding friend');
+    }
+  }
+  
+  // Remove a friend
+  async deleteFriend(friendEmail) {
+    try {
+      // Verify authentication
+      if (!this.currentUser) {
+        return { success: false, message: 'You must be logged in to remove friends' };
+      }
+      
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) {
+        return { success: false, message: 'Authentication error. Please sign in again.' };
+      }
+      
+      // Sanitize input
+      const sanitizedEmail = sanitizeUserInput(friendEmail);
+      
+      // Check if the user has this friend
+      if (!this.currentUser.friends || !this.currentUser.friends.includes(sanitizedEmail)) {
+        return { success: false, message: "This person is not in your friends list" };
+      }
+      
+      // Update the current user's document using arrayRemove for atomic operation
+      const userRef = doc(db, 'users', this.currentUser.id);
+      await updateDoc(userRef, {
+        friends: arrayRemove(sanitizedEmail)
+      });
+      
+      // Update local state
+      this.currentUser.friends = this.currentUser.friends.filter(email => email !== sanitizedEmail);
+      
+      // Also remove the current user from the friend's list (for reciprocal friendship)
+      const friendQuery = await getDocs(
+        query(collection(db, 'users'), where('email', '==', sanitizedEmail))
+      );
+      
+      if (!friendQuery.empty) {
+        const friendDoc = friendQuery.docs[0];
+        
+        // Update the friend's document using arrayRemove
+        await updateDoc(doc(db, 'users', friendDoc.id), {
+          friends: arrayRemove(this.currentUser.email)
+        });
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return handleError(error, "Error removing friend");
+    }
+  }
+  
+  // Get all friends
+  getFriends() {
+    if (!this.currentUser) return [];
+    return this.currentUser.friends || [];
+  }
+  
+  // Save a mood entry
+  async saveMood(moods, notes = '') {
+    try {
+      // Verify authentication
+      if (!this.currentUser) {
+        return { success: false, message: 'You must be logged in to save moods' };
+      }
+      
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) {
+        return { success: false, message: 'Authentication error. Please sign in again.' };
+      }
+      
+      // Apply rate limiting
+      if (!this.apiRateLimiter.isAllowed(this.currentUser.id)) {
+        return { success: false, message: 'Please wait before saving another mood' };
+      }
+      
+      // Sanitize notes input
+      const sanitizedNotes = sanitizeUserInput(notes);
+      
+      const now = new Date();
+      
+      // Format the date as MM/DD
+      const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
+      
+      // Format the time as HH:MM AM/PM
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHours = hours % 12 || 12;
+      const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
+      
+      // Create mood entry
+      const moodEntry = {
+        date: formattedDate,
+        time: formattedTime,
+        timestamp: now.getTime(),
+        moods: [...moods], // Assuming moods is an array of objects
+        notes: sanitizedNotes
+      };
+      
+      // Update user document
+      const userRef = doc(db, 'users', this.currentUser.id);
+      await updateDoc(userRef, {
+        savedMoods: arrayUnion(moodEntry)
+      });
+      
+      // Refresh current user data
+      const updatedUserDoc = await getDoc(userRef);
+      
+      if (updatedUserDoc.exists()) {
+        this.currentUser = {
+          ...updatedUserDoc.data(),
+          id: userRef.id,
+          lastFetched: Date.now()
+        };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return handleError(error, 'Error saving your mood');
+    }
+  }
+  
+  // Get saved moods (sorted by timestamp)
+  getSavedMoods() {
+    if (!this.currentUser) return [];
+    
+    // Return a sorted copy (newest first)
+    const moods = [...(this.currentUser.savedMoods || [])];
+    return moods.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }
+  
+  // Fetch friends data
+  async getFriendsData() {
+    try {
+      // Verify authentication
+      if (!this.currentUser) return [];
+      
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) return [];
+      
+      const friendEmails = this.currentUser.friends || [];
+      
+      // Use Promise.all for parallel fetching (performance optimization)
+      const friendPromises = friendEmails.map(async (friendEmail) => {
         try {
-          // Check if the user has this friend
-          if (!this.currentUser.friends || !this.currentUser.friends.includes(friendEmail)) {
-            return { success: false, message: "This person is not in your friends list" };
-          }
-      
-          // Create a new friends array without the friend to delete
-          const updatedFriends = this.currentUser.friends.filter(email => email !== friendEmail);
-          
-          // Update the current user's document
-          const userRef = doc(db, 'users', this.currentUser.id);
-          await updateDoc(userRef, {
-            friends: updatedFriends
-          });
-      
-          // Update local state
-          this.currentUser.friends = updatedFriends;
-      
-          // Also remove the current user from the friend's list (for reciprocal friendship)
           const friendQuery = await getDocs(
             query(collection(db, 'users'), where('email', '==', friendEmail))
           );
-      
+          
           if (!friendQuery.empty) {
             const friendDoc = friendQuery.docs[0];
             const friendData = friendDoc.data();
             
-            // Create a new friends array for the friend
-            const friendUpdatedFriends = (friendData.friends || []).filter(email => 
-              email !== this.currentUser.email
-            );
+            // Create a safe copy without sensitive information
+            return {
+              id: friendDoc.id,
+              name: friendData.name,
+              username: friendData.username,
+              email: friendData.email,
+              savedMoods: friendData.savedMoods || []
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error fetching friend data for ${friendEmail}:`, error);
+          return null;
+        }
+      });
+      
+      // Wait for all friend data to be fetched
+      const results = await Promise.all(friendPromises);
+      
+      // Filter out any failed fetches (nulls)
+      return results.filter(friend => friend !== null);
+    } catch (error) {
+      console.error("Error getting friends data:", error);
+      return [];
+    }
+  }
+  
+  // Track and manage user sessions
+  async trackUserSession() {
+    if (!auth.currentUser) return;
+    
+    const sessionId = this.generateSessionId();
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    
+    try {
+      // Track the session
+      await updateDoc(userRef, {
+        sessions: arrayUnion({
+          id: sessionId,
+          startTime: Date.now(),
+          device: navigator.userAgent,
+          lastActive: Date.now()
+        })
+      });
+      
+      // Store the session ID locally
+      localStorage.setItem('sessionId', sessionId);
+      
+      // Clear any existing heartbeat
+      this.clearSessionHeartbeat();
+      
+      // Set up session heartbeat (update last active time)
+      this.sessionHeartbeatInterval = setInterval(async () => {
+        if (!auth.currentUser) {
+          this.clearSessionHeartbeat();
+          return;
+        }
+        
+        try {
+          // Query for the specific session
+          const userDoc = await getDoc(userRef);
+          if (!userDoc.exists()) return;
+          
+          const userData = userDoc.data();
+          const sessions = userData.sessions || [];
+          const sessionIndex = sessions.findIndex(s => s.id === sessionId);
+          
+          if (sessionIndex >= 0) {
+            // Update the session's lastActive time
+            sessions[sessionIndex].lastActive = Date.now();
             
-            // Update the friend's document
-            await updateDoc(doc(db, 'users', friendDoc.id), {
-              friends: friendUpdatedFriends
+            await updateDoc(userRef, {
+              sessions: sessions
             });
           }
-      
-          return { success: true };
         } catch (error) {
-          console.error("Error deleting friend:", error);
-          return { success: false, message: "Error removing friend" };
+          console.error('Error updating session:', error);
         }
-      }  
-
-    getFriends() {
-        if (!this.currentUser) return [];
-        return this.currentUser.friends || [];
-    }
-
-    async saveMood(moods, notes = '') {
-        if (!this.currentUser) return false;
-
-        try {
-            const now = new Date();
-
-            // Format the date as MM/DD
-            const formattedDate = `${now.getMonth() + 1}/${now.getDate()}`;
-
-            // Format the time as HH:MM AM/PM
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            const formattedHours = hours % 12 || 12;
-            const formattedTime = `${formattedHours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
-
-            // Create mood entry
-            const moodEntry = {
-                date: formattedDate,
-                time: formattedTime,
-                timestamp: now.getTime(),
-                moods: [...moods],
-                notes: notes.trim()
-            };
-
-            // Update user document
-            const userRef = doc(db, 'users', this.currentUser.id);
-            await updateDoc(userRef, {
-                savedMoods: arrayUnion(moodEntry)
-            });
-
-            // Refresh current user data
-            const updatedUserDoc = await getDoc(userRef);
-            this.currentUser = updatedUserDoc.data();
-            this.currentUser.id = userRef.id;
-
-            return true;
-        } catch (error) {
-            console.error("Error saving mood:", error);
-            return false;
-        }
-    }
-
-    getSavedMoods() {
-        if (!this.currentUser) return [];
-        return this.currentUser.savedMoods || [];
-    }
-
-    async getFriendsData() {
-        if (!this.currentUser) return [];
-
-        try {
-            const friendEmails = this.currentUser.friends || [];
-            const friendsData = [];
-
-            // Fetch data for each friend
-            for (const friendEmail of friendEmails) {
-                const friendQuery = await getDocs(
-                    query(collection(db, 'users'), where('email', '==', friendEmail))
-                );
-
-                if (!friendQuery.empty) {
-                    const friendDoc = friendQuery.docs[0];
-                    const friendData = friendDoc.data();
-
-                    // Create a safe copy without sensitive information
-                    const safeFriendData = {
-                        id: friendDoc.id,
-                        name: friendData.name,
-                        email: friendData.email,
-                        savedMoods: friendData.savedMoods || []
-                    };
-
-                    friendsData.push(safeFriendData);
-                }
-            }
-
-            return friendsData;
-        } catch (error) {
-            console.error("Error getting friends data:", error);
-            return [];
-        }
-    }
-}
-
-// Helper function to initialize sample users if needed
-export async function initializeSampleUsers() {
-    try {
-        // Check if there are any users in the database
-        const usersQuery = await getDocs(collection(db, 'users'));
-        
-        if (usersQuery.empty) {
-            const authManager = new AuthManager();
-            
-            // Create sample users
-            await authManager.signup('John Doe', 'john@example.com', 'password123');
-            await authManager.signup('Jane Smith', 'jane@example.com', 'password456');
-            
-            console.log('Sample users created successfully');
-        }
+      }, 5 * 60 * 1000); // Every 5 minutes
     } catch (error) {
-        console.error('Error initializing sample users:', error);
+      console.error('Error tracking session:', error);
     }
+  }
+  
+  // Generate a unique session ID
+  generateSessionId() {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  }
+  
+  // Clear session heartbeat
+  clearSessionHeartbeat() {
+    if (this.sessionHeartbeatInterval) {
+      clearInterval(this.sessionHeartbeatInterval);
+      this.sessionHeartbeatInterval = null;
+    }
+  }
+  
+  // Clean up resources
+  cleanup() {
+    // Clear the session heartbeat
+    this.clearSessionHeartbeat();
+    
+    // Unsubscribe from auth state changes
+    if (this.unsubscribeFromAuth) {
+      this.unsubscribeFromAuth();
+      this.unsubscribeFromAuth = null;
+    }
+    
+    // Clear local storage items
+    localStorage.removeItem('sessionId');
+  }
 }

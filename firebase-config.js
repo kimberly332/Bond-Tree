@@ -1,9 +1,10 @@
-// firebase-config.js
+// Add to firebase-config.js
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app-check.js';
 
-// Your Firebase configuration object
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDjeCUIj0xGoztxqLsWQ83XLHiPodp3fDU",
   authDomain: "tree-bond.firebaseapp.com",
@@ -18,5 +19,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Initialize App Check (get your reCAPTCHA site key from Firebase console)
+// Replace 'YOUR_RECAPTCHA_SITE_KEY' with your actual key
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
+  isTokenAutoRefreshEnabled: true
+});
 
 export { auth, db };

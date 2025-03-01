@@ -1,475 +1,756 @@
-import AuthManager, { auth } from './auth-manager.js';
+/**
+ * Bond Tree - Mood Ball Management
+ * 
+ * This file handles all mood ball functionality including:
+ * - Rendering the mood ball visualization
+ * - Managing selected moods
+ * - Saving moods to Firebase
+ * - Displaying saved mood history
+ */
+
+import { defaultAuth as auth } from './firebase-config.js';
+import AuthManager from './auth-manager.js';
+
+// Constants and configuration
+const MAX_MOODS = 3;
+const MAX_NOTES_LENGTH = 200;
+const AUTH_CHECK_ATTEMPTS = 10;
+const AUTH_CHECK_INTERVAL = 300;
+
+// Mood emoji mapping
+const MOOD_EMOJIS = {
+  Calm: '😌',
+  Sad: '😢',
+  Tired: '😴',
+  Anxious: '😰',
+  Happy: '😊',
+  Angry: '😠',
+  Peaceful: '🙂',
+  Grateful: '🙏',
+  Energetic: '⚡',
+  Bored: '😒',
+  Nostalgic: '🌇',
+  Confused: '🤔',
+  Loved: '❤️',
+  Creative: '🎨',
+  Hopeful: '🌟',
+  Relaxed: '😎',
+  Melancholy: '😔',
+  Proud: '😌'
+};
+
+// Cache DOM elements to avoid repeated lookups
+let elements = {
+  loginWarning: null,
+  mainContent: null,
+  header: null,
+  footer: null,
+  backButton: null,
+  moodBall: null,
+  colorOptions: null,
+  saveButton: null,
+  savedMoodsContainer: null,
+  selectionInfo: null,
+  moodNotes: null,
+  charsCount: null,
+  statusAnnouncer: null
+};
+
+// App state
+let appState = {
+  selectedMoods: [],
+  savedMoods: [],
+  authManager: null,
+  authCheckAttempts: 0,
+  isSaving: false
+};
 
 // Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("DOM loaded - initializing mood-ball.js with Firebase");
+document.addEventListener('DOMContentLoaded', initApp);
+
+/**
+ * Initialize the application
+ */
+function initApp() {
+  console.log("DOM loaded - initializing mood-ball.js");
+  
+  // Cache DOM elements
+  cacheElements();
   
   // Initialize the AuthManager
-  const authManager = new AuthManager();
-
-  // DOM elements for visibility control
-  const loginWarning = document.getElementById('login-warning');
-  const mainContent = document.querySelector('.container');
-  const header = document.querySelector('header');
-  const footer = document.querySelector('footer');
-  const backButton = document.getElementById('back-to-dashboard');
+  appState.authManager = new AuthManager();
+  
+  // Set up keyboard accessibility
+  setupKeyboardAccessibility();
   
   // Check authentication state with Firebase
-auth.onAuthStateChanged(async (user) => {
-    try {
-      if (!user) {
-        console.log("No user logged in, showing warning");
-        loginWarning.style.display = 'block';
-        mainContent.style.display = 'none';
-        header.style.display = 'none';
-        footer.style.display = 'none';
-        backButton.style.display = 'none';
-        return; // Exit early
-      }
-      
-      console.log("User logged in:", user.email);
-      loginWarning.style.display = 'none';
-      mainContent.style.display = 'block';
-      header.style.display = 'block';
-      footer.style.display = 'block';
-      backButton.style.display = 'block';
-  
-      // Wait for currentUser to be populated from Firestore
-      // This might take a moment after Firebase auth state changes
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      const waitForUserData = async () => {
-        try {
-          if (authManager.currentUser) {
-            initializeMoodBallPage(authManager);
-          } else if (attempts < maxAttempts) {
-            attempts++;
-            console.log(`Waiting for user data... (${attempts}/${maxAttempts})`);
-            setTimeout(waitForUserData, 300);
-          } else {
-            console.error("Failed to load user data after multiple attempts");
-            alert("There was a problem loading your data. Please refresh the page.");
-          }
-        } catch (error) {
-          console.error("Error in waitForUserData:", error);
-          alert("An error occurred while loading your data. Please refresh the page.");
-        }
-      };
-      
-      // Start waiting for user data
-      waitForUserData();
-    } catch (error) {
-      console.error("Error in auth state change handler:", error);
-      // Show error state UI
-      loginWarning.style.display = 'block';
-      loginWarning.innerHTML = `
-        <h3>Something went wrong</h3>
-        <p>There was an error loading your profile. Please refresh the page and try again.</p>
-        <a href="index.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: #4a90e2; color: white; text-decoration: none; border-radius: 5px;">Back to Login</a>
-      `;
-      mainContent.style.display = 'none';
-      header.style.display = 'none';
-      footer.style.display = 'none';
-      backButton.style.display = 'none';
-    }
-  });
-});
+  auth.onAuthStateChanged(handleAuthStateChange);
+}
 
-// Main initialization function for the mood ball page
-async function initializeMoodBallPage(authManager) {
-  // Selected moods array
-  let selectedMoods = [];
-  let savedMoods = [];
+/**
+ * Cache DOM elements for better performance
+ */
+function cacheElements() {
+  elements = {
+    loginWarning: document.getElementById('login-warning'),
+    mainContent: document.querySelector('.container'),
+    header: document.querySelector('header'),
+    footer: document.querySelector('footer'),
+    backButton: document.getElementById('back-to-dashboard'),
+    moodBall: document.getElementById('current-mood-ball'),
+    colorOptions: document.querySelectorAll('.color-option'),
+    saveButton: document.getElementById('save-button'),
+    savedMoodsContainer: document.getElementById('saved-moods-container'),
+    selectionInfo: document.getElementById('selection-info'),
+    moodNotes: document.getElementById('mood-notes'),
+    charsCount: document.getElementById('chars-count'),
+    statusAnnouncer: document.getElementById('status-announcer')
+  };
+  
+  console.log("DOM elements cached:", {
+    loginWarning: !!elements.loginWarning,
+    mainContent: !!elements.mainContent,
+    colorOptions: elements.colorOptions?.length,
+    moodBall: !!elements.moodBall
+  });
+}
+
+/**
+ * Set up keyboard accessibility for interactive elements
+ */
+function setupKeyboardAccessibility() {
+  // Make color options accessible via keyboard
+  if (elements.colorOptions) {
+    elements.colorOptions.forEach(option => {
+      option.addEventListener('keydown', (e) => {
+        // Handle Enter or Space key
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleColorSelection(option);
+        }
+      });
+    });
+  }
+}
+
+/**
+ * Handle Firebase auth state changes
+ * @param {Object} user - Firebase user object
+ */
+async function handleAuthStateChange(user) {
+  try {
+    if (!user) {
+      showLoginWarning();
+      return;
+    }
+    
+    console.log("User logged in:", user.email);
+    hideLoginWarning();
+    
+    // Wait for AuthManager to load user data from Firestore
+    waitForUserData();
+  } catch (error) {
+    console.error("Error in auth state change handler:", error);
+    showErrorState(error);
+  }
+}
+
+/**
+ * Show login warning when user is not authenticated
+ */
+function showLoginWarning() {
+  console.log("No user logged in, showing warning");
+  if (!elements.loginWarning) return;
+  
+  elements.loginWarning.style.display = 'block';
+  elements.mainContent.style.display = 'none';
+  elements.header.style.display = 'none';
+  elements.footer.style.display = 'none';
+  elements.backButton.style.display = 'none';
+}
+
+/**
+ * Hide login warning when user is authenticated
+ */
+function hideLoginWarning() {
+  if (!elements.loginWarning) return;
+  
+  elements.loginWarning.style.display = 'none';
+  elements.mainContent.style.display = 'block';
+  elements.header.style.display = 'block';
+  elements.footer.style.display = 'block';
+  elements.backButton.style.display = 'block';
+}
+
+/**
+ * Show error state when something goes wrong
+ * @param {Error} error - The error that occurred
+ */
+function showErrorState(error) {
+  if (!elements.loginWarning) return;
+  
+  elements.loginWarning.style.display = 'block';
+  elements.loginWarning.innerHTML = `
+    <div class="login-warning__content">
+      <h3>Something went wrong</h3>
+      <p>There was an error loading your profile: ${error.message || 'Unknown error'}</p>
+      <a href="index.html" class="login-warning__button">Back to Login</a>
+    </div>
+  `;
+  
+  elements.mainContent.style.display = 'none';
+  elements.header.style.display = 'none';
+  elements.footer.style.display = 'none';
+  elements.backButton.style.display = 'none';
+}
+
+/**
+ * Wait for user data to be loaded from Firestore
+ */
+function waitForUserData() {
+  if (appState.authManager.currentUser) {
+    initializeMoodBallPage();
+    return;
+  }
+  
+  if (appState.authCheckAttempts < AUTH_CHECK_ATTEMPTS) {
+    appState.authCheckAttempts++;
+    console.log(`Waiting for user data... (${appState.authCheckAttempts}/${AUTH_CHECK_ATTEMPTS})`);
+    setTimeout(waitForUserData, AUTH_CHECK_INTERVAL);
+  } else {
+    console.error("Failed to load user data after multiple attempts");
+    const error = new Error("Failed to load user data");
+    showErrorState(error);
+  }
+}
+
+/**
+ * Main initialization function for the mood ball page
+ */
+function initializeMoodBallPage() {
+  // Reset state
+  appState.selectedMoods = [];
   
   // Try to get saved moods from Firebase
   try {
-    savedMoods = authManager.getSavedMoods();
-    console.log("Retrieved saved moods:", savedMoods.length);
+    appState.savedMoods = appState.authManager.getSavedMoods();
+    console.log("Retrieved saved moods:", appState.savedMoods.length);
   } catch (error) {
     console.error("Error getting saved moods:", error);
-    savedMoods = [];
+    appState.savedMoods = [];
   }
-
-  // DOM elements
-  const moodBall = document.getElementById('current-mood-ball');
-  const colorOptions = document.querySelectorAll('.color-option');
-  const saveButton = document.getElementById('save-button');
-  const savedMoodsContainer = document.getElementById('saved-moods-container');
-  const selectionInfo = document.getElementById('selection-info');
-  const moodNotes = document.getElementById('mood-notes');
-  const charsCount = document.getElementById('chars-count');
   
-  // Map mood names to corresponding emojis
-  const moodEmojis = {
-    Calm: '😌',
-    Sad: '😢',
-    Tired: '😴',
-    Anxious: '😰',
-    Happy: '😊',
-    Angry: '😠',
-    Peaceful: '🙂',
-    Grateful: '🙏',
-    Energetic: '⚡',
-    Bored: '😒',
-    Nostalgic: '🌇',
-    Confused: '🤔',
-    Loved: '❤️',
-    Creative: '🎨',
-    Hopeful: '🌟',
-    Relaxed: '😎',
-    Melancholy: '😔',
-    Proud: '😌'
-  };
-
-  console.log("DOM elements initialized:", {
-    moodBall: !!moodBall,
-    colorOptions: colorOptions.length,
-    saveButton: !!saveButton,
-    savedMoodsContainer: !!savedMoodsContainer,
-    selectionInfo: !!selectionInfo,
-    moodNotes: !!moodNotes,
-    charsCount: !!charsCount
-  });
-
-  // Character counter for mood notes
-  if (moodNotes && charsCount) {
-    moodNotes.addEventListener('input', () => {
-      const count = moodNotes.value.length;
-      charsCount.textContent = count;
-      
-      // Add visual feedback for character limit
-      if (count > 180) {
-        charsCount.style.color = '#e67e22'; // Orange when approaching limit
-      } else if (count > 195) {
-        charsCount.style.color = '#e74c3c'; // Red when very close to limit
-      } else {
-        charsCount.style.color = '#999'; // Default color
-      }
-    });
-  }
-
-  // Back to dashboard functionality
-const backButton = document.getElementById('back-to-dashboard');
-if (backButton) {
-  backButton.addEventListener('click', (e) => {
-    e.preventDefault(); // Prevent default navigation
-    
-    // Create a sessionStorage flag to indicate we're returning to dashboard
-    sessionStorage.setItem('returnToDashboard', 'true');
-    
-    // Navigate to index.html
-    window.location.href = 'index.html';
-  });
-}
-
-  // Add event listeners to color options
-  colorOptions.forEach(option => {
-    option.addEventListener('click', () => {
-      const color = option.getAttribute('data-color');
-      const name = option.getAttribute('data-name');
-      
-      // Check if already selected
-      const existingIndex = selectedMoods.findIndex(mood => mood.name === name);
-      
-      if (existingIndex >= 0) {
-        // Remove if already selected
-        selectedMoods.splice(existingIndex, 1);
-        option.classList.remove('selected');
-      } else {
-        // Add if not selected (max 3)
-        if (selectedMoods.length < 3) {
-          selectedMoods.push({ color, name });
-          option.classList.add('selected');
-        } else {
-          // Replace the first one if already have 3
-          const oldOption = Array.from(colorOptions).find(opt => 
-            opt.getAttribute('data-name') === selectedMoods[0].name
-          );
-          if (oldOption) {
-            oldOption.classList.remove('selected');
-          }
-          
-          selectedMoods.shift();
-          selectedMoods.push({ color, name });
-          option.classList.add('selected');
-        }
-      }
-      
-      updateMoodBall();
-      updateSelectionInfo();
-    });
-  });
-
-  // Save button click handler - updated for async/await
-  if (saveButton) {
-    saveButton.addEventListener('click', async function(e) {
-      try {
-        console.log("Save button clicked. Selected moods:", selectedMoods);
-        
-        if (selectedMoods.length > 0) {
-            try {
-              // Get notes from the textarea if it exists
-              const notes = moodNotes ? moodNotes.value : '';
-              
-              console.log("Attempting to save mood with notes:", notes);
-              
-              // Disable button during saving
-              saveButton.disabled = true;
-              saveButton.textContent = "Saving...";
-              
-              // Save to Firebase
-              const saveResult = await authManager.saveMood(selectedMoods, notes);
-              
-              if (saveResult) {
-                console.log("Mood saved successfully");
-                
-                // Clear the notes field after saving
-                if (moodNotes) {
-                  moodNotes.value = '';
-                  if (charsCount) charsCount.textContent = '0';
-                }
-                
-                // Update saved moods display
-                updateSavedMoods();
-                
-                // Show saved confirmation
-                saveButton.textContent = "Saved!";
-                
-                setTimeout(() => {
-                  saveButton.textContent = "Save Today's Mood";
-                  saveButton.disabled = false;
-                }, 1500);
-              } else {
-                console.error("Failed to save mood - authManager returned false");
-                alert("Sorry, there was a problem saving your mood. Please try again.");
-                saveButton.textContent = "Save Today's Mood";
-                saveButton.disabled = false;
-              }
-            } catch (error) {
-              console.error("Error in save button handler:", error);
-              alert("Sorry, something went wrong. Please try again or refresh the page.");
-              saveButton.textContent = "Save Today's Mood";
-              saveButton.disabled = false;
-            }
-          } else {
-            // Remind user to select at least one mood
-            alert("Please select at least one mood before saving.");
-          }
-      } catch (error) {
-        console.error("Error in save button handler:", error);
-        alert("Sorry, something went wrong. Please try again or refresh the page.");
-        saveButton.textContent = "Save Today's Mood";
-        saveButton.disabled = false;
-      }
-    });
-  }
-
-  // Update the selection info text
-  function updateSelectionInfo() {
-    if (!selectionInfo) return;
-    
-    if (selectedMoods.length === 0) {
-      selectionInfo.textContent = "Select up to 3 emotions";
-    } else {
-      const moodNames = selectedMoods.map(mood => mood.name).join(", ");
-      selectionInfo.textContent = `Selected: ${moodNames}`;
-    }
-  }
-
-  // Update the mood ball display
-  function updateMoodBall() {
-    if (!moodBall) return;
-    
-    // Clear existing content
-    moodBall.innerHTML = '';
-    
-    if (selectedMoods.length === 0) {
-      // Empty state
-      moodBall.style.backgroundColor = '#FFFFFF';
-    } else {
-      // Create sections for each mood
-      const sectionHeight = 100 / selectedMoods.length;
-      
-      selectedMoods.forEach((mood, index) => {
-        const section = document.createElement('div');
-        section.className = 'mood-section';
-        section.style.backgroundColor = mood.color;
-        section.style.top = `${index * sectionHeight}%`;
-        section.style.height = `${sectionHeight}%`;
-        
-        // Add corresponding emoji
-        const emoji = document.createElement('div');
-        emoji.className = 'mood-emoji';
-        emoji.textContent = moodEmojis[mood.name] || ''; // Use empty string if emoji not found
-        section.appendChild(emoji);
-        
-        moodBall.appendChild(section);
-      });
-    }
-  }
-
-  // Show note modal
-  function showNoteModal(moodData) {
-    try {
-      // Create modal elements
-      const modal = document.createElement('div');
-      modal.className = 'note-modal';
-      
-      const modalContent = document.createElement('div');
-      modalContent.className = 'note-modal-content';
-      
-      const header = document.createElement('div');
-      header.className = 'note-header';
-      
-      const date = document.createElement('div');
-      date.className = 'note-date';
-      date.textContent = `${moodData.date} at ${moodData.time || ''}`;
-      
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'note-close';
-      closeBtn.innerHTML = '&times;';
-      closeBtn.setAttribute('aria-label', 'Close');
-      closeBtn.addEventListener('click', () => {
-        document.body.removeChild(modal);
-      });
-      
-      header.appendChild(date);
-      header.appendChild(closeBtn);
-      
-      const body = document.createElement('div');
-      body.className = 'note-body';
-      body.textContent = moodData.notes;
-      
-      // Assemble modal
-      modalContent.appendChild(header);
-      modalContent.appendChild(body);
-      modal.appendChild(modalContent);
-      
-      // Add click handler to close when clicking outside
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          document.body.removeChild(modal);
-        }
-      });
-      
-      // Add keyboard handling for accessibility
-      modal.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          document.body.removeChild(modal);
-        }
-      });
-      
-      // Add to document
-      document.body.appendChild(modal);
-      
-      // Focus the close button for keyboard accessibility
-      setTimeout(() => closeBtn.focus(), 100);
-    } catch (e) {
-      console.error("Error showing note modal:", e);
-      alert(`Note from ${moodData.date}: ${moodData.notes}`);
-    }
-  }
-
-  // Update saved moods display
-  async function updateSavedMoods() {
-    if (!savedMoodsContainer) return;
-    
-    try {
-      // Get the latest saved moods
-      savedMoods = authManager.getSavedMoods();
-      console.log("Fetched saved moods for display:", savedMoods.length);
-      
-      savedMoodsContainer.innerHTML = '';
-      
-      if (!savedMoods || savedMoods.length === 0) {
-        const emptyMessage = document.createElement('p');
-        emptyMessage.textContent = "No saved moods yet. Save your first mood!";
-        emptyMessage.style.textAlign = "center";
-        emptyMessage.style.color = "#666";
-        emptyMessage.style.padding = "20px 0";
-        savedMoodsContainer.appendChild(emptyMessage);
-        return;
-      }
-      
-      // Sort moods by timestamp if available, otherwise keep original order
-      const sortedMoods = [...savedMoods].sort((a, b) => {
-        if (a.timestamp && b.timestamp) {
-          return b.timestamp - a.timestamp; // Newest first
-        }
-        return 0; // Keep original order if no timestamp
-      });
-      
-      sortedMoods.forEach(saved => {
-        const savedMoodElement = document.createElement('div');
-        savedMoodElement.className = 'saved-mood';
-        
-        const savedBall = document.createElement('div');
-        savedBall.className = 'saved-mood-ball';
-        
-        // Create sections for the saved mood
-        const sectionHeight = 100 / saved.moods.length;
-        
-        saved.moods.forEach((mood, index) => {
-          const section = document.createElement('div');
-          section.className = 'mood-section';
-          section.style.backgroundColor = mood.color;
-          section.style.top = `${index * sectionHeight}%`;
-          section.style.height = `${sectionHeight}%`;
-          
-          savedBall.appendChild(section);
-        });
-        
-        const dateContainer = document.createElement('div');
-        dateContainer.className = 'mood-date-container';
-        
-        const dateElement = document.createElement('div');
-        dateElement.className = 'date';
-        dateElement.textContent = saved.date;
-        dateContainer.appendChild(dateElement);
-        
-        // Add time if available
-        if (saved.time) {
-          const timeElement = document.createElement('div');
-          timeElement.className = 'time';
-          timeElement.textContent = saved.time;
-          dateContainer.appendChild(timeElement);
-        }
-        
-        savedMoodElement.appendChild(savedBall);
-        savedMoodElement.appendChild(dateContainer);
-        
-        // Add note preview if there are notes
-        if (saved.notes) {
-          const notePreview = document.createElement('div');
-          notePreview.className = 'saved-mood-details';
-          
-          const noteText = document.createElement('div');
-          noteText.className = 'mood-note-preview';
-          noteText.innerHTML = '<span class="mood-note-icon">📝</span>' + 
-                              (saved.notes.length > 20 ? 
-                               saved.notes.substring(0, 20) + '...' : 
-                               saved.notes);
-          
-          // Add click handler to show the full note
-          noteText.addEventListener('click', () => {
-            showNoteModal(saved);
-          });
-          
-          notePreview.appendChild(noteText);
-          savedMoodElement.appendChild(notePreview);
-        }
-        
-        savedMoodsContainer.appendChild(savedMoodElement);
-      });
-    } catch (error) {
-      console.error("Error updating saved moods:", error);
-      savedMoodsContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading saved moods. Please refresh the page.</p>';
-    }
-  }
-
-  // Initialize the page
+  // Initialize event listeners
+  initializeEventListeners();
+  
+  // Initialize UI
   updateMoodBall();
   updateSelectionInfo();
   updateSavedMoods();
+  
+  // Announce for screen readers
+  announceToScreenReader('Mood tracker loaded successfully');
 }
+
+/**
+ * Set up all event listeners
+ */
+function initializeEventListeners() {
+  // Back button
+  if (elements.backButton) {
+    elements.backButton.addEventListener('click', handleBackButtonClick);
+  }
+  
+  // Character counter for mood notes
+  if (elements.moodNotes && elements.charsCount) {
+    elements.moodNotes.addEventListener('input', handleNotesInput);
+  }
+  
+  // Color options
+  if (elements.colorOptions) {
+    elements.colorOptions.forEach(option => {
+      option.addEventListener('click', () => handleColorSelection(option));
+    });
+  }
+  
+  // Save button
+  if (elements.saveButton) {
+    elements.saveButton.addEventListener('click', handleSaveMood);
+  }
+}
+
+/**
+ * Handle back button click
+ * @param {Event} e - Click event
+ */
+function handleBackButtonClick(e) {
+  e.preventDefault();
+  sessionStorage.setItem('returnToDashboard', 'true');
+  window.location.href = 'index.html';
+}
+
+/**
+ * Handle notes input for character count
+ */
+function handleNotesInput() {
+  const count = elements.moodNotes.value.length;
+  elements.charsCount.textContent = count;
+  
+  // Add visual feedback for character limit
+  if (count > 180) {
+    elements.charsCount.style.color = '#e67e22'; // Orange when approaching limit
+  } else if (count > 195) {
+    elements.charsCount.style.color = '#e74c3c'; // Red when very close to limit
+  } else {
+    elements.charsCount.style.color = '#999'; // Default color
+  }
+}
+
+/**
+ * Handle color/mood selection
+ * @param {Element} option - The selected color option element
+ */
+function handleColorSelection(option) {
+  const color = option.getAttribute('data-color');
+  const name = option.getAttribute('data-name');
+  
+  // Check if already selected
+  const existingIndex = appState.selectedMoods.findIndex(mood => mood.name === name);
+  
+  if (existingIndex >= 0) {
+    // Remove if already selected
+    appState.selectedMoods.splice(existingIndex, 1);
+    option.classList.remove('color-option--selected');
+    option.setAttribute('aria-pressed', 'false');
+  } else {
+    // Add if not selected (max 3)
+    if (appState.selectedMoods.length < MAX_MOODS) {
+      appState.selectedMoods.push({ color, name });
+      option.classList.add('color-option--selected');
+      option.setAttribute('aria-pressed', 'true');
+    } else {
+      // Replace the first one if already have max moods
+      const oldOption = Array.from(elements.colorOptions).find(opt => 
+        opt.getAttribute('data-name') === appState.selectedMoods[0].name
+      );
+      
+      if (oldOption) {
+        oldOption.classList.remove('color-option--selected');
+        oldOption.setAttribute('aria-pressed', 'false');
+      }
+      
+      appState.selectedMoods.shift();
+      appState.selectedMoods.push({ color, name });
+      option.classList.add('color-option--selected');
+      option.setAttribute('aria-pressed', 'true');
+    }
+  }
+  
+  updateMoodBall();
+  updateSelectionInfo();
+  
+  // Announce selection for screen readers
+  if (appState.selectedMoods.length > 0) {
+    const moodNames = appState.selectedMoods.map(mood => mood.name).join(", ");
+    announceToScreenReader(`Selected moods: ${moodNames}`);
+  } else {
+    announceToScreenReader('All moods cleared');
+  }
+}
+
+/**
+ * Handle save mood button click
+ */
+async function handleSaveMood() {
+  try {
+    if (appState.isSaving) return; // Prevent double submissions
+    appState.isSaving = true;
+    
+    console.log("Save button clicked. Selected moods:", appState.selectedMoods);
+    
+    if (appState.selectedMoods.length === 0) {
+      alert("Please select at least one mood before saving.");
+      appState.isSaving = false;
+      return;
+    }
+    
+    // Get notes from the textarea if it exists
+    const notes = elements.moodNotes ? elements.moodNotes.value : '';
+    
+    // Sanitize notes (basic XSS protection)
+    const sanitizedNotes = notes
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    
+    console.log("Attempting to save mood with notes:", sanitizedNotes);
+    
+    // Disable button during saving
+    elements.saveButton.disabled = true;
+    elements.saveButton.textContent = "Saving...";
+    
+    // Save to Firebase
+    const saveResult = await appState.authManager.saveMood(appState.selectedMoods, sanitizedNotes);
+    
+    if (saveResult.success) {
+      console.log("Mood saved successfully");
+      
+      // Clear the notes field after saving
+      if (elements.moodNotes) {
+        elements.moodNotes.value = '';
+        if (elements.charsCount) elements.charsCount.textContent = '0';
+      }
+      
+      // Update saved moods display
+      updateSavedMoods();
+      
+      // Reset mood selection
+      resetMoodSelection();
+      
+      // Show saved confirmation
+      elements.saveButton.textContent = "Saved!";
+      
+      // Announce success for screen readers
+      announceToScreenReader('Your mood has been saved successfully');
+      
+      setTimeout(() => {
+        elements.saveButton.textContent = "Save Today's Mood";
+        elements.saveButton.disabled = false;
+        appState.isSaving = false;
+      }, 1500);
+    } else {
+      console.error("Failed to save mood:", saveResult.message);
+      alert(`Sorry, there was a problem saving your mood: ${saveResult.message || 'Unknown error'}`);
+      elements.saveButton.textContent = "Save Today's Mood";
+      elements.saveButton.disabled = false;
+      appState.isSaving = false;
+    }
+  } catch (error) {
+    console.error("Error in save button handler:", error);
+    alert("Sorry, something went wrong. Please try again or refresh the page.");
+    elements.saveButton.textContent = "Save Today's Mood";
+    elements.saveButton.disabled = false;
+    appState.isSaving = false;
+  }
+}
+
+/**
+ * Reset mood selection after saving
+ */
+function resetMoodSelection() {
+  appState.selectedMoods = [];
+  
+  // Reset UI states
+  elements.colorOptions.forEach(option => {
+    option.classList.remove('color-option--selected');
+    option.setAttribute('aria-pressed', 'false');
+  });
+  
+  updateMoodBall();
+  updateSelectionInfo();
+}
+
+/**
+ * Update the selection info text
+ */
+function updateSelectionInfo() {
+  if (!elements.selectionInfo) return;
+  
+  if (appState.selectedMoods.length === 0) {
+    elements.selectionInfo.textContent = "Select up to 3 emotions";
+  } else {
+    const moodNames = appState.selectedMoods.map(mood => mood.name).join(", ");
+    elements.selectionInfo.textContent = `Selected: ${moodNames}`;
+  }
+}
+
+/**
+ * Update the mood ball display
+ */
+function updateMoodBall() {
+  if (!elements.moodBall) return;
+  
+  // Clear existing content
+  elements.moodBall.innerHTML = '';
+  
+  // Update aria-label for screen readers
+  if (appState.selectedMoods.length === 0) {
+    elements.moodBall.setAttribute('aria-label', 'Empty mood ball. Select emotions to visualize them.');
+  } else {
+    const moodNames = appState.selectedMoods.map(mood => mood.name).join(", ");
+    elements.moodBall.setAttribute('aria-label', `Mood ball showing: ${moodNames}`);
+  }
+  
+  if (appState.selectedMoods.length === 0) {
+    // Empty state
+    elements.moodBall.style.backgroundColor = '#FFFFFF';
+    return;
+  }
+  
+  // Create sections for each mood
+  const sectionHeight = 100 / appState.selectedMoods.length;
+  
+  appState.selectedMoods.forEach((mood, index) => {
+    const section = document.createElement('div');
+    section.className = 'mood-section';
+    section.style.backgroundColor = mood.color;
+    section.style.top = `${index * sectionHeight}%`;
+    section.style.height = `${sectionHeight}%`;
+    
+    // Add corresponding emoji
+    const emoji = document.createElement('div');
+    emoji.className = 'mood-emoji';
+    emoji.textContent = MOOD_EMOJIS[mood.name] || '';
+    emoji.setAttribute('aria-hidden', 'true'); // Hide from screen readers (already in aria-label)
+    section.appendChild(emoji);
+    
+    elements.moodBall.appendChild(section);
+  });
+}
+
+/**
+ * Show note modal when clicking on a note
+ * @param {Object} moodData - The mood data object
+ */
+function showNoteModal(moodData) {
+  try {
+    // Remove any existing modals
+    const existingModal = document.querySelector('.note-modal');
+    if (existingModal) {
+      document.body.removeChild(existingModal);
+    }
+    
+    // Create modal elements
+    const modal = document.createElement('div');
+    modal.className = 'note-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'note-modal-title');
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'note-modal-content';
+    
+    const header = document.createElement('div');
+    header.className = 'note-header';
+    
+    const date = document.createElement('div');
+    date.className = 'note-date';
+    date.id = 'note-modal-title';
+    date.textContent = `${moodData.date} at ${moodData.time || ''}`;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'note-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.addEventListener('click', () => {
+      document.body.removeChild(modal);
+    });
+    
+    header.appendChild(date);
+    header.appendChild(closeBtn);
+    
+    const body = document.createElement('div');
+    body.className = 'note-body';
+    body.textContent = moodData.notes;
+    
+    // Assemble modal
+    modalContent.appendChild(header);
+    modalContent.appendChild(body);
+    modal.appendChild(modalContent);
+    
+    // Add click handler to close when clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        document.body.removeChild(modal);
+      }
+    });
+    
+    // Add keyboard handling for accessibility
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.body.removeChild(modal);
+      }
+    });
+    
+    // Make modal focusable for keyboard accessibility
+    modal.tabIndex = -1;
+    
+    // Add to document
+    document.body.appendChild(modal);
+    
+    // Focus the close button for keyboard accessibility
+    setTimeout(() => closeBtn.focus(), 100);
+    
+    // Announce for screen readers
+    announceToScreenReader('Note modal opened');
+  } catch (error) {
+    console.error("Error showing note modal:", error);
+    alert(`Note from ${moodData.date}: ${moodData.notes}`);
+  }
+}
+
+/**
+ * Update saved moods display
+ */
+function updateSavedMoods() {
+  if (!elements.savedMoodsContainer) return;
+  
+  try {
+    // Get the latest saved moods
+    appState.savedMoods = appState.authManager.getSavedMoods();
+    console.log("Fetched saved moods for display:", appState.savedMoods.length);
+    
+    elements.savedMoodsContainer.innerHTML = '';
+    
+    if (!appState.savedMoods || appState.savedMoods.length === 0) {
+      showEmptySavedMoods();
+      return;
+    }
+    
+    // Already sorted in auth-manager.js - no need to sort again
+    appState.savedMoods.forEach(createSavedMoodElement);
+    
+    // Announce for screen readers
+    announceToScreenReader(`Displaying ${appState.savedMoods.length} saved moods`);
+  } catch (error) {
+    console.error("Error updating saved moods:", error);
+    elements.savedMoodsContainer.innerHTML = '<p style="color: red; text-align: center;">Error loading saved moods. Please refresh the page.</p>';
+  }
+}
+
+/**
+ * Show empty state for saved moods
+ */
+function showEmptySavedMoods() {
+  const emptyMessage = document.createElement('p');
+  emptyMessage.textContent = "No saved moods yet. Save your first mood!";
+  emptyMessage.style.textAlign = "center";
+  emptyMessage.style.color = "#666";
+  emptyMessage.style.padding = "20px 0";
+  elements.savedMoodsContainer.appendChild(emptyMessage);
+}
+
+/**
+ * Create a saved mood element
+ * @param {Object} saved - The saved mood data
+ */
+function createSavedMoodElement(saved) {
+  const savedMoodElement = document.createElement('div');
+  savedMoodElement.className = 'saved-mood';
+  savedMoodElement.setAttribute('aria-label', `Mood from ${saved.date}: ${saved.moods.map(m => m.name).join(', ')}`);
+  
+  const savedBall = document.createElement('div');
+  savedBall.className = 'saved-mood-ball';
+  savedBall.setAttribute('role', 'img');
+  savedBall.setAttribute('aria-hidden', 'true'); // Already described in parent
+  
+  // Create sections for the saved mood
+  const sectionHeight = 100 / saved.moods.length;
+  
+  saved.moods.forEach((mood, index) => {
+    const section = document.createElement('div');
+    section.className = 'mood-section';
+    section.style.backgroundColor = mood.color;
+    section.style.top = `${index * sectionHeight}%`;
+    section.style.height = `${sectionHeight}%`;
+    
+    savedBall.appendChild(section);
+  });
+  
+  const dateContainer = document.createElement('div');
+  dateContainer.className = 'mood-date-container';
+  
+  const dateElement = document.createElement('div');
+  dateElement.className = 'date';
+  dateElement.textContent = saved.date;
+  dateContainer.appendChild(dateElement);
+  
+  // Add time if available
+  if (saved.time) {
+    const timeElement = document.createElement('div');
+    timeElement.className = 'time';
+    timeElement.textContent = saved.time;
+    dateContainer.appendChild(timeElement);
+  }
+  
+  savedMoodElement.appendChild(savedBall);
+  savedMoodElement.appendChild(dateContainer);
+  
+  // Add note preview if there are notes
+  if (saved.notes) {
+    addNotePreview(savedMoodElement, saved);
+  }
+  
+  elements.savedMoodsContainer.appendChild(savedMoodElement);
+}
+
+/**
+ * Add note preview to saved mood
+ * @param {Element} savedMoodElement - The saved mood DOM element
+ * @param {Object} saved - The saved mood data
+ */
+function addNotePreview(savedMoodElement, saved) {
+  const notePreview = document.createElement('div');
+  notePreview.className = 'saved-mood-details';
+  
+  const noteText = document.createElement('div');
+  noteText.className = 'mood-note-preview';
+  noteText.setAttribute('tabindex', '0');
+  noteText.setAttribute('role', 'button');
+  noteText.setAttribute('aria-label', `View note from ${saved.date}`);
+  
+  noteText.innerHTML = '<span class="mood-note-icon" aria-hidden="true">📝</span>' + 
+                      (saved.notes.length > 20 ? 
+                       saved.notes.substring(0, 20) + '...' : 
+                       saved.notes);
+  
+  // Add click handler to show the full note
+  noteText.addEventListener('click', () => {
+    showNoteModal(saved);
+  });
+  
+  // Add keyboard handler for accessibility
+  noteText.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      showNoteModal(saved);
+    }
+  });
+  
+  notePreview.appendChild(noteText);
+  savedMoodElement.appendChild(notePreview);
+}
+
+/**
+ * Announce a message to screen readers
+ * @param {string} message - The message to announce
+ */
+function announceToScreenReader(message) {
+  if (!elements.statusAnnouncer) return;
+  
+  elements.statusAnnouncer.textContent = message;
+}
+
+/**
+ * Sanitize user input to prevent XSS
+ * @param {string} input - The user input to sanitize
+ * @returns {string} Sanitized input
+ */
+function sanitizeUserInput(input) {
+  if (typeof input !== 'string') return '';
+  
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Export functions for testing (if needed)
+export {
+  initApp,
+  handleColorSelection,
+  updateMoodBall,
+  updateSavedMoods
+};

@@ -1,5 +1,6 @@
-import AuthManager, { initializeSampleUsers, auth } from './auth-manager.js';
-
+// Import AuthManager and auth from the optimized auth-manager.js
+// Remove the reference to initializeSampleUsers since it's not used
+import AuthManager, { auth } from './auth-manager.js';
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -116,9 +117,9 @@ if (usernameInput) {
       loginBtn.disabled = true;
       
       try {
-        const success = await authManager.login(email, password);
+        const result = await authManager.login(email, password);
         
-        if (success) {
+        if (result.success) {
           // Show dashboard
           loginForm.style.display = 'none';
           signupForm.style.display = 'none';
@@ -126,7 +127,7 @@ if (usernameInput) {
           userNameSpan.textContent = authManager.currentUser.name;
           loginError.style.display = 'none';
         } else {
-          loginError.textContent = 'Invalid email or password';
+          loginError.textContent = result.message || 'Invalid email or password';
           loginError.style.display = 'block';
         }
       } catch (error) {
@@ -220,9 +221,13 @@ if (usernameInput) {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
       try {
-        await authManager.logout();
-        dashboardForm.style.display = 'none';
-        loginForm.style.display = 'block';
+        const result = await authManager.logout();
+        if (result.success) {
+          dashboardForm.style.display = 'none';
+          loginForm.style.display = 'block';
+        } else {
+          alert('Error logging out: ' + result.message);
+        }
       } catch (error) {
         console.error('Logout error:', error);
         alert('Error logging out: ' + error.message);
@@ -248,11 +253,11 @@ if (addFriendBtn) {
       
       if (friendIdentifier) {
         try {
-          const success = await authManager.addFriend(friendIdentifier);
-          if (success) {
+          const result = await authManager.addFriend(friendIdentifier);
+          if (result.success) {
             alert('Friend added successfully!');
           } else {
-            alert('Could not add friend. They may not exist or are already in your list.');
+            alert(result.message || 'Could not add friend. They may not exist or are already in your list.');
           }
         } catch (error) {
           console.error('Add friend error:', error);
@@ -689,6 +694,9 @@ function getBondshipHealth(friendsData) {
 function generateTreeSvg(health) {
     console.log('Generating Tree SVG with health:', health);
 
+    // Calculate stage (1-10)
+    const stage = Math.max(1, Math.min(10, Math.ceil(health / 10)));
+
     // Dynamic color palette based on health stages
     const colorStages = [
         { max: 2, leafColor: '#E8F5E9', trunkColor: '#A1887F' },     // Very light green
@@ -698,22 +706,22 @@ function generateTreeSvg(health) {
         { max: 10, leafColor: '#2E7D32', trunkColor: '#212121' }     // Deep green
       ];
   
-    // Find the appropriate stage based on health
-  const stage = colorStages.find(stage => health <= stage.max) || colorStages[colorStages.length - 1];
+    // Find the appropriate color stage
+    const colorStage = colorStages.find(s => stage <= s.max) || colorStages[colorStages.length - 1];
 
   return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
     <!-- Tree trunk -->
     <path d="M50 100 Q45 80 55 60 Q60 50 50 30 Q45 25 50 20" 
-           stroke="${stage.trunkColor}" stroke-width="8" fill="none"/>
+           stroke="${colorStage.trunkColor}" stroke-width="8" fill="none"/>
     
     <!-- Tree branches -->
-    <path d="M50 60 Q35 55 30 65" stroke="${stage.trunkColor}" stroke-width="5" fill="none"/>
-    <path d="M53 50 Q70 45 75 55" stroke="${stage.trunkColor}" stroke-width="5" fill="none"/>
+    <path d="M50 60 Q35 55 30 65" stroke="${colorStage.trunkColor}" stroke-width="5" fill="none"/>
+    <path d="M53 50 Q70 45 75 55" stroke="${colorStage.trunkColor}" stroke-width="5" fill="none"/>
    
     <!-- Tree leaves -->
-    <ellipse cx="30" cy="55" rx="15" ry="10" fill="${stage.leafColor}"/>
-    <ellipse cx="50" cy="30" rx="20" ry="15" fill="${stage.leafColor}"/>
-    <ellipse cx="75" cy="45" rx="15" ry="10" fill="${stage.leafColor}"/>
+    <ellipse cx="30" cy="55" rx="15" ry="10" fill="${colorStage.leafColor}"/>
+    <ellipse cx="50" cy="30" rx="20" ry="15" fill="${colorStage.leafColor}"/>
+    <ellipse cx="75" cy="45" rx="15" ry="10" fill="${colorStage.leafColor}"/>
   </svg>`;
   }
 
