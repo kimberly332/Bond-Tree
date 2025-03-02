@@ -1,6 +1,53 @@
 // Import AuthManager and auth from the optimized auth-manager.js
 // Remove the reference to initializeSampleUsers since it's not used
 import AuthManager, { auth } from './auth-manager.js';
+import notificationHelper from './notification-helper.js';
+
+// Add this inside your DOMContentLoaded event handler
+function setupRealTimeNotifications(authManager) {
+  // Save the previous friend requests count to detect changes
+  let previousRequestsCount = 0;
+  
+  // Create a listener function for user data changes
+  const userDataListener = (userData) => {
+    // Check for friend requests
+    const friendRequests = (userData.friendRequests || [])
+      .filter(request => request.status === 'pending');
+    
+    const currentRequestsCount = friendRequests.length;
+    
+    // Update the UI badge
+    updateFriendRequestsBadge(currentRequestsCount);
+    
+    // Check if there are new requests
+    if (currentRequestsCount > previousRequestsCount) {
+      // Show notification for new requests
+      const newRequests = currentRequestsCount - previousRequestsCount;
+      const message = newRequests === 1 
+        ? 'You have a new friend request!' 
+        : `You have ${newRequests} new friend requests!`;
+      
+      notificationHelper.showNotification('Bond Tree', {
+        body: message,
+        icon: 'bond-tree-logo.svg'
+      });
+    }
+    
+    // Update the previous count
+    previousRequestsCount = currentRequestsCount;
+  };
+  
+  // Add user data listener when logged in
+  if (authManager.currentUser) {
+    notificationHelper.addUserDataListener(authManager.currentUser.id, userDataListener);
+  }
+}
+
+// Add the missing function - update friend requests badge
+function updateFriendRequestsBadge(count) {
+  // Use the notificationHelper's function to update the badge
+  notificationHelper.updateFriendRequestBadge(count, 'friend-requests-btn');
+}
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -362,6 +409,23 @@ if (sendFriendRequestBtn) {
       if (loginForm) loginForm.style.display = 'block';
       if (signupForm) signupForm.style.display = 'none';
     }
+
+    if (user) {
+      // Check if user data is loaded, then setup notifications
+      const checkUserDataInterval = setInterval(() => {
+        if (authManager.currentUser) {
+          clearInterval(checkUserDataInterval);
+          updateFriendRequestsBadge(authManager.getFriendRequests().length);
+          setupRealTimeNotifications(authManager);
+        }
+      }, 100);
+      
+      // Failsafe to clear interval
+      setTimeout(() => clearInterval(checkUserDataInterval), 5000);
+    } else {
+      // Clean up notifications when logged out
+      notificationHelper.cleanup();
+    }
   });
 });
 
@@ -714,96 +778,96 @@ function getBondshipHealth(friendsData) {
 
 // Helper function to generate tree SVG
 function generateTreeSvg(health) {
-    console.log('Generating Tree SVG with health:', health);
+  console.log('Generating Tree SVG with health:', health);
 
-    // Calculate stage (1-10)
-    const stage = Math.max(1, Math.min(10, Math.ceil(health / 10)));
+  // Calculate stage (1-10)
+  const stage = Math.max(1, Math.min(10, Math.ceil(health / 10)));
 
-    // Dynamic color palette based on health stages
-    const colorStages = [
-        { max: 2, leafColor: '#E8F5E9', trunkColor: '#A1887F' },     // Very light green
-        { max: 4, leafColor: '#A5D6A7', trunkColor: '#795548' },     // Light green
-        { max: 6, leafColor: '#66BB6A', trunkColor: '#6D4C41' },     // Medium green
-        { max: 8, leafColor: '#4CAF50', trunkColor: '#3E2723' },     // Dark green
-        { max: 10, leafColor: '#2E7D32', trunkColor: '#212121' }     // Deep green
-      ];
+  // Dynamic color palette based on health stages
+  const colorStages = [
+      { max: 2, leafColor: '#E8F5E9', trunkColor: '#A1887F' },     // Very light green
+      { max: 4, leafColor: '#A5D6A7', trunkColor: '#795548' },     // Light green
+      { max: 6, leafColor: '#66BB6A', trunkColor: '#6D4C41' },     // Medium green
+      { max: 8, leafColor: '#4CAF50', trunkColor: '#3E2723' },     // Dark green
+      { max: 10, leafColor: '#2E7D32', trunkColor: '#212121' }     // Deep green
+    ];
+
+  // Find the appropriate color stage
+  const colorStage = colorStages.find(s => stage <= s.max) || colorStages[colorStages.length - 1];
+
+return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+  <!-- Tree trunk -->
+  <path d="M50 100 Q45 80 55 60 Q60 50 50 30 Q45 25 50 20" 
+         stroke="${colorStage.trunkColor}" stroke-width="8" fill="none"/>
   
-    // Find the appropriate color stage
-    const colorStage = colorStages.find(s => stage <= s.max) || colorStages[colorStages.length - 1];
-
-  return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
-    <!-- Tree trunk -->
-    <path d="M50 100 Q45 80 55 60 Q60 50 50 30 Q45 25 50 20" 
-           stroke="${colorStage.trunkColor}" stroke-width="8" fill="none"/>
-    
-    <!-- Tree branches -->
-    <path d="M50 60 Q35 55 30 65" stroke="${colorStage.trunkColor}" stroke-width="5" fill="none"/>
-    <path d="M53 50 Q70 45 75 55" stroke="${colorStage.trunkColor}" stroke-width="5" fill="none"/>
-   
-    <!-- Tree leaves -->
-    <ellipse cx="30" cy="55" rx="15" ry="10" fill="${colorStage.leafColor}"/>
-    <ellipse cx="50" cy="30" rx="20" ry="15" fill="${colorStage.leafColor}"/>
-    <ellipse cx="75" cy="45" rx="15" ry="10" fill="${colorStage.leafColor}"/>
-  </svg>`;
-  }
+  <!-- Tree branches -->
+  <path d="M50 60 Q35 55 30 65" stroke="${colorStage.trunkColor}" stroke-width="5" fill="none"/>
+  <path d="M53 50 Q70 45 75 55" stroke="${colorStage.trunkColor}" stroke-width="5" fill="none"/>
+ 
+  <!-- Tree leaves -->
+  <ellipse cx="30" cy="55" rx="15" ry="10" fill="${colorStage.leafColor}"/>
+  <ellipse cx="50" cy="30" rx="20" ry="15" fill="${colorStage.leafColor}"/>
+  <ellipse cx="75" cy="45" rx="15" ry="10" fill="${colorStage.leafColor}"/>
+</svg>`;
+}
 
 // Setup note indicators function
 function setupNoteIndicators() {
-  const noteIndicators = document.querySelectorAll('.mood-note-indicator');
-  noteIndicators.forEach(indicator => {
-    indicator.addEventListener('click', () => {
-      const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
-      const date = indicator.getAttribute('data-date');
-      const time = indicator.getAttribute('data-time');
-      showNoteModal({ notes, date, time });
-    });
+const noteIndicators = document.querySelectorAll('.mood-note-indicator');
+noteIndicators.forEach(indicator => {
+  indicator.addEventListener('click', () => {
+    const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
+    const date = indicator.getAttribute('data-date');
+    const time = indicator.getAttribute('data-time');
+    showNoteModal({ notes, date, time });
   });
+});
 }
 
 // Helper function to show the note modal
 function showNoteModal(moodData) {
-  // Create modal elements
-  const modal = document.createElement('div');
-  modal.className = 'friend-note-modal';
-  const modalContent = document.createElement('div');
-  modalContent.className = 'friend-note-modal-content';
-  const header = document.createElement('div');
-  header.className = 'friend-note-header';
-  const date = document.createElement('div');
-  date.className = 'friend-note-date';
-  date.textContent = `${moodData.date} at ${moodData.time || ''}`;
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'friend-note-close';
-  closeBtn.innerHTML = '×';
-  closeBtn.setAttribute('aria-label', 'Close');
-  closeBtn.addEventListener('click', () => {
-      document.body.removeChild(modal);
-  });
-  header.appendChild(date);
-  header.appendChild(closeBtn);
-  const body = document.createElement('div');
-  body.className = 'friend-note-body';
-  body.textContent = moodData.notes;
-  // Assemble modal
-  modalContent.appendChild(header);
-  modalContent.appendChild(body);
-  modal.appendChild(modalContent);
-  // Add click handler to close when clicking outside
-  modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-          document.body.removeChild(modal);
-      }
-  });
-  // Add keyboard handling for accessibility
-  modal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-          document.body.removeChild(modal);
-      }
-  });
-  // Make modal focusable for keyboard accessibility
-  modal.tabIndex = -1;
-  // Add to document
-  document.body.appendChild(modal);
-  // Focus the close button for keyboard accessibility
-  setTimeout(() => closeBtn.focus(), 100);
+// Create modal elements
+const modal = document.createElement('div');
+modal.className = 'friend-note-modal';
+const modalContent = document.createElement('div');
+modalContent.className = 'friend-note-modal-content';
+const header = document.createElement('div');
+header.className = 'friend-note-header';
+const date = document.createElement('div');
+date.className = 'friend-note-date';
+date.textContent = `${moodData.date} at ${moodData.time || ''}`;
+const closeBtn = document.createElement('button');
+closeBtn.className = 'friend-note-close';
+closeBtn.innerHTML = '×';
+closeBtn.setAttribute('aria-label', 'Close');
+closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+});
+header.appendChild(date);
+header.appendChild(closeBtn);
+const body = document.createElement('div');
+body.className = 'friend-note-body';
+body.textContent = moodData.notes;
+// Assemble modal
+modalContent.appendChild(header);
+modalContent.appendChild(body);
+modal.appendChild(modalContent);
+// Add click handler to close when clicking outside
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        document.body.removeChild(modal);
+    }
+});
+// Add keyboard handling for accessibility
+modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.body.removeChild(modal);
+    }
+});
+// Make modal focusable for keyboard accessibility
+modal.tabIndex = -1;
+// Add to document
+document.body.appendChild(modal);
+// Focus the close button for keyboard accessibility
+setTimeout(() => closeBtn.focus(), 100);
 }
