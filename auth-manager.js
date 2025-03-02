@@ -389,233 +389,314 @@ export default class AuthManager {
     }
   }
 
-  // Send a friend request
-  async sendFriendRequest(friendIdentifier) {
-    try {
-      // Verify authentication
-      if (!this.currentUser) {
-        return { success: false, message: 'You must be logged in to send friend requests' };
-      }
-      
-      // Verify token
-      const isTokenValid = await this.verifyIdToken();
-      if (!isTokenValid) {
-        return { success: false, message: 'Authentication error. Please sign in again.' };
-      }
-      
-      // Apply rate limiting
-      if (!this.apiRateLimiter.isAllowed(this.currentUser.id)) {
-        return { success: false, message: 'Please wait before sending another friend request' };
-      }
-      
-      // Sanitize input
-      const sanitizedIdentifier = sanitizeUserInput(friendIdentifier);
-      
-      // Check if the input is an email or a username
-      const isEmail = sanitizedIdentifier.includes('@');
-      
-      // Create the appropriate query based on the input type
-      let friendQuery;
-      if (isEmail) {
-        // Search by email
-        friendQuery = await getDocs(
-          query(collection(db, 'users'), where('email', '==', sanitizedIdentifier))
-        );
-      } else {
-        // Search by username
-        friendQuery = await getDocs(
-          query(collection(db, 'users'), where('username', '==', sanitizedIdentifier))
-        );
-      }
-      
-      if (friendQuery.empty) {
-        return { 
-          success: false, 
-          message: 'No user found with this email or username'
-        };
-      }
-      
-      // Get the first matching user (assuming emails and usernames are unique)
-      const friendDoc = friendQuery.docs[0];
-      const friendData = friendDoc.data();
-      const friendId = friendDoc.id;
-      const friendEmail = friendData.email;
-      
-      // Cannot send friend request to yourself
-      if (friendEmail === this.currentUser.email) {
-        return { 
-          success: false, 
-          message: 'You cannot send a friend request to yourself'
-        };
-      }
-      
-      // Check if already a friend
-      if (this.currentUser.friends && this.currentUser.friends.includes(friendEmail)) {
-        return { 
-          success: false, 
-          message: 'This user is already in your friends list'
-        };
-      }
-      
-      // Check if a request is already pending
-      const existingFriendRequests = friendData.friendRequests || [];
-      if (existingFriendRequests.some(req => req.from === this.currentUser.email)) {
-        return { 
-          success: false, 
-          message: 'A friend request is already pending'
-        };
-      }
-      
-      // Create friend request object
-      const friendRequest = {
-        from: this.currentUser.email,
-        fromName: this.currentUser.name || this.currentUser.username,
-        timestamp: Date.now(),
-        status: 'pending'
-      };
-      
-      // Add friend request to recipient's document
-      const recipientRef = doc(db, 'users', friendId);
-      await updateDoc(recipientRef, {
-        friendRequests: arrayUnion(friendRequest)
-      });
-      
-      return { 
-        success: true, 
-        message: 'Friend request sent successfully' 
-      };
-    } catch (error) {
-      return handleError(error, 'Error sending friend request');
+// Send a friend request
+async sendFriendRequest(friendIdentifier) {
+  try {
+    // Verify authentication
+    if (!this.currentUser) {
+      return { success: false, message: 'You must be logged in to send friend requests' };
     }
+    
+    // Verify token
+    const isTokenValid = await this.verifyIdToken();
+    if (!isTokenValid) {
+      return { success: false, message: 'Authentication error. Please sign in again.' };
+    }
+    
+    // Apply rate limiting
+    if (!this.apiRateLimiter.isAllowed(this.currentUser.id)) {
+      return { success: false, message: 'Please wait before sending another friend request' };
+    }
+    
+    // Sanitize input
+    const sanitizedIdentifier = sanitizeUserInput(friendIdentifier);
+    
+    // Check if the input is an email or a username
+    const isEmail = sanitizedIdentifier.includes('@');
+    
+    // Create the appropriate query based on the input type
+    let friendQuery;
+    if (isEmail) {
+      // Search by email
+      friendQuery = await getDocs(
+        query(collection(db, 'users'), where('email', '==', sanitizedIdentifier))
+      );
+    } else {
+      // Search by username
+      friendQuery = await getDocs(
+        query(collection(db, 'users'), where('username', '==', sanitizedIdentifier))
+      );
+    }
+    
+    if (friendQuery.empty) {
+      return { 
+        success: false, 
+        message: 'No user found with this email or username'
+      };
+    }
+    
+    // Get the first matching user (assuming emails and usernames are unique)
+    const friendDoc = friendQuery.docs[0];
+    const friendData = friendDoc.data();
+    const friendId = friendDoc.id;
+    const friendEmail = friendData.email;
+    
+    // Cannot send friend request to yourself
+    if (friendEmail === this.currentUser.email) {
+      return { 
+        success: false, 
+        message: 'You cannot send a friend request to yourself'
+      };
+    }
+    
+    // Check if already a friend
+    if (this.currentUser.friends && this.currentUser.friends.includes(friendEmail)) {
+      return { 
+        success: false, 
+        message: 'This user is already in your friends list'
+      };
+    }
+    
+    // Check if a request is already pending FROM the current user
+    const friendFriendRequests = friendData.friendRequests || [];
+    if (friendFriendRequests.some(req => req.from === this.currentUser.email && req.status === 'pending')) {
+      return { 
+        success: false, 
+        message: 'You already have a pending friend request to this user'
+      };
+    }
+    
+    // Check if a request is already pending TO the current user
+    // This allows accepting the request instead of sending a new one
+    const myFriendRequests = this.currentUser.friendRequests || [];
+    const pendingRequestFromFriend = myFriendRequests.find(
+      req => req.from === friendEmail && req.status === 'pending'
+    );
+    
+    if (pendingRequestFromFriend) {
+      // Auto-accept the pending request instead of sending a new one
+      return await this.acceptFriendRequest(friendEmail);
+    }
+    
+    // Create friend request object
+    const friendRequest = {
+      from: this.currentUser.email,
+      fromName: this.currentUser.name || this.currentUser.username,
+      timestamp: Date.now(),
+      status: 'pending'
+    };
+    
+    // Add friend request to recipient's document
+    const recipientRef = doc(db, 'users', friendId);
+    await updateDoc(recipientRef, {
+      friendRequests: arrayUnion(friendRequest)
+    });
+    
+    // Also track the sent request in the sender's document
+    const userRef = doc(db, 'users', this.currentUser.id);
+    const sentRequest = {
+      to: friendEmail,
+      toName: friendData.name || friendData.username,
+      timestamp: Date.now(),
+      status: 'pending'
+    };
+    
+    await updateDoc(userRef, {
+      sentFriendRequests: arrayUnion(sentRequest)
+    });
+    
+    // Update local user data
+    if (!this.currentUser.sentFriendRequests) {
+      this.currentUser.sentFriendRequests = [];
+    }
+    this.currentUser.sentFriendRequests.push(sentRequest);
+    
+    return { 
+      success: true, 
+      message: 'Friend request sent successfully' 
+    };
+  } catch (error) {
+    return handleError(error, 'Error sending friend request');
   }
+}
 
-  // Accept a friend request
-  async acceptFriendRequest(senderEmail) {
-    try {
-      // Verify authentication
-      if (!this.currentUser) {
-        return { success: false, message: 'You must be logged in to accept friend requests' };
-      }
-      
-      // Verify token
-      const isTokenValid = await this.verifyIdToken();
-      if (!isTokenValid) {
-        return { success: false, message: 'Authentication error. Please sign in again.' };
-      }
-      
-      const userRef = doc(db, 'users', this.currentUser.id);
-      
-      // Find the specific friend request
-      const userDoc = await getDoc(userRef);
-      const userData = userDoc.data();
-      const friendRequests = userData.friendRequests || [];
-      
-      const requestIndex = friendRequests.findIndex(req => 
-        req.from === senderEmail && req.status === 'pending'
-      );
-      
-      if (requestIndex === -1) {
-        return { 
-          success: false, 
-          message: 'Friend request not found' 
-        };
-      }
-      
-      // Update the specific request's status
-      friendRequests[requestIndex].status = 'accepted';
-      
-      // Find the sender's document
-      const senderQuery = await getDocs(
-        query(collection(db, 'users'), where('email', '==', senderEmail))
-      );
-      
-      if (senderQuery.empty) {
-        return { 
-          success: false, 
-          message: 'Sender not found'
-        };
-      }
-      
-      const senderDoc = senderQuery.docs[0];
-      const senderId = senderDoc.id;
-      
-      // Update both users' friends lists
-      await updateDoc(userRef, {
-        friendRequests: friendRequests,
-        friends: arrayUnion(senderEmail)
-      });
+  
+// Accept a friend request
+async acceptFriendRequest(senderEmail) {
+  try {
+    // Verify authentication
+    if (!this.currentUser) {
+      return { success: false, message: 'You must be logged in to accept friend requests' };
+    }
+    
+    // Verify token
+    const isTokenValid = await this.verifyIdToken();
+    if (!isTokenValid) {
+      return { success: false, message: 'Authentication error. Please sign in again.' };
+    }
+    
+    const userRef = doc(db, 'users', this.currentUser.id);
+    
+    // Find the specific friend request
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+    const friendRequests = userData.friendRequests || [];
+    
+    const requestIndex = friendRequests.findIndex(req => 
+      req.from === senderEmail && req.status === 'pending'
+    );
+    
+    if (requestIndex === -1) {
+      return { 
+        success: false, 
+        message: 'Friend request not found' 
+      };
+    }
+    
+    // Make a copy of the array to modify it
+    const updatedFriendRequests = [...friendRequests];
+    
+    // Update the specific request's status
+    updatedFriendRequests[requestIndex].status = 'accepted';
+    
+    // Find the sender's document
+    const senderQuery = await getDocs(
+      query(collection(db, 'users'), where('email', '==', senderEmail))
+    );
+    
+    if (senderQuery.empty) {
+      return { 
+        success: false, 
+        message: 'Sender not found'
+      };
+    }
+    
+    const senderDoc = senderQuery.docs[0];
+    const senderId = senderDoc.id;
+    const senderData = senderDoc.data();
+    
+    // Update the receiver's document (current user)
+    await updateDoc(userRef, {
+      friendRequests: updatedFriendRequests,
+      friends: arrayUnion(senderEmail)
+    });
+    
+    // Update the sender's document
+    // First, update their friends array
+    await updateDoc(doc(db, 'users', senderId), {
+      friends: arrayUnion(this.currentUser.email)
+    });
+    
+    // Next, update the status of their sent request if it exists
+    const sentRequests = senderData.sentFriendRequests || [];
+    const sentRequestIndex = sentRequests.findIndex(req => 
+      req.to === this.currentUser.email && req.status === 'pending'
+    );
+    
+    if (sentRequestIndex !== -1) {
+      const updatedSentRequests = [...sentRequests];
+      updatedSentRequests[sentRequestIndex].status = 'accepted';
       
       await updateDoc(doc(db, 'users', senderId), {
-        friends: arrayUnion(this.currentUser.email)
+        sentFriendRequests: updatedSentRequests
       });
-      
-      // Refresh current user data
-      const updatedUserDoc = await getDoc(userRef);
-      if (updatedUserDoc.exists()) {
-        this.currentUser = {
-          ...updatedUserDoc.data(),
-          id: userRef.id,
-          lastFetched: Date.now()
-        };
-      }
-      
-      return { 
-        success: true, 
-        message: 'Friend request accepted successfully' 
-      };
-    } catch (error) {
-      return handleError(error, 'Error accepting friend request');
     }
+    
+    // Refresh current user data
+    const updatedUserDoc = await getDoc(userRef);
+    if (updatedUserDoc.exists()) {
+      this.currentUser = {
+        ...updatedUserDoc.data(),
+        id: userRef.id,
+        lastFetched: Date.now()
+      };
+    }
+    
+    return { 
+      success: true, 
+      message: 'Friend request accepted successfully' 
+    };
+  } catch (error) {
+    return handleError(error, 'Error accepting friend request');
   }
+}
 
-  // Reject a friend request
-  async rejectFriendRequest(senderEmail) {
-    try {
-      // Verify authentication
-      if (!this.currentUser) {
-        return { success: false, message: 'You must be logged in to reject friend requests' };
-      }
+ // Reject a friend request
+async rejectFriendRequest(senderEmail) {
+  try {
+    // Verify authentication
+    if (!this.currentUser) {
+      return { success: false, message: 'You must be logged in to reject friend requests' };
+    }
+    
+    // Verify token
+    const isTokenValid = await this.verifyIdToken();
+    if (!isTokenValid) {
+      return { success: false, message: 'Authentication error. Please sign in again.' };
+    }
+    
+    const userRef = doc(db, 'users', this.currentUser.id);
+    
+    // Find the specific friend request
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+    const friendRequests = userData.friendRequests || [];
+    
+    const requestIndex = friendRequests.findIndex(req => 
+      req.from === senderEmail && req.status === 'pending'
+    );
+    
+    if (requestIndex === -1) {
+      return { 
+        success: false, 
+        message: 'Friend request not found' 
+      };
+    }
+    
+    // Make a copy of the requests array excluding the rejected request
+    // This removes it completely instead of just marking it rejected
+    const updatedFriendRequests = friendRequests.filter((req, index) => index !== requestIndex);
+    
+    // Update user's friend requests - completely remove the request
+    await updateDoc(userRef, {
+      friendRequests: updatedFriendRequests
+    });
+    
+    // Optionally, update the sender's sent request status
+    const senderQuery = await getDocs(
+      query(collection(db, 'users'), where('email', '==', senderEmail))
+    );
+    
+    if (!senderQuery.empty) {
+      const senderDoc = senderQuery.docs[0];
+      const senderData = senderDoc.data();
+      const sentRequests = senderData.sentFriendRequests || [];
       
-      // Verify token
-      const isTokenValid = await this.verifyIdToken();
-      if (!isTokenValid) {
-        return { success: false, message: 'Authentication error. Please sign in again.' };
-      }
-      
-      const userRef = doc(db, 'users', this.currentUser.id);
-      
-      // Find the specific friend request
-      const userDoc = await getDoc(userRef);
-      const userData = userDoc.data();
-      const friendRequests = userData.friendRequests || [];
-      
-      const requestIndex = friendRequests.findIndex(req => 
-        req.from === senderEmail && req.status === 'pending'
+      const sentRequestIndex = sentRequests.findIndex(req => 
+        req.to === this.currentUser.email && req.status === 'pending'
       );
       
-      if (requestIndex === -1) {
-        return { 
-          success: false, 
-          message: 'Friend request not found' 
-        };
+      if (sentRequestIndex !== -1) {
+        // Make a copy and remove the request
+        const updatedSentRequests = sentRequests.filter((req, index) => index !== sentRequestIndex);
+        
+        await updateDoc(doc(db, 'users', senderDoc.id), {
+          sentFriendRequests: updatedSentRequests
+        });
       }
-      
-      // Remove or mark the request as rejected
-      friendRequests[requestIndex].status = 'rejected';
-      
-      // Update user's friend requests
-      await updateDoc(userRef, {
-        friendRequests: friendRequests
-      });
-      
-      return { 
-        success: true, 
-        message: 'Friend request rejected' 
-      };
-    } catch (error) {
-      return handleError(error, 'Error rejecting friend request');
     }
+    
+    // Update local user data
+    this.currentUser.friendRequests = updatedFriendRequests;
+    
+    return { 
+      success: true, 
+      message: 'Friend request rejected' 
+    };
+  } catch (error) {
+    return handleError(error, 'Error rejecting friend request');
   }
+}
 
  // Get friend requests received
  getFriendRequests() {
@@ -894,56 +975,56 @@ async getSentFriendRequests() {
     }
   }
   
-  // Remove a friend
-  async deleteFriend(friendEmail) {
-    try {
-      // Verify authentication
-      if (!this.currentUser) {
-        return { success: false, message: 'You must be logged in to remove friends' };
-      }
-      
-      // Verify token
-      const isTokenValid = await this.verifyIdToken();
-      if (!isTokenValid) {
-        return { success: false, message: 'Authentication error. Please sign in again.' };
-      }
-      
-      // Sanitize input
-      const sanitizedEmail = sanitizeUserInput(friendEmail);
-      
-      // Check if the user has this friend
-      if (!this.currentUser.friends || !this.currentUser.friends.includes(sanitizedEmail)) {
-        return { success: false, message: "This person is not in your friends list" };
-      }
-      
-      // Update the current user's document using arrayRemove for atomic operation
-      const userRef = doc(db, 'users', this.currentUser.id);
-      await updateDoc(userRef, {
-        friends: arrayRemove(sanitizedEmail)
-      });
-      
-      // Update local state
-      this.currentUser.friends = this.currentUser.friends.filter(email => email !== sanitizedEmail);
-      
-      // Also remove the current user from the friend's list (for reciprocal friendship)
-      const friendQuery = await getDocs(
-        query(collection(db, 'users'), where('email', '==', sanitizedEmail))
-      );
-      
-      if (!friendQuery.empty) {
-        const friendDoc = friendQuery.docs[0];
-        
-        // Update the friend's document using arrayRemove
-        await updateDoc(doc(db, 'users', friendDoc.id), {
-          friends: arrayRemove(this.currentUser.email)
-        });
-      }
-      
-      return { success: true };
-    } catch (error) {
-      return handleError(error, "Error removing friend");
+  // Delete a friend
+async deleteFriend(friendEmail) {
+  try {
+    // Verify authentication
+    if (!this.currentUser) {
+      return { success: false, message: 'You must be logged in to remove friends' };
     }
+    
+    // Verify token
+    const isTokenValid = await this.verifyIdToken();
+    if (!isTokenValid) {
+      return { success: false, message: 'Authentication error. Please sign in again.' };
+    }
+    
+    // Sanitize input
+    const sanitizedEmail = sanitizeUserInput(friendEmail);
+    
+    // Check if the user has this friend
+    if (!this.currentUser.friends || !this.currentUser.friends.includes(sanitizedEmail)) {
+      return { success: false, message: "This person is not in your friends list" };
+    }
+    
+    // Update the current user's document using arrayRemove for atomic operation
+    const userRef = doc(db, 'users', this.currentUser.id);
+    await updateDoc(userRef, {
+      friends: arrayRemove(sanitizedEmail)
+    });
+    
+    // Update local state
+    this.currentUser.friends = this.currentUser.friends.filter(email => email !== sanitizedEmail);
+    
+    // Also remove the current user from the friend's list (for reciprocal friendship)
+    const friendQuery = await getDocs(
+      query(collection(db, 'users'), where('email', '==', sanitizedEmail))
+    );
+    
+    if (!friendQuery.empty) {
+      const friendDoc = friendQuery.docs[0];
+      
+      // Update the friend's document using arrayRemove
+      await updateDoc(doc(db, 'users', friendDoc.id), {
+        friends: arrayRemove(this.currentUser.email)
+      });
+    }
+    
+    return { success: true, message: "Friend removed successfully" };
+  } catch (error) {
+    return handleError(error, "Error removing friend");
   }
+}
   
   // Get all friends
   getFriends() {
