@@ -775,30 +775,15 @@ function getBondshipHealth(friendsData) {
   return finalHealth;
 }
 
-// Function to generate the tree SVG based on Bond Tree logo
+// Placeholder for tree SVG (removed)
 function generateTreeSvg(health) {
-  console.log('Generating Bond Tree SVG with health:', health);
-
   // Calculate stage (1-10)
   const stage = Math.max(1, Math.min(10, Math.ceil(health / 10)));
   
-  // Color variations based on health
-  const greenShades = [
-    '#4CAF50',   // Darker green
-    '#81C784',   // Medium green
-    '#A5D6A7',   // Light green
-    '#C8E6C9'    // Very light green
-  ];
+  // Opacity variations based on health
+  const opacity = Math.max(0.3, stage / 10);
 
-  // Select green shade based on health
-  const treeColor = greenShades[Math.min(Math.floor(stage / 3), greenShades.length - 1)];
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#E3F2FD"/>
-  <path d="M50 70 L40 50 Q50 40 60 50 Z" fill="${treeColor}"/>
-  <path d="M50 50 L35 35 Q50 25 65 35 Z" fill="${treeColor}"/>
-  <rect x="47" y="70" width="6" height="10" fill="#795548"/>
-</svg>`;
+  return `<img src="bond-tree-logo.svg" alt="">`;
 }
 
 // Setup note indicators function

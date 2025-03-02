@@ -11,8 +11,8 @@
 
 /* Tree Icon Styling in Friends Modal */
 .tree-container {
-  width: 240px;
-  height: 240px;
+  width: 226px;
+  height: 226px;
   background-color: transparent;
   border-radius: 50%;
   display: flex;
@@ -33,8 +33,8 @@
 }
 
 .tree-icon svg {
-  max-width: 90%;
-  max-height: 90%;
+  width: 60%;
+  height: 60%;
   object-fit: contain;
 }
 
@@ -56,8 +56,6 @@
   background-color: #f9ca24;
   padding: 15px;
   text-align: center;
-  margin-top: 15px;
-  border-radius: 8px;
 }
 
 .bondship-status h3 {
