@@ -18,7 +18,8 @@ import {
   query, 
   collection, 
   where, 
-  getDocs 
+  getDocs,
+  writeBatch, 
 } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
 
 // Firebase configuration
@@ -389,25 +390,110 @@ export default class AuthManager {
     }
   }
 
-  async refreshUserData() {
+  async sendFriendRequest(friendIdentifier) {
     try {
-      if (!auth.currentUser) return false;
-      
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      const userDoc = await getDoc(userRef);
-      
-      if (userDoc.exists()) {
-        this.currentUser = {
-          ...userDoc.data(),
-          id: auth.currentUser.uid,
-          lastFetched: Date.now()
-        };
-        return true;
+      if (!this.currentUser) {
+        return { success: false, error: 'You must be logged in to send friend requests' };
       }
-      return false;
+  
+      // Determine if the identifier is an email or username
+      const isEmail = friendIdentifier.includes('@');
+      
+      // Query to find the recipient
+      const usersRef = collection(db, 'users');
+      const q = isEmail 
+        ? query(usersRef, where('email', '==', friendIdentifier))
+        : query(usersRef, where('username', '==', friendIdentifier));
+      
+      const querySnapshot = await getDocs(q);
+  
+      if (querySnapshot.empty) {
+        return { success: false, error: 'User not found' };
+      }
+  
+      // Get the recipient's data
+      const friendDoc = querySnapshot.docs[0];
+      const friendData = friendDoc.data();
+      const friendId = friendDoc.id;
+      const friendEmail = friendData.email;
+  
+      // Check if trying to add self
+      if (friendEmail === this.currentUser.email) {
+        return { success: false, error: 'You cannot send a friend request to yourself' };
+      }
+  
+      // Check if already friends
+      const existingFriends = this.currentUser.friends || [];
+      if (existingFriends.some(friend => friend === friendEmail)) {
+        return { success: false, error: 'You are already friends with this user' };
+      }
+  
+      // Check if already sent a request
+      const sentRequests = this.currentUser.sentFriendRequests || [];
+      if (sentRequests.some(request => request.to === friendEmail && request.status === 'pending')) {
+        return { success: false, error: 'You have already sent a friend request to this user' };
+      }
+  
+      // Check if recipient already sent a request (auto-accept scenario)
+      const recipientDoc = await getDoc(doc(db, 'users', friendId));
+      if (recipientDoc.exists()) {
+        const recipientData = recipientDoc.data();
+        const recipientSentRequests = recipientData.sentFriendRequests || [];
+        
+        if (recipientSentRequests.some(request => 
+          request.to === this.currentUser.email && request.status === 'pending')) {
+          // Auto-accept the request
+          return await this.acceptFriendRequest(friendEmail);
+        }
+      }
+  
+      // Create the friend request object
+      const friendRequest = {
+        from: this.currentUser.email,
+        fromName: this.currentUser.name || this.currentUser.username,
+        timestamp: Date.now(),
+        status: 'pending'
+      };
+  
+      // Create the sent request object
+      const sentRequest = {
+        to: friendEmail,
+        toName: friendData.name || friendData.username,
+        timestamp: Date.now(),
+        status: 'pending'
+      };
+  
+      // Batch write to ensure atomicity
+      const batch = writeBatch(db);
+      
+      // Add request to recipient's document
+      const recipientRef = doc(db, 'users', friendId);
+      batch.update(recipientRef, {
+        friendRequests: arrayUnion(friendRequest)
+      });
+      
+      // Record sent request in sender's document
+      const senderRef = doc(db, 'users', this.currentUser.id);
+      batch.update(senderRef, {
+        sentFriendRequests: arrayUnion(sentRequest)
+      });
+      
+      // Commit the batch
+      await batch.commit();
+      
+      // Update local state
+      if (!this.currentUser.sentFriendRequests) {
+        this.currentUser.sentFriendRequests = [];
+      }
+      this.currentUser.sentFriendRequests.push(sentRequest);
+      
+      // Refresh user data in the background
+      this.refreshUserData();
+  
+      return { success: true, message: 'Friend request sent successfully' };
     } catch (error) {
-      console.error("Error refreshing user data:", error);
-      return false;
+      console.error('Error sending friend request:', error);
+      return { success: false, error: 'Failed to send friend request' };
     }
   }
 

@@ -1,6 +1,4 @@
-// Create a new file named notification-helper.js
-
-// Notification helper for Bond Tree
+// notification-helper.js
 // This module helps with showing notifications and managing friend request updates
 
 import { db } from './firebase-config.js';
@@ -10,6 +8,7 @@ class NotificationHelper {
   constructor() {
     this.listeners = new Map();
     this.unsubscribers = new Map();
+    this._previousRequestCounts = {};
   }
   
   // Start listening for changes to a user's document
@@ -23,27 +22,39 @@ class NotificationHelper {
     
     console.log(`Starting listener for user ${userId}`);
     
-    // Set up the real-time listener
+    // Set up the real-time listener with snapshot metadata
     const userRef = doc(db, 'users', userId);
     const unsubscribe = onSnapshot(userRef, (docSnapshot) => {
       if (docSnapshot.exists()) {
         const userData = docSnapshot.data();
+        userData.id = userId; // Ensure ID is included in the data
+        const isLocalUpdate = docSnapshot.metadata.hasPendingWrites;
         
-        // Call the callback with the updated user data
-        if (typeof callback === 'function') {
-          callback(userData);
-        }
+        // Log changes for debugging
+        console.log(`User data updated. Local change: ${isLocalUpdate}`);
+        console.log('Friend requests:', userData.friendRequests?.length || 0);
         
-        // Notify all registered listeners for this user
-        if (this.listeners.has(userId)) {
-          const listeners = this.listeners.get(userId);
-          listeners.forEach(listener => {
-            try {
-              listener(userData);
-            } catch (error) {
-              console.error('Error in user data listener:', error);
-            }
-          });
+        // Only process server updates for friend requests
+        if (!isLocalUpdate) {
+          // Call the callback with the updated user data
+          if (typeof callback === 'function') {
+            callback(userData);
+          }
+          
+          // Check for new friend requests
+          this.checkForNewFriendRequests(userData);
+          
+          // Notify all registered listeners
+          if (this.listeners.has(userId)) {
+            const listeners = this.listeners.get(userId);
+            listeners.forEach(listener => {
+              try {
+                listener(userData);
+              } catch (error) {
+                console.error('Error in user data listener:', error);
+              }
+            });
+          }
         }
       }
     }, (error) => {
@@ -93,6 +104,43 @@ class NotificationHelper {
         this.listeners.delete(userId);
       }
     }
+  }
+  
+  // Check for new friend requests
+  checkForNewFriendRequests(userData) {
+    // Get only pending requests
+    const pendingRequests = (userData.friendRequests || [])
+      .filter(req => req.status === 'pending');
+    
+    // Compare with stored previous count
+    const userId = userData.id;
+    const prevCount = this._previousRequestCounts[userId] || 0;
+    const currentCount = pendingRequests.length;
+    
+    console.log(`Previous request count: ${prevCount}, Current count: ${currentCount}`);
+    
+    if (currentCount > prevCount) {
+      // New request(s) arrived!
+      const newCount = currentCount - prevCount;
+      const message = newCount === 1 
+        ? 'You have a new friend request!'
+        : `You have ${newCount} new friend requests!`;
+      
+      // Show browser notification
+      this.showNotification('Bond Tree', {
+        body: message,
+        icon: 'bond-tree-logo.svg'
+      });
+      
+      // Update UI badge
+      this.updateFriendRequestBadge(currentCount);
+    } else if (currentCount !== prevCount) {
+      // Count changed (probably decreased)
+      this.updateFriendRequestBadge(currentCount);
+    }
+    
+    // Update stored count for this user
+    this._previousRequestCounts[userId] = currentCount;
   }
   
   // Show a browser notification (if permitted)
@@ -169,6 +217,7 @@ class NotificationHelper {
     
     this.listeners.clear();
     this.unsubscribers.clear();
+    this._previousRequestCounts = {};
   }
 }
 
