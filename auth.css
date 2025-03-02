@@ -714,3 +714,74 @@
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
+
+/* Add these styles at the end of the file */
+
+/* Friend Requests Styles */
+.friend-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.friend-request-card {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.friend-request-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.friend-request-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.friend-request-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.friend-request-actions button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.accept-request {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.reject-request {
+  background-color: #f44336;
+  color: white;
+}
+
+.accept-request:hover {
+  background-color: #45a049;
+}
+
+.reject-request:hover {
+  background-color: #d32f2f;
+}
+
+.empty-message {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+  font-style: italic;
+}

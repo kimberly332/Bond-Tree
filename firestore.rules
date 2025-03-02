@@ -13,7 +13,11 @@ service cloud.firestore {
                     && request.resource.data.username.size() <= 15
                     && request.resource.data.username.matches('^[a-zA-Z0-9_]+$');
       
-      allow update, delete: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId || 
+                    // Allow adding/removing friend requests
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests', 'friends']);
+      
+      allow delete: if request.auth.uid == userId;
     }
   }
 }

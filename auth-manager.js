@@ -196,22 +196,13 @@ export default class AuthManager {
     }
   }
   
-  // Create a new user account
-  async signup(name, email, password, username) {
+   // Create a new user account
+   async signup(name, email, password, username) {
     try {
-      // Apply rate limiting
-      if (this.apiRateLimiter.isAllowed('signup')) {
-        return { 
-          success: false, 
-          message: 'Too many signup attempts. Please try again later.'
-        };
-      }
-      
       // Validate inputs
       if (!name || !email || !password || !username) {
         return { 
           success: false, 
-          code: 'invalid-input',
           message: 'Please fill in all required fields'
         };
       }
@@ -220,22 +211,16 @@ export default class AuthManager {
       if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
         return { 
           success: false, 
-          code: 'invalid-username',
           message: 'Username must be 3-15 characters and contain only letters, numbers, and underscores'
         };
       }
       
-      // Sanitize inputs
-      const sanitizedName = sanitizeUserInput(name);
-      const sanitizedUsername = sanitizeUserInput(username);
-      
-      // First check if username is available
-      const usernameAvailable = await this.checkUsernameAvailability(sanitizedUsername);
+      // Verify that username is available
+      const usernameAvailable = await this.checkUsernameAvailability(username);
       if (!usernameAvailable) {
         return { 
           success: false, 
-          code: 'username-exists',
-          message: 'This username is already taken. Please choose another one.'
+          message: 'This username is already taken'
         };
       }
       
@@ -247,12 +232,12 @@ export default class AuthManager {
         // Create the user document
         const userData = {
           id: user.uid,
-          username: sanitizedUsername,
-          name: sanitizedName,
-          email,
+          username: username,
+          name: name,
+          email: email,
           friends: [],
           savedMoods: [],
-          sessions: [],
+          friendRequests: [],
           createdAt: Date.now()
         };
     
@@ -261,10 +246,10 @@ export default class AuthManager {
         // Set current user locally
         this.currentUser = userData;
         
-        // Start tracking user session
-        this.trackUserSession();
-    
-        return { success: true };
+        return { 
+          success: true,
+          message: 'Account created successfully'
+        };
       } catch (error) {
         // If something went wrong after creating the auth user, delete it
         try {
@@ -273,15 +258,41 @@ export default class AuthManager {
           console.error("Error deleting user after failed signup:", deleteError);
         }
         
-        throw error;
+        console.error("Error creating user document:", error);
+        
+        return { 
+          success: false, 
+          message: 'Error creating user profile. Please try again.'
+        };
       }
     } catch (error) {
-      return handleError(
-        error, 
-        this.getErrorMessage(error.code) || 'Signup failed. Please try again.'
-      );
+      console.error('Signup error:', error);
+      
+      // Handle specific Firebase authentication errors
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          return { 
+            success: false, 
+            message: 'This email is already registered'
+          };
+        case 'auth/invalid-email':
+          return { 
+            success: false, 
+            message: 'Invalid email address'
+          };
+        case 'auth/weak-password':
+          return { 
+            success: false, 
+            message: 'Password is too weak. Please use a stronger password.'
+          };
+        default:
+          return { 
+            success: false, 
+            message: 'Signup failed. Please try again.'
+          };
+      }
     }
-  }
+  }// Rate Limiter Class
   
   // Helper method to get user-friendly error messages
   getErrorMessage(errorCode) {
@@ -376,6 +387,243 @@ export default class AuthManager {
     } catch (error) {
       return handleError(error, 'Error logging out');
     }
+  }
+
+  // Send a friend request
+  async sendFriendRequest(friendIdentifier) {
+    try {
+      // Verify authentication
+      if (!this.currentUser) {
+        return { success: false, message: 'You must be logged in to send friend requests' };
+      }
+      
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) {
+        return { success: false, message: 'Authentication error. Please sign in again.' };
+      }
+      
+      // Apply rate limiting
+      if (!this.apiRateLimiter.isAllowed(this.currentUser.id)) {
+        return { success: false, message: 'Please wait before sending another friend request' };
+      }
+      
+      // Sanitize input
+      const sanitizedIdentifier = sanitizeUserInput(friendIdentifier);
+      
+      // Check if the input is an email or a username
+      const isEmail = sanitizedIdentifier.includes('@');
+      
+      // Create the appropriate query based on the input type
+      let friendQuery;
+      if (isEmail) {
+        // Search by email
+        friendQuery = await getDocs(
+          query(collection(db, 'users'), where('email', '==', sanitizedIdentifier))
+        );
+      } else {
+        // Search by username
+        friendQuery = await getDocs(
+          query(collection(db, 'users'), where('username', '==', sanitizedIdentifier))
+        );
+      }
+      
+      if (friendQuery.empty) {
+        return { 
+          success: false, 
+          message: 'No user found with this email or username'
+        };
+      }
+      
+      // Get the first matching user (assuming emails and usernames are unique)
+      const friendDoc = friendQuery.docs[0];
+      const friendData = friendDoc.data();
+      const friendId = friendDoc.id;
+      const friendEmail = friendData.email;
+      
+      // Cannot send friend request to yourself
+      if (friendEmail === this.currentUser.email) {
+        return { 
+          success: false, 
+          message: 'You cannot send a friend request to yourself'
+        };
+      }
+      
+      // Check if already a friend
+      if (this.currentUser.friends && this.currentUser.friends.includes(friendEmail)) {
+        return { 
+          success: false, 
+          message: 'This user is already in your friends list'
+        };
+      }
+      
+      // Check if a request is already pending
+      const existingFriendRequests = friendData.friendRequests || [];
+      if (existingFriendRequests.some(req => req.from === this.currentUser.email)) {
+        return { 
+          success: false, 
+          message: 'A friend request is already pending'
+        };
+      }
+      
+      // Create friend request object
+      const friendRequest = {
+        from: this.currentUser.email,
+        fromName: this.currentUser.name || this.currentUser.username,
+        timestamp: Date.now(),
+        status: 'pending'
+      };
+      
+      // Add friend request to recipient's document
+      const recipientRef = doc(db, 'users', friendId);
+      await updateDoc(recipientRef, {
+        friendRequests: arrayUnion(friendRequest)
+      });
+      
+      return { 
+        success: true, 
+        message: 'Friend request sent successfully' 
+      };
+    } catch (error) {
+      return handleError(error, 'Error sending friend request');
+    }
+  }
+
+  // Accept a friend request
+  async acceptFriendRequest(senderEmail) {
+    try {
+      // Verify authentication
+      if (!this.currentUser) {
+        return { success: false, message: 'You must be logged in to accept friend requests' };
+      }
+      
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) {
+        return { success: false, message: 'Authentication error. Please sign in again.' };
+      }
+      
+      const userRef = doc(db, 'users', this.currentUser.id);
+      
+      // Find the specific friend request
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      const friendRequests = userData.friendRequests || [];
+      
+      const requestIndex = friendRequests.findIndex(req => 
+        req.from === senderEmail && req.status === 'pending'
+      );
+      
+      if (requestIndex === -1) {
+        return { 
+          success: false, 
+          message: 'Friend request not found' 
+        };
+      }
+      
+      // Update the specific request's status
+      friendRequests[requestIndex].status = 'accepted';
+      
+      // Find the sender's document
+      const senderQuery = await getDocs(
+        query(collection(db, 'users'), where('email', '==', senderEmail))
+      );
+      
+      if (senderQuery.empty) {
+        return { 
+          success: false, 
+          message: 'Sender not found'
+        };
+      }
+      
+      const senderDoc = senderQuery.docs[0];
+      const senderId = senderDoc.id;
+      
+      // Update both users' friends lists
+      await updateDoc(userRef, {
+        friendRequests: friendRequests,
+        friends: arrayUnion(senderEmail)
+      });
+      
+      await updateDoc(doc(db, 'users', senderId), {
+        friends: arrayUnion(this.currentUser.email)
+      });
+      
+      // Refresh current user data
+      const updatedUserDoc = await getDoc(userRef);
+      if (updatedUserDoc.exists()) {
+        this.currentUser = {
+          ...updatedUserDoc.data(),
+          id: userRef.id,
+          lastFetched: Date.now()
+        };
+      }
+      
+      return { 
+        success: true, 
+        message: 'Friend request accepted successfully' 
+      };
+    } catch (error) {
+      return handleError(error, 'Error accepting friend request');
+    }
+  }
+
+  // Reject a friend request
+  async rejectFriendRequest(senderEmail) {
+    try {
+      // Verify authentication
+      if (!this.currentUser) {
+        return { success: false, message: 'You must be logged in to reject friend requests' };
+      }
+      
+      // Verify token
+      const isTokenValid = await this.verifyIdToken();
+      if (!isTokenValid) {
+        return { success: false, message: 'Authentication error. Please sign in again.' };
+      }
+      
+      const userRef = doc(db, 'users', this.currentUser.id);
+      
+      // Find the specific friend request
+      const userDoc = await getDoc(userRef);
+      const userData = userDoc.data();
+      const friendRequests = userData.friendRequests || [];
+      
+      const requestIndex = friendRequests.findIndex(req => 
+        req.from === senderEmail && req.status === 'pending'
+      );
+      
+      if (requestIndex === -1) {
+        return { 
+          success: false, 
+          message: 'Friend request not found' 
+        };
+      }
+      
+      // Remove or mark the request as rejected
+      friendRequests[requestIndex].status = 'rejected';
+      
+      // Update user's friend requests
+      await updateDoc(userRef, {
+        friendRequests: friendRequests
+      });
+      
+      return { 
+        success: true, 
+        message: 'Friend request rejected' 
+      };
+    } catch (error) {
+      return handleError(error, 'Error rejecting friend request');
+    }
+  }
+
+  // Get friend requests
+  getFriendRequests() {
+    if (!this.currentUser) return [];
+    
+    return (this.currentUser.friendRequests || [])
+      .filter(request => request.status === 'pending')
+      .sort((a, b) => b.timestamp - a.timestamp);
   }
   
   // Add a friend by email or username

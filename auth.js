@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const signupBtn = document.getElementById('signup-btn');
   const logoutBtn = document.getElementById('logout-btn');
   const addFriendBtn = document.getElementById('add-friend-btn');
+  const sendFriendRequestBtn = document.getElementById('send-friend-request-btn');
   const viewFriendsBtn = document.getElementById('view-friends-btn');
   const createMoodBtn = document.getElementById('create-mood-btn');
 
@@ -266,6 +267,27 @@ if (addFriendBtn) {
       }
     });
   }
+
+// Send Friend Request functionality
+if (sendFriendRequestBtn) {
+  sendFriendRequestBtn.addEventListener('click', async () => {
+    const friendEmail = prompt('Enter your friend\'s email:');
+    
+    if (friendEmail) {
+      try {
+        const result = await authManager.sendFriendRequest(friendEmail);
+        if (result.success) {
+          alert('Friend request sent successfully!');
+        } else {
+          alert(result.message || 'Could not send friend request. Please check the email and try again.');
+        }
+      } catch (error) {
+        console.error('Send friend request error:', error);
+        alert('Error sending friend request: ' + error.message);
+      }
+    }
+  });
+}
 
   // View Friends functionality
   if (viewFriendsBtn) {
