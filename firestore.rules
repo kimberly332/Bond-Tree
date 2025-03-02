@@ -14,9 +14,9 @@ service cloud.firestore {
                     && request.resource.data.username.matches('^[a-zA-Z0-9_]+$');
       
       allow update: if request.auth.uid == userId || 
-                    // Allow adding/removing friend requests
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests', 'friends']);
-      
+              // Allow adding/removing friend requests and sent requests
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests', 'friends', 'sentFriendRequests']);
+              
       allow delete: if request.auth.uid == userId;
     }
   }

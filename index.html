@@ -7,8 +7,8 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://www.google.com;
-    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
-    font-src https://fonts.gstatic.com;
+    style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline';
+    font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com;
     connect-src *;
     frame-src https://www.google.com;
 ">
@@ -18,6 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="auth.css">
   <link rel="stylesheet" href="bond-tree-enhanced-friends.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- Additional styles for friends modal -->
   <style>
     /* Friends Modal Styles - Inline to ensure they're available */
@@ -27,22 +28,23 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
+      background-color: rgba(0, 0, 0, 0.5);
       z-index: 1000;
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px;
+      backdrop-filter: blur(5px);
     }
     
     .modal-container {
-      background-color: white;
-      border-radius: 10px;
+      background-color: #fff;
+      border-radius: 20px;
       width: 100%;
       max-width: 500px;
       max-height: 80vh;
       overflow-y: auto;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
       position: relative;
     }
     
@@ -51,7 +53,7 @@
       border-bottom: 1px solid #eee;
       position: sticky;
       top: 0;
-      background-color: white;
+      background-color: #fff;
       z-index: 10;
     }
     
@@ -63,7 +65,6 @@
     }
     
     .modal-close {
-      font-family: 'Nunito', sans-serif;
       position: absolute;
       top: 15px;
       right: 15px;
@@ -86,9 +87,9 @@
     
     .friend-card {
       border: 1px solid #eee;
-      border-radius: 8px;
+      border-radius: 16px;
       padding: 15px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      background-color: #fff;
     }
     
     .friend-info {
@@ -124,7 +125,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-width: 60px; /* Slightly wider to fit the time */
+      min-width: 60px;
     }
     
     .mood-ball {
@@ -133,7 +134,7 @@
       border-radius: 50%;
       overflow: hidden;
       position: relative;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       margin-bottom: 5px;
     }
     
@@ -199,30 +200,31 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
+      background-color: rgba(0, 0, 0, 0.5);
       display: flex;
       justify-content: center;
       align-items: center;
-      z-index: 1100; /* Higher than the friends modal */
+      z-index: 1100;
       padding: 20px;
+      backdrop-filter: blur(5px);
     }
     
     .friend-note-modal-content {
-      background-color: white;
-      border-radius: 10px;
+      background-color: #fff;
+      border-radius: 20px;
       width: 90%;
       max-width: 400px;
       max-height: 70vh;
       overflow-y: auto;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
       position: relative;
     }
     
     .friend-note-header {
       display: flex;
-      justify-content: center; /* Center the date text */
+      justify-content: center;
       align-items: center;
-      padding: 15px 40px 15px 15px; /* Extra padding on right for close button */
+      padding: 15px 40px 15px 15px;
       border-bottom: 1px solid #eee;
       position: relative;
     }
@@ -262,23 +264,38 @@
       line-height: 1.6;
       color: #333;
     }
+    
     @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Loading spinner styling */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top: 4px solid #4a90e2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
     }
   </style>
   <link rel="icon" href="bond-tree-logo.svg">
-  
 </head>
 <body>
 <div id="loading-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f7;">
     <div style="text-align: center;">
         <div style="font-size: 2rem; color: #4a90e2; margin-bottom: 20px; font-family: 'Poppins', sans-serif; font-weight: 600;">Bond Tree</div>
-        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #4a90e2; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+        <div class="loading-spinner"></div>
     </div>
-    </div>
+</div>
   <div class="auth-container" style="display: none;">
     <div class="logo">Bond Tree</div>
+    <div class="tagline">Grow Connections, Share Emotions</div>
+    <div class="app-description">
+      Bond Tree helps you track your emotional well-being and connect with friends. Share your daily moods, see how friends are feeling, and grow meaningful connections through emotional awareness.
+    </div>
     
     <div id="login-form" class="auth-form">
       <h2>Login</h2>
@@ -311,11 +328,11 @@
       </div>
 
       <div class="form-group">
-  <label for="signup-username">Username</label>
-  <input type="text" id="signup-username" placeholder="Choose a unique username" required>
-  <small style="color: #666; font-size: 0.8rem;">This will be your unique ID for others to find you</small>
-  <span id="username-status" style="display: block; font-size: 0.85rem; margin-top: 5px;"></span>
-</div>
+        <label for="signup-username">Username</label>
+        <input type="text" id="signup-username" placeholder="Choose a unique username" required>
+        <small style="color: #888; font-size: 0.8rem;">This will be your unique ID for others to find you</small>
+        <span id="username-status" style="display: block; font-size: 0.85rem; margin-top: 5px;"></span>
+      </div>
       
       <div class="form-group">
         <label for="signup-email">Email</label>
@@ -343,12 +360,27 @@
         <h2>Welcome, <span id="user-name"></span>!</h2>
         <p>Your Username: <span id="user-username" style="font-weight: bold; color: #4a90e2;"></span></p>
         <div class="dashboard-buttons">
-        <button id="create-mood-btn" class="dashboard-btn">Create Your Mood</button>
-        <button class="dashboard-btn" id="add-friend-btn">Add Friend</button>
-        <button class="dashboard-btn" id="friend-requests-btn">Friend Requests</button>
-        <button class="dashboard-btn" id="view-friends-btn">View Friend's List</button>
-        <button class="dashboard-btn" id="logout-btn">Log Out</button>
-      </div>
+          <button id="create-mood-btn" class="dashboard-btn mood">
+            <i class="fas fa-smile-beam btn-icon"></i>
+            Create Mood
+          </button>
+          <button class="dashboard-btn friend" id="add-friend-btn">
+            <i class="fas fa-user-plus btn-icon"></i>
+            Add Bond
+          </button>
+          <button class="dashboard-btn request" id="friend-requests-btn">
+            <i class="fas fa-bell btn-icon"></i>
+            Bonding Requests
+          </button>
+          <button class="dashboard-btn view" id="view-friends-btn">
+            <i class="fas fa-tree btn-icon"></i>
+            View Bondships
+          </button>
+          <button class="dashboard-btn logout" id="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            Log Out
+          </button>
+        </div>
     </div>
   </div>
 

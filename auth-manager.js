@@ -520,7 +520,6 @@ async sendFriendRequest(friendIdentifier) {
   }
 }
 
-  
 // Accept a friend request
 async acceptFriendRequest(senderEmail) {
   try {
@@ -575,41 +574,50 @@ async acceptFriendRequest(senderEmail) {
     const senderId = senderDoc.id;
     const senderData = senderDoc.data();
     
-    // Update the receiver's document (current user)
+    console.log("Current user email:", this.currentUser.email);
+    console.log("Sender email:", senderEmail);
+
+    // Add sender to current user's friends list and update request status
     await updateDoc(userRef, {
       friendRequests: updatedFriendRequests,
       friends: arrayUnion(senderEmail)
     });
     
-    // Update the sender's document
-    // First, update their friends array
+    // Add current user to sender's friends list
     await updateDoc(doc(db, 'users', senderId), {
       friends: arrayUnion(this.currentUser.email)
     });
     
-    // Next, update the status of their sent request if it exists
+    console.log("Updated both users' friends lists");
+    
+    // Update the status of the sender's sent request if it exists
     const sentRequests = senderData.sentFriendRequests || [];
     const sentRequestIndex = sentRequests.findIndex(req => 
       req.to === this.currentUser.email && req.status === 'pending'
     );
     
     if (sentRequestIndex !== -1) {
-      const updatedSentRequests = [...sentRequests];
+      // Create a deep copy of the sent requests array
+      const updatedSentRequests = JSON.parse(JSON.stringify(sentRequests));
       updatedSentRequests[sentRequestIndex].status = 'accepted';
       
       await updateDoc(doc(db, 'users', senderId), {
         sentFriendRequests: updatedSentRequests
       });
+      
+      console.log("Updated sender's sent request status");
     }
     
-    // Refresh current user data
-    const updatedUserDoc = await getDoc(userRef);
-    if (updatedUserDoc.exists()) {
+    // Refresh current user data to ensure we have the latest
+    const refreshedUserDoc = await getDoc(userRef);
+    if (refreshedUserDoc.exists()) {
       this.currentUser = {
-        ...updatedUserDoc.data(),
+        ...refreshedUserDoc.data(),
         id: userRef.id,
         lastFetched: Date.now()
       };
+      
+      console.log("Current user data refreshed, friends list:", this.currentUser.friends);
     }
     
     return { 
@@ -617,11 +625,12 @@ async acceptFriendRequest(senderEmail) {
       message: 'Friend request accepted successfully' 
     };
   } catch (error) {
+    console.error("Error in acceptFriendRequest:", error);
     return handleError(error, 'Error accepting friend request');
   }
 }
 
- // Reject a friend request
+// Reject a friend request
 async rejectFriendRequest(senderEmail) {
   try {
     // Verify authentication
@@ -975,7 +984,7 @@ async getSentFriendRequests() {
     }
   }
   
-  // Delete a friend
+// Delete a friend
 async deleteFriend(friendEmail) {
   try {
     // Verify authentication
