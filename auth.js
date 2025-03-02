@@ -245,24 +245,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
+  
   // Add Friend functionality
   if (addFriendBtn) {
     addFriendBtn.addEventListener('click', async () => {
-      // This is the line that needs to be changed
+      // Changed to use sendFriendRequest instead of addFriend
       const friendIdentifier = prompt('Enter your friend\'s username or email:');
       
       if (friendIdentifier) {
         try {
-          const result = await authManager.addFriend(friendIdentifier);
+          const result = await authManager.sendFriendRequest(friendIdentifier);
           if (result.success) {
-            alert('Friend added successfully!');
+            alert('Friend request sent successfully!');
           } else {
-            alert(result.message || 'Could not add friend. They may not exist or are already in your list.');
+            alert(result.message || 'Could not send friend request. They may not exist or a request is already pending.');
           }
         } catch (error) {
           console.error('Add friend error:', error);
-          alert('Error adding friend: ' + error.message);
+          alert('Error sending friend request: ' + error.message);
         }
       }
     });
