@@ -617,14 +617,58 @@ export default class AuthManager {
     }
   }
 
-  // Get friend requests received
-  getFriendRequests() {
-    if (!this.currentUser) return [];
-    
-    return (this.currentUser.friendRequests || [])
+ // Get friend requests received
+ getFriendRequests() {
+  if (!this.currentUser) return [];
+  
+  return (this.currentUser.friendRequests || [])
+    .filter(request => request.status === 'pending')
+    .sort((a, b) => b.timestamp - a.timestamp);
+}
+
+// Get friend requests sent
+async getSentFriendRequests() {
+  if (!this.currentUser) return [];
+  
+  // If we have a sentFriendRequests array in the current user, use that
+  if (this.currentUser.sentFriendRequests) {
+    return this.currentUser.sentFriendRequests
       .filter(request => request.status === 'pending')
       .sort((a, b) => b.timestamp - a.timestamp);
   }
+  
+  // Otherwise, query the database for users who have received requests from the current user
+  try {
+    const userQuerySnapshot = await getDocs(collection(db, 'users'));
+    const sentRequests = [];
+    
+    userQuerySnapshot.forEach(doc => {
+      const userData = doc.data();
+      const friendRequests = userData.friendRequests || [];
+      
+      // Find requests sent by the current user
+      const requestsFromCurrentUser = friendRequests.filter(
+        req => req.from === this.currentUser.email && req.status === 'pending'
+      );
+      
+      if (requestsFromCurrentUser.length > 0) {
+        requestsFromCurrentUser.forEach(req => {
+          sentRequests.push({
+            to: userData.email,
+            toName: userData.name,
+            timestamp: req.timestamp,
+            status: req.status
+          });
+        });
+      }
+    });
+    
+    return sentRequests.sort((a, b) => b.timestamp - a.timestamp);
+  } catch (error) {
+    console.error("Error fetching sent friend requests:", error);
+    return [];
+  }
+}
   
   // Get friend requests sent
   async getSentFriendRequests() {

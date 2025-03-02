@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  
+
   // Add Friend functionality
   if (addFriendBtn) {
     addFriendBtn.addEventListener('click', async () => {
