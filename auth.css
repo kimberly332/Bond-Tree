@@ -733,18 +733,6 @@
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  transition: all 0.3s ease;
-}
-
-.friend-request-card.accepted {
-  background-color: #e8f5e9;
-  border-color: #a5d6a7;
-}
-
-.friend-request-card.rejected {
-  background-color: #ffebee;
-  border-color: #ffcdd2;
-  opacity: 0.8;
 }
 
 .friend-request-info h3 {
@@ -768,15 +756,9 @@
   padding: 8px 15px;
   border: none;
   border-radius: 5px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-}
-
-.friend-request-actions button:hover {
-  transform: translateY(-2px);
+  transition: background-color 0.3s ease;
 }
 
 .accept-request {
@@ -790,17 +772,11 @@
 }
 
 .accept-request:hover {
-  background-color: #43A047;
+  background-color: #45a049;
 }
 
 .reject-request:hover {
-  background-color: #E53935;
-}
-
-.accept-request:disabled, .reject-request:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none !important;
+  background-color: #d32f2f;
 }
 
 .empty-message {
@@ -808,28 +784,4 @@
   color: #666;
   padding: 20px;
   font-style: italic;
-}
-
-/* Friend Requests Badge */
-.request-badge {
-  background-color: #f44336;
-  color: white;
-  border-radius: 50%;
-  padding: 2px 6px;
-  font-size: 0.75rem;
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  font-weight: bold;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-#friend-requests-btn {
-  position: relative;
 }
