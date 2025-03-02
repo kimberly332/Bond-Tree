@@ -1,5 +1,46 @@
 // Import AuthManager and auth from the optimized auth-manager.js
 import AuthManager, { auth } from './auth-manager.js';
+import notificationHelper from './notification-helper.js';
+
+// Add this inside your DOMContentLoaded event handler
+function setupRealTimeNotifications(authManager) {
+  // Save the previous friend requests count to detect changes
+  let previousRequestsCount = 0;
+  
+  // Create a listener function for user data changes
+  const userDataListener = (userData) => {
+    // Check for friend requests
+    const friendRequests = (userData.friendRequests || [])
+      .filter(request => request.status === 'pending');
+    
+    const currentRequestsCount = friendRequests.length;
+    
+    // Update the UI badge
+    updateFriendRequestsBadge(authManager);
+    
+    // Check if there are new requests
+    if (currentRequestsCount > previousRequestsCount) {
+      // Show notification for new requests
+      const newRequests = currentRequestsCount - previousRequestsCount;
+      const message = newRequests === 1 
+        ? 'You have a new friend request!' 
+        : `You have ${newRequests} new friend requests!`;
+      
+      notificationHelper.showNotification('Bond Tree', {
+        body: message,
+        icon: 'bond-tree-logo.svg'
+      });
+    }
+    
+    // Update the previous count
+    previousRequestsCount = currentRequestsCount;
+  };
+  
+  // Add user data listener when logged in
+  if (authManager.currentUser) {
+    notificationHelper.addUserDataListener(authManager.currentUser.id, userDataListener);
+  }
+}
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -373,6 +414,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (dashboardForm) dashboardForm.style.display = 'none';
       if (loginForm) loginForm.style.display = 'block';
       if (signupForm) signupForm.style.display = 'none';
+    }
+
+    if (user) {
+      // Check if user data is loaded, then setup notifications
+      const checkUserDataInterval = setInterval(() => {
+        if (authManager.currentUser) {
+          clearInterval(checkUserDataInterval);
+          updateFriendRequestsBadge(authManager);
+          setupRealTimeNotifications(authManager);
+        }
+      }, 100);
+      
+      // Failsafe to clear interval
+      setTimeout(() => clearInterval(checkUserDataInterval), 5000);
+    } else {
+      // Clean up notifications when logged out
+      notificationHelper.cleanup();
     }
   });
 

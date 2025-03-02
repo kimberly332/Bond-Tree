@@ -389,103 +389,111 @@ export default class AuthManager {
     }
   }
 
-  // Send a friend request
-  async sendFriendRequest(friendIdentifier) {
+  async refreshUserData() {
     try {
-      // Verify authentication
-      if (!this.currentUser) {
-        return { success: false, message: 'You must be logged in to send friend requests' };
-      }
+      if (!auth.currentUser) return false;
       
-      // Verify token
-      const isTokenValid = await this.verifyIdToken();
-      if (!isTokenValid) {
-        return { success: false, message: 'Authentication error. Please sign in again.' };
-      }
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const userDoc = await getDoc(userRef);
       
-      // Apply rate limiting
-      if (!this.apiRateLimiter.isAllowed(this.currentUser.id)) {
-        return { success: false, message: 'Please wait before sending another friend request' };
-      }
-      
-      // Sanitize input
-      const sanitizedIdentifier = sanitizeUserInput(friendIdentifier);
-      
-      // Check if the input is an email or a username
-      const isEmail = sanitizedIdentifier.includes('@');
-      
-      // Create the appropriate query based on the input type
-      let friendQuery;
-      if (isEmail) {
-        // Search by email
-        friendQuery = await getDocs(
-          query(collection(db, 'users'), where('email', '==', sanitizedIdentifier))
-        );
-      } else {
-        // Search by username
-        friendQuery = await getDocs(
-          query(collection(db, 'users'), where('username', '==', sanitizedIdentifier))
-        );
-      }
-      
-      if (friendQuery.empty) {
-        return { 
-          success: false, 
-          message: 'No user found with this email or username'
+      if (userDoc.exists()) {
+        this.currentUser = {
+          ...userDoc.data(),
+          id: auth.currentUser.uid,
+          lastFetched: Date.now()
         };
+        return true;
       }
-      
-      // Get the first matching user (assuming emails and usernames are unique)
-      const friendDoc = friendQuery.docs[0];
+      return false;
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
+      return false;
+    }
+  }
+
+  async sendFriendRequest(friendEmail) {
+    try {
+      if (!this.currentUser) {
+        return { success: false, error: 'You must be logged in to send friend requests' };
+      }
+  
+      // Normalize email addresses for comparison
+      friendEmail = friendEmail.toLowerCase().trim();
+      const currentUserEmail = this.currentUser.email.toLowerCase().trim();
+  
+      // Check if trying to add self
+      if (friendEmail === currentUserEmail) {
+        return { success: false, error: 'You cannot send a friend request to yourself' };
+      }
+  
+      // Check if already friends
+      const existingFriends = this.currentUser.friends || [];
+      if (existingFriends.some(friend => friend.email.toLowerCase() === friendEmail)) {
+        return { success: false, error: 'You are already friends with this user' };
+      }
+  
+      // Check if already sent a request
+      const existingRequests = this.currentUser.sentFriendRequests || [];
+      if (existingRequests.some(request => request.to.toLowerCase() === friendEmail && request.status === 'pending')) {
+        return { success: false, error: 'You have already sent a friend request to this user' };
+      }
+  
+      // Look up the friend's user document
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', friendEmail));
+      const querySnapshot = await getDocs(q);
+  
+      if (querySnapshot.empty) {
+        return { success: false, error: 'User not found' };
+      }
+  
+      // Get the friend's data
+      const friendDoc = querySnapshot.docs[0];
       const friendData = friendDoc.data();
       const friendId = friendDoc.id;
-      const friendEmail = friendData.email;
-      
-      // Cannot send friend request to yourself
-      if (friendEmail === this.currentUser.email) {
-        return { 
-          success: false, 
-          message: 'You cannot send a friend request to yourself'
-        };
+  
+      // Check if friend already sent a request to current user
+      const friendRequests = this.currentUser.friendRequests || [];
+      if (friendRequests.some(request => request.from.toLowerCase() === friendEmail && request.status === 'pending')) {
+        // Auto-accept the request instead of sending a new one
+        return await this.acceptFriendRequest(friendEmail);
       }
-      
-      // Check if already a friend
-      if (this.currentUser.friends && this.currentUser.friends.includes(friendEmail)) {
-        return { 
-          success: false, 
-          message: 'This user is already in your friends list'
-        };
-      }
-      
-      // Check if a request is already pending
-      const existingFriendRequests = friendData.friendRequests || [];
-      if (existingFriendRequests.some(req => req.from === this.currentUser.email)) {
-        return { 
-          success: false, 
-          message: 'A friend request is already pending'
-        };
-      }
-      
-      // Create friend request object
+  
+      // Create the friend request
       const friendRequest = {
         from: this.currentUser.email,
         fromName: this.currentUser.name || this.currentUser.username,
         timestamp: Date.now(),
         status: 'pending'
       };
-      
-      // Add friend request to recipient's document
+  
+      // Add the request to the recipient's document
       const recipientRef = doc(db, 'users', friendId);
       await updateDoc(recipientRef, {
         friendRequests: arrayUnion(friendRequest)
       });
-      
-      return { 
-        success: true, 
-        message: 'Friend request sent successfully' 
-      };
+  
+      // ADDED CODE: Record the sent request in the current user's document
+      try {
+        // Optionally, also record the sent request in the current user's document
+        // This makes it easier to track sent requests
+        await updateDoc(doc(db, 'users', this.currentUser.id), {
+          sentFriendRequests: arrayUnion({
+            to: friendEmail,
+            toName: friendData.name || friendData.username,
+            timestamp: Date.now(),
+            status: 'pending'
+          })
+        });
+      } catch (sentError) {
+        console.error("Non-critical error recording sent request:", sentError);
+        // We don't return an error here since the main operation succeeded
+      }
+  
+      return { success: true, message: 'Friend request sent successfully' };
     } catch (error) {
-      return handleError(error, 'Error sending friend request');
+      console.error('Error sending friend request:', error);
+      return { success: false, error: 'Failed to send friend request' };
     }
   }
 
