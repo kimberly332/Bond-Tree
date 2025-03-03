@@ -224,3 +224,45 @@ justify-content: center;
     border-radius: 0;
   }
 }
+
+/* Dashboard Grid Fix */
+.dashboard-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.dashboard-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 120px;
+  width: 100%;
+}
+
+.btn-icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+/* Make logout button its own row but centered */
+#logout-btn-container {
+  grid-column: 1 / span 2;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+#logout-btn {
+  max-width: 250px;
+  width: 100%;
+}
