@@ -29,6 +29,18 @@ body {
   align-items: center;
   min-height: 100vh;
   padding: 15px;
+
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100vh;
+  /* Use the custom property in addition to vh */
+  min-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Fix for iOS Safari 100vh issue */
+.modal-overlay, .note-modal, .friend-note-modal {
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
 }
 
 .auth-container {
@@ -299,4 +311,47 @@ i.btn-icon {
 
 #friend-requests-btn {
   position: relative;
+}
+
+/* Add this to auth.css */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 20px 15px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .dashboard-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-group input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+  
+  .modal-container {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  
+  .friend-request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .friend-request-actions {
+    width: 100%;
+    margin-top: 10px;
+    justify-content: space-between;
+  }
+  
+  .friend-request-actions button {
+    min-height: 44px;
+    min-width: 44px;
+    flex: 1;
+    margin: 0 5px;
+  }
 }

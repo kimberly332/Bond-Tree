@@ -83,8 +83,31 @@ function initApp() {
   // Set up keyboard accessibility
   setupKeyboardAccessibility();
   
+  // Add touch event handlers for mobile
+  setupTouchInteractions();
+  
   // Check authentication state with Firebase
   auth.onAuthStateChanged(handleAuthStateChange);
+}
+
+function setupTouchInteractions() {
+  // Make saved moods container scrollable on touch devices
+  if (elements.savedMoodsContainer) {
+    elements.savedMoodsContainer.style.webkitOverflowScrolling = 'touch';
+    
+    // Prevent body scrolling when touching the horizontal scroll area
+    elements.savedMoodsContainer.addEventListener('touchmove', function(e) {
+      e.stopPropagation();
+    }, { passive: true });
+  }
+  
+  // Ensure modals can be closed by tapping outside on mobile
+  document.addEventListener('click', function(e) {
+    const noteModal = document.querySelector('.note-modal');
+    if (noteModal && e.target === noteModal) {
+      document.body.removeChild(noteModal);
+    }
+  });
 }
 
 /**

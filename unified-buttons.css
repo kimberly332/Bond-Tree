@@ -1,6 +1,19 @@
 /* Unified Button Styles for Bond Tree
  * This stylesheet provides consistent button styling across the application
  */
+ body {
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 100vh;
+    /* Use the custom property in addition to vh */
+    min-height: calc(var(--vh, 1vh) * 100);
+  }
+  
+  /* Fix for iOS Safari 100vh issue */
+  .modal-overlay, .note-modal, .friend-note-modal {
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
 
 /* Base Button Style */
 button,
@@ -274,3 +287,21 @@ button:disabled,
 .delete-friend-btn:hover {
   background-color: #d32f2f;
 }
+
+/* Add this to unified-buttons.css */
+@media (max-width: 480px) {
+    button,
+    .btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    .btn-block {
+      width: 100%;
+      max-width: none;
+    }
+    
+    .dashboard-btn {
+      min-height: 100px;
+    }
+  }
