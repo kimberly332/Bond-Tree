@@ -2,7 +2,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
-import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app-check.js';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check.js';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -21,10 +21,13 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Initialize App Check (get your reCAPTCHA site key from Firebase console)
-// Replace 'YOUR_RECAPTCHA_SITE_KEY' with your actual key
 const appCheck = initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider('6LdxyucqAAAAADpzRfHZEixTTiqxKzaYJRHQiQsN'),
-  isTokenAutoRefreshEnabled: true
+  isTokenAutoRefreshEnabled: true,
+  debug: {
+    showUi: true,  // Shows a debug UI
+    showInConsole: true  // Logs debug info to console
+  }
 });
 
 export { auth, db };
