@@ -11,17 +11,14 @@
 
 /* Tree Icon Styling in Friends Modal */
 .tree-container {
-  width: 226px;
-  height: 226px;
-  background-color: transparent;
+  width: 200px;
+  height: 200px;
+  background-color: rgba(255,255,255,0.1);
   border-radius: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
 }
 
 .tree-icon {
@@ -32,7 +29,7 @@
   justify-content: center;
 }
 
-.tree-icon svg {
+.tree-icon img {
   width: 60%;
   height: 60%;
   object-fit: contain;
@@ -139,20 +136,30 @@
 /* Delete Friend Button */
 .delete-friend-btn {
   font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.3s ease;
+font-weight: 600;
+background-color: #e74c3c;
+color: white;
+border: none;
+padding: 8px 15px;
+border-radius: 6px;
+font-size: 0.8rem;
+cursor: pointer;
+margin-top: 10px;
+transition: all 0.3s ease;
+display: inline-flex;
+align-items: center;
+justify-content: center;
 }
 
 .delete-friend-btn:hover {
   background-color: #c0392b;
+  transform: translateY(-2px);
+}
+
+.delete-friend-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Note Indicator */

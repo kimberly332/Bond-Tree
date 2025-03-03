@@ -106,30 +106,35 @@ body {
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
-.btn {
+button {
   font-family: 'Nunito', sans-serif;
   font-weight: 600;
-  background-color: var(--primary-color);
+  background-color: #4a90e2;
   color: white;
   border: none;
-  padding: 14px 16px;
-  border-radius: var(--btn-radius);
+  padding: 12px 20px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color var(--transition-smooth), transform var(--transition-smooth);
-  margin-top: 10px;
-}
-
-.btn:hover {
+  font-size: clamp(0.8rem, 3vw, 1rem);
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 250px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  }
+  button:hover {
   background-color: #3a7bc8;
   transform: translateY(-2px);
-}
-
-.btn:disabled {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  button:disabled {
   background-color: #a9c7e8;
   cursor: not-allowed;
   transform: none;
-}
+  box-shadow: none;
+  }
 
 .toggle-form {
   margin-top: 20px;
