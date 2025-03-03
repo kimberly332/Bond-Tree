@@ -124,8 +124,17 @@
   
   .save-section {
     text-align: center;
-    margin-top: 20px;
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
   }
+
+  /* If your button has max-width set, make sure it's properly centered */
+.save-section button,
+.save-section .btn {
+  margin: 0 auto;
+}
   
   button {
     font-family: 'Nunito', sans-serif;

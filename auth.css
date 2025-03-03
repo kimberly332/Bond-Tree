@@ -106,36 +106,6 @@ body {
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
-button {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: clamp(0.8rem, 3vw, 1rem);
-  transition: all 0.3s ease;
-  width: 100%;
-  max-width: 250px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  }
-  button:hover {
-  background-color: #3a7bc8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  }
-  button:disabled {
-  background-color: #a9c7e8;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-  }
-
 .toggle-form {
   margin-top: 20px;
   font-size: 0.9rem;
@@ -179,83 +149,9 @@ button {
   margin-top: 20px;
 }
 
-.dashboard-btn {
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  background-color: var(--light-card);
-  color: var(--dark-text);
-  border: none;
-  padding: 20px 12px;
-  border-radius: var(--card-radius);
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: all var(--transition-smooth);
-  text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  gap: 10px;
-  min-height: 120px;
-}
-
-/* Add these button variations with different colors */
-.dashboard-btn.mood {
-  background-color: #e8f5e9;
-  color: #05a268;
-  border-left: 4px solid #05a268;
-}
-
-.dashboard-btn.friend {
-  background-color: #e3f2fd;
-  color: #4a90e2;
-  border-left: 4px solid #4a90e2;
-}
-
-.dashboard-btn.request {
-  background-color: #fff8e1;
-  color: #ffa000;
-  border-left: 4px solid #ffc107;
-}
-
-.dashboard-btn.view {
-  background-color: #f3e5f5;
-  color: #9c27b0;
-  border-left: 4px solid #9c27b0;
-}
-
-.dashboard-btn.logout {
-  background-color: #f44336;
-  color: white;
-  border: none;
-  border-radius: var(--btn-radius);
-  padding: 12px 24px;
-  grid-column: span 2;
-  max-width: 200px;
-  min-height: auto;
-  margin: 10px auto 0;
-  flex-direction: row;
-  gap: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: background-color var(--transition-smooth), transform var(--transition-smooth);
-}
-
-.dashboard-btn.logout:hover {
-  background-color: #d32f2f;
-  transform: translateY(-2px);
-}
-
-.dashboard-btn:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
 /* Button Icon Styles */
 .btn-icon {
   font-size: 24px;
-  /* margin-bottom: 8px; */
 }
 
 i.btn-icon {
@@ -305,28 +201,6 @@ i.btn-icon {
   margin: 0;
   color: var(--primary-color);
   text-align: center;
-}
-
-.modal-close {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  transition: background-color var(--transition-smooth);
-}
-
-.modal-close:hover {
-  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .modal-body {
@@ -388,45 +262,6 @@ i.btn-icon {
 .friend-request-actions {
   display: flex;
   gap: 10px;
-}
-
-.friend-request-actions button {
-  padding: 8px 15px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-}
-
-.friend-request-actions button:hover {
-  transform: translateY(-2px);
-}
-
-.accept-request {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.reject-request {
-  background-color: #f44336;
-  color: white;
-}
-
-.accept-request:hover {
-  background-color: #43A047;
-}
-
-.reject-request:hover {
-  background-color: #E53935;
-}
-
-.accept-request:disabled, .reject-request:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none !important;
 }
 
 .empty-message {

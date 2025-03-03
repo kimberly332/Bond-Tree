@@ -540,7 +540,7 @@ function showNoteModal(moodData) {
     date.textContent = `${moodData.date} at ${moodData.time || ''}`;
     
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'note-close';
+    closeBtn.className = 'modal-close';
     closeBtn.innerHTML = '&times;';
     closeBtn.setAttribute('aria-label', 'Close');
     closeBtn.addEventListener('click', () => {
