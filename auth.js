@@ -800,6 +800,9 @@ noteIndicators.forEach(indicator => {
 }
 
 // Updated function to show Friends Modal with proper tree SVG
+/**
+ * Show Friends Modal with enhanced debugging and error checking
+ */
 function showFriendsModal(authManager) {
   // Remove any existing modal first
   const existingModal = document.querySelector('.modal-overlay');
@@ -848,8 +851,13 @@ function showFriendsModal(authManager) {
   const bondshipContainer = modalOverlay.querySelector('.bondship-container');
   
   try {
-    // Get friends data asynchronously
+    // First check the friends array directly from the auth manager
+    console.log("Current user's friends array:", authManager.getFriends());
+    
+    // Get friends data asynchronously with more detailed logging
     authManager.getFriendsData().then(friendsData => {
+      console.log("Retrieved friend data:", friendsData);
+      
       // Remove loading indicator
       const loadingIndicator = modalOverlay.querySelector('.loading-indicator');
       if (loadingIndicator) {
@@ -893,6 +901,8 @@ function showFriendsModal(authManager) {
       
       // Add current user card first
       const currentUserMoods = authManager.currentUser.savedMoods || [];
+      console.log("Current user moods:", currentUserMoods.length);
+      
       const latestUserMood = currentUserMoods.length > 0 ? 
         currentUserMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
       
@@ -901,16 +911,29 @@ function showFriendsModal(authManager) {
         cardsContainer.appendChild(userCard);
       }
       
-      // Add friend cards
+      // Add friend cards with added debugging
       friendsData.forEach(friend => {
+        console.log(`Processing friend: ${friend.name}`, friend);
         const latestMood = friend.savedMoods && friend.savedMoods.length > 0 ? 
           friend.savedMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+        
+        console.log(`Latest mood for ${friend.name}:`, latestMood);
         
         if (latestMood) {
           // Add the user's email to the mood object
           latestMood.userEmail = friend.email;
           
           const friendCard = createFriendCard(friend.name, latestMood, false);
+          cardsContainer.appendChild(friendCard);
+        } else {
+          // Create a card even if the friend has no moods
+          console.log(`${friend.name} has no moods, creating empty card`);
+          const emptyMood = {
+            date: "No mood yet",
+            userEmail: friend.email,
+            moods: []
+          };
+          const friendCard = createFriendCard(friend.name, emptyMood, false);
           cardsContainer.appendChild(friendCard);
         }
       });

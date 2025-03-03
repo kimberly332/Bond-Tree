@@ -18,7 +18,8 @@ import {
   query, 
   collection, 
   where, 
-  getDocs 
+  getDocs,
+  writeBatch // Add this import
 } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
 
 // Firebase configuration
@@ -559,8 +560,12 @@ async acceptFriendRequest(senderEmail) {
     
     const userRef = doc(db, 'users', this.currentUser.id);
     
-    // Find the specific friend request
+    // Find the specific friend request in the current user's requests
     const userDoc = await getDoc(userRef);
+    if (!userDoc.exists()) {
+      return { success: false, message: 'User document not found' };
+    }
+    
     const userData = userDoc.data();
     const friendRequests = userData.friendRequests || [];
     
@@ -569,17 +574,8 @@ async acceptFriendRequest(senderEmail) {
     );
     
     if (requestIndex === -1) {
-      return { 
-        success: false, 
-        message: 'Friend request not found' 
-      };
+      return { success: false, message: 'Friend request not found' };
     }
-    
-    // Make a copy of the array to modify it
-    const updatedFriendRequests = [...friendRequests];
-    
-    // Update the specific request's status
-    updatedFriendRequests[requestIndex].status = 'accepted';
     
     // Find the sender's document
     const senderQuery = await getDocs(
@@ -587,51 +583,65 @@ async acceptFriendRequest(senderEmail) {
     );
     
     if (senderQuery.empty) {
-      return { 
-        success: false, 
-        message: 'Sender not found'
-      };
+      return { success: false, message: 'Sender not found' };
     }
     
     const senderDoc = senderQuery.docs[0];
     const senderId = senderDoc.id;
     const senderData = senderDoc.data();
+    const senderRef = doc(db, 'users', senderId);
     
-    console.log("Current user email:", this.currentUser.email);
-    console.log("Sender email:", senderEmail);
-
-    // Add sender to current user's friends list and update request status
-    await updateDoc(userRef, {
-      friendRequests: updatedFriendRequests,
-      friends: arrayUnion(senderEmail)
+    // Batch update to ensure atomicity
+    const batch = writeBatch(db);
+    
+    // 1. Add to current user's friends list
+    if (!userData.friends) {
+      userData.friends = [];
+    }
+    if (!userData.friends.includes(senderEmail)) {
+      userData.friends.push(senderEmail);
+    }
+    
+    // 2. Update the request status to 'accepted'
+    friendRequests[requestIndex].status = 'accepted';
+    
+    // 3. Update the current user's document
+    batch.update(userRef, {
+      friends: userData.friends,
+      friendRequests: friendRequests
     });
     
-    // Add current user to sender's friends list
-    await updateDoc(doc(db, 'users', senderId), {
-      friends: arrayUnion(this.currentUser.email)
-    });
+    // 4. Add current user to sender's friends list
+    if (!senderData.friends) {
+      senderData.friends = [];
+    }
+    if (!senderData.friends.includes(this.currentUser.email)) {
+      senderData.friends.push(this.currentUser.email);
+    }
     
-    console.log("Updated both users' friends lists");
-    
-    // Update the status of the sender's sent request if it exists
+    // 5. Update the sender's sent request status if it exists
     const sentRequests = senderData.sentFriendRequests || [];
     const sentRequestIndex = sentRequests.findIndex(req => 
       req.to === this.currentUser.email && req.status === 'pending'
     );
     
     if (sentRequestIndex !== -1) {
-      // Create a deep copy of the sent requests array
-      const updatedSentRequests = JSON.parse(JSON.stringify(sentRequests));
-      updatedSentRequests[sentRequestIndex].status = 'accepted';
-      
-      await updateDoc(doc(db, 'users', senderId), {
-        sentFriendRequests: updatedSentRequests
+      sentRequests[sentRequestIndex].status = 'accepted';
+      batch.update(senderRef, {
+        friends: senderData.friends,
+        sentFriendRequests: sentRequests
       });
-      
-      console.log("Updated sender's sent request status");
+    } else {
+      // If no sent request found, just update the friends list
+      batch.update(senderRef, {
+        friends: senderData.friends
+      });
     }
     
-    // Refresh current user data to ensure we have the latest
+    // Commit all changes atomically
+    await batch.commit();
+    
+    // Refresh current user data
     const refreshedUserDoc = await getDoc(userRef);
     if (refreshedUserDoc.exists()) {
       this.currentUser = {
@@ -639,8 +649,6 @@ async acceptFriendRequest(senderEmail) {
         id: userRef.id,
         lastFetched: Date.now()
       };
-      
-      console.log("Current user data refreshed, friends list:", this.currentUser.friends);
     }
     
     return { 
@@ -685,16 +693,18 @@ async rejectFriendRequest(senderEmail) {
       };
     }
     
-    // Make a copy of the requests array excluding the rejected request
-    // This removes it completely instead of just marking it rejected
-    const updatedFriendRequests = friendRequests.filter((req, index) => index !== requestIndex);
+    // Make a copy of the array to modify it
+    const updatedFriendRequests = [...friendRequests];
     
-    // Update user's friend requests - completely remove the request
+    // Remove the request from current user's friendRequests
+    updatedFriendRequests.splice(requestIndex, 1);
+    
+    // Update user's document
     await updateDoc(userRef, {
       friendRequests: updatedFriendRequests
     });
     
-    // Optionally, update the sender's sent request status
+    // Update the sender's sent request status if it exists
     const senderQuery = await getDocs(
       query(collection(db, 'users'), where('email', '==', senderEmail))
     );
@@ -710,7 +720,8 @@ async rejectFriendRequest(senderEmail) {
       
       if (sentRequestIndex !== -1) {
         // Make a copy and remove the request
-        const updatedSentRequests = sentRequests.filter((req, index) => index !== sentRequestIndex);
+        const updatedSentRequests = [...sentRequests];
+        updatedSentRequests.splice(sentRequestIndex, 1);
         
         await updateDoc(doc(db, 'users', senderDoc.id), {
           sentFriendRequests: updatedSentRequests
@@ -1139,55 +1150,86 @@ async deleteFriend(friendEmail) {
     return moods.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }
   
-  // Fetch friends data
-  async getFriendsData() {
-    try {
-      // Verify authentication
-      if (!this.currentUser) return [];
-      
-      // Verify token
-      const isTokenValid = await this.verifyIdToken();
-      if (!isTokenValid) return [];
-      
-      const friendEmails = this.currentUser.friends || [];
-      
-      // Use Promise.all for parallel fetching (performance optimization)
-      const friendPromises = friendEmails.map(async (friendEmail) => {
-        try {
-          const friendQuery = await getDocs(
-            query(collection(db, 'users'), where('email', '==', friendEmail))
-          );
-          
-          if (!friendQuery.empty) {
-            const friendDoc = friendQuery.docs[0];
-            const friendData = friendDoc.data();
-            
-            // Create a safe copy without sensitive information
-            return {
-              id: friendDoc.id,
-              name: friendData.name,
-              username: friendData.username,
-              email: friendData.email,
-              savedMoods: friendData.savedMoods || []
-            };
-          }
-          return null;
-        } catch (error) {
-          console.error(`Error fetching friend data for ${friendEmail}:`, error);
-          return null;
-        }
-      });
-      
-      // Wait for all friend data to be fetched
-      const results = await Promise.all(friendPromises);
-      
-      // Filter out any failed fetches (nulls)
-      return results.filter(friend => friend !== null);
-    } catch (error) {
-      console.error("Error getting friends data:", error);
+  // Fetch friends data with enhanced error handling and logging
+async getFriendsData() {
+  try {
+    // Verify authentication
+    if (!this.currentUser) {
+      console.error("getFriendsData: No current user");
       return [];
     }
+    
+    // Verify token
+    const isTokenValid = await this.verifyIdToken();
+    if (!isTokenValid) {
+      console.error("getFriendsData: Invalid token");
+      return [];
+    }
+    
+    const friendEmails = this.currentUser.friends || [];
+    console.log("Friend emails to fetch:", friendEmails);
+    
+    if (friendEmails.length === 0) {
+      console.log("No friends in the list");
+      return [];
+    }
+    
+    // Use Promise.all for parallel fetching (performance optimization)
+    const friendPromises = friendEmails.map(async (friendEmail) => {
+      try {
+        console.log(`Fetching data for friend: ${friendEmail}`);
+        const friendQuery = await getDocs(
+          query(collection(db, 'users'), where('email', '==', friendEmail))
+        );
+        
+        if (!friendQuery.empty) {
+          const friendDoc = friendQuery.docs[0];
+          const friendData = friendDoc.data();
+          
+          console.log(`Friend data retrieved for ${friendEmail}:`, friendData);
+          
+          // Create a safe copy without sensitive information
+          return {
+            id: friendDoc.id,
+            name: friendData.name || friendEmail, // Fallback to email if name is missing
+            username: friendData.username,
+            email: friendData.email,
+            savedMoods: friendData.savedMoods || []
+          };
+        } else {
+          console.error(`No document found for friend: ${friendEmail}`);
+          // Return a minimal object so the UI can still show this friend
+          return {
+            name: friendEmail,
+            email: friendEmail,
+            savedMoods: []
+          };
+        }
+      } catch (error) {
+        console.error(`Error fetching friend data for ${friendEmail}:`, error);
+        // Return a minimal object so the UI can still show this friend
+        return {
+          name: friendEmail,
+          email: friendEmail,
+          savedMoods: [],
+          errorLoading: true
+        };
+      }
+    });
+    
+    // Wait for all friend data to be fetched
+    const results = await Promise.all(friendPromises);
+    
+    // Filter out any failed fetches (nulls)
+    const filteredResults = results.filter(friend => friend !== null);
+    console.log("Final friends data:", filteredResults);
+    
+    return filteredResults;
+  } catch (error) {
+    console.error("Error getting friends data:", error);
+    return [];
   }
+}
   
   // Track and manage user sessions
   async trackUserSession() {
