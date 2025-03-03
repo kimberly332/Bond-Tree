@@ -1,7 +1,7 @@
 // Add to firebase-config.js
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
-import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check.js';
 
 // Firebase configuration
@@ -17,8 +17,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 // Initialize App Check (get your reCAPTCHA site key from Firebase console)
 const appCheck = initializeAppCheck(app, {
@@ -30,4 +28,7 @@ const appCheck = initializeAppCheck(app, {
   }
 });
 
-export { auth, db };
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { auth, db, appCheck };
