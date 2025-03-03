@@ -155,6 +155,26 @@ async function handleAuthStateChange(user) {
   }
 }
 
+// Add this function to handle deleting a saved mood
+async function handleDeleteMood(mood) {
+  try {
+    if (confirm("Are you sure you want to delete this mood?")) {
+      const result = await appState.authManager.deleteMood(mood);
+
+      if (result.success) {
+        console.log("Mood deleted successfully");
+        updateSavedMoods(); // Refresh the saved moods display
+      } else {
+        console.error("Failed to delete mood:", result.message);
+        alert(`Sorry, there was a problem deleting your mood: ${result.message}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error in delete mood handler:", error);
+    alert("Sorry, something went wrong. Please try again.");
+  }
+}
+
 /**
  * Show login warning when user is not authenticated
  */
@@ -671,7 +691,12 @@ function createSavedMoodElement(saved) {
     const timeElement = document.createElement('div');
     timeElement.className = 'time';
     timeElement.textContent = saved.time;
-    dateContainer.appendChild(timeElement);
+      // Add mood names
+  const moodNames = document.createElement('div');
+  moodNames.className = 'mood-names';
+  moodNames.textContent = saved.moods.map(mood => mood.name).join(', ');
+  
+  dateContainer.appendChild(moodNames);
   }
   
   savedMoodElement.appendChild(savedBall);
@@ -681,6 +706,19 @@ function createSavedMoodElement(saved) {
   if (saved.notes) {
     addNotePreview(savedMoodElement, saved);
   }
+  
+  // Add delete button
+  const deleteButton = document.createElement('button');
+  deleteButton.textContent = 'Delete';
+  deleteButton.classList.add('delete-mood-btn');
+  deleteButton.addEventListener('click', () => handleDeleteMood(saved));
+  
+    // Center the delete button
+  const deleteButtonContainer = document.createElement('div');
+  deleteButtonContainer.style.textAlign = 'center';
+  deleteButtonContainer.appendChild(deleteButton);
+  
+  savedMoodElement.appendChild(deleteButtonContainer);
   
   elements.savedMoodsContainer.appendChild(savedMoodElement);
 }

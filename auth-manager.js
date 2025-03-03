@@ -1149,6 +1149,54 @@ async deleteFriend(friendEmail) {
     const moods = [...(this.currentUser.savedMoods || [])];
     return moods.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }
+
+  // Delete a saved mood
+async deleteMood(mood) {
+  try {
+    // Verify authentication 
+    if (!this.currentUser) {
+      return { success: false, message: 'You must be logged in to delete moods' };
+    }
+
+    // Verify token
+    const isTokenValid = await this.verifyIdToken();
+    if (!isTokenValid) {
+      return { success: false, message: 'Authentication error. Please sign in again.' }; 
+    }
+
+    // Find the index of the mood in the user's savedMoods array
+    const moodIndex = this.currentUser.savedMoods.findIndex(
+      (savedMood) =>
+        savedMood.date === mood.date &&
+        savedMood.time === mood.time &&
+        savedMood.timestamp === mood.timestamp
+    );
+
+    if (moodIndex === -1) {
+      return { success: false, message: 'Mood not found' };
+    }
+
+    // Update user document
+    const userRef = doc(db, 'users', this.currentUser.id);
+    await updateDoc(userRef, {
+      savedMoods: arrayRemove(mood)
+    });
+
+    // Refresh current user data
+    const updatedUserDoc = await getDoc(userRef);
+
+    if (updatedUserDoc.exists()) {
+      this.currentUser = {
+        ...updatedUserDoc.data(),
+        id: userRef.id
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return handleError(error, 'Error deleting your mood');
+  }
+}
   
   // Fetch friends data with enhanced error handling and logging
 async getFriendsData() {
