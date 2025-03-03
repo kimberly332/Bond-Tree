@@ -690,63 +690,23 @@ function showCustomNoteModal(moodData) {
   
   // Create a modal that overlays everything
   const modal = document.createElement('div');
-  modal.className = 'note-modal';
+  modal.className = 'note-modal friend-note-modal';
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
   
-  // Add content with proper styling
+  // Add content using the mood-ball page's structure
   modal.innerHTML = `
-    <div class="note-modal-content">
-      <div class="note-header">
-        <div class="note-date">${moodData.date} at ${moodData.time}</div>
-        <button class="note-close" aria-label="Close">&times;</button>
+    <div class="note-modal-content friend-note-modal-content">
+      <div class="note-header friend-note-header">
+        <div class="note-date friend-note-date">${moodData.date} at ${moodData.time}</div>
+        <button class="note-close friend-note-close" aria-label="Close">&times;</button>
       </div>
-      <div class="note-body">${moodData.notes}</div>
+      <div class="note-body friend-note-body">${moodData.notes}</div>
     </div>
   `;
   
-  // Style to ensure it appears on top
-  modal.style.position = 'fixed';
-  modal.style.top = '0';
-  modal.style.left = '0';
-  modal.style.width = '100%';
-  modal.style.height = '100%';
-  modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-  modal.style.display = 'flex';
-  modal.style.justifyContent = 'center';
-  modal.style.alignItems = 'center';
-  modal.style.zIndex = '2000'; // Higher than other modals
-  
-  // Style the content
-  const modalContent = modal.querySelector('.note-modal-content');
-  modalContent.style.backgroundColor = 'white';
-  modalContent.style.padding = '20px';
-  modalContent.style.borderRadius = '10px';
-  modalContent.style.width = '90%';
-  modalContent.style.maxWidth = '500px';
-  modalContent.style.maxHeight = '80vh';
-  modalContent.style.overflow = 'auto';
-  modalContent.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
-  modalContent.style.position = 'relative';
-  
-  // Style the header
-  const header = modal.querySelector('.note-header');
-  header.style.display = 'flex';
-  header.style.justifyContent = 'space-between';
-  header.style.alignItems = 'center';
-  header.style.marginBottom = '15px';
-  header.style.borderBottom = '1px solid #eee';
-  header.style.paddingBottom = '10px';
-  
-  // Style the close button
-  const closeBtn = modal.querySelector('.note-close');
-  closeBtn.style.background = 'none';
-  closeBtn.style.border = 'none';
-  closeBtn.style.fontSize = '1.5rem';
-  closeBtn.style.cursor = 'pointer';
-  closeBtn.style.color = '#777';
-  
   // Add close functionality
+  const closeBtn = modal.querySelector('.note-close');
   closeBtn.addEventListener('click', () => {
     document.body.removeChild(modal);
   });
@@ -759,12 +719,13 @@ function showCustomNoteModal(moodData) {
   });
   
   // Close with Escape key
-  document.addEventListener('keydown', function closeOnEscape(e) {
+  const closeOnEscape = (e) => {
     if (e.key === 'Escape') {
       document.body.removeChild(modal);
       document.removeEventListener('keydown', closeOnEscape);
     }
-  });
+  };
+  document.addEventListener('keydown', closeOnEscape);
   
   // Append to body
   document.body.appendChild(modal);
