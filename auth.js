@@ -2,7 +2,6 @@
 import AuthManager, { auth } from './auth-manager.js';
 import { showNoteModal } from './mood-ball.js';
 
-
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   // Add viewport height fix for mobile browsers
@@ -57,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const signupError = document.getElementById('signup-error');
   const userNameSpan = document.getElementById('user-name');
 
-  // Add this to the DOMContentLoaded event handler
+  // Username availability checking
   const usernameInput = document.getElementById('signup-username');
   const usernameStatus = document.getElementById('username-status');
   let usernameTimer;
@@ -198,8 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Disable button during signup
       signupBtn.disabled = true;
-
-      // Add this line to change the text:
       signupBtn.textContent = "Creating Account...";
       
       try {
@@ -224,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
         signupError.style.display = 'block';
       } finally {
         signupBtn.disabled = false;
-        // Add this line to reset the text:
         signupBtn.textContent = "Create Account";
       }
     });
@@ -261,7 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add Friend functionality
   if (addFriendBtn) {
     addFriendBtn.addEventListener('click', async () => {
-      // Changed to use sendFriendRequest instead of addFriend
       const friendIdentifier = prompt('Enter your friend\'s username or email:');
       
       if (friendIdentifier) {
@@ -283,11 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Send Friend Request functionality
   if (sendFriendRequestBtn) {
     sendFriendRequestBtn.addEventListener('click', async () => {
-      // Create a more user-friendly input dialog
       const friendIdentifierPrompt = prompt('Enter your friend\'s username or email:');
       
       if (friendIdentifierPrompt) {
-        // Disable button and show loading state (if we had direct access to the button)
         try {
           const result = await authManager.sendFriendRequest(friendIdentifierPrompt);
           if (result.success) {
@@ -387,61 +380,30 @@ document.addEventListener('DOMContentLoaded', () => {
       if (signupForm) signupForm.style.display = 'none';
     }
   });
-
-  // Helper function to update the friend requests notification badge
-  function updateFriendRequestsBadge(authManager) {
-    const friendRequestsBtn = document.getElementById('friend-requests-btn');
-    if (!friendRequestsBtn) return;
-    
-    const requestCount = authManager.getFriendRequests().length;
-    
-    // Remove any existing badge
-    const existingBadge = friendRequestsBtn.querySelector('.request-badge');
-    if (existingBadge) {
-      existingBadge.remove();
-    }
-    
-    // Add badge if there are requests
-    if (requestCount > 0) {
-      const badge = document.createElement('span');
-      badge.className = 'request-badge';
-      badge.textContent = requestCount;
-      badge.style.cssText = `
-        background-color: #f44336;
-        color: white;
-        border-radius: 50%;
-        padding: 2px 6px;
-        font-size: 0.75rem;
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        font-weight: bold;
-      `;
-      
-      // Make the button position relative if it's not already
-      if (window.getComputedStyle(friendRequestsBtn).position === 'static') {
-        friendRequestsBtn.style.position = 'relative';
-      }
-      
-      friendRequestsBtn.appendChild(badge);
-      
-      // Add a subtle animation to draw attention
-      friendRequestsBtn.style.animation = 'pulse 2s infinite';
-      const styleSheet = document.createElement('style');
-      styleSheet.innerHTML = `
-        @keyframes pulse {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
-          100% { transform: scale(1); }
-        }
-      `;
-      document.head.appendChild(styleSheet);
-    } else {
-      // Remove any animation
-      friendRequestsBtn.style.animation = '';
-    }
-  }
 });
+
+// Helper functions and constants defined outside document ready
+// Mood to Emoji Mapping
+const moodEmojis = {
+  Calm: '😌',
+  Sad: '😢',
+  Tired: '😴',
+  Anxious: '😰',
+  Happy: '😊',
+  Angry: '😠',
+  Peaceful: '🙂',
+  Grateful: '🙏',
+  Energetic: '⚡',
+  Bored: '😒',
+  Nostalgic: '🌇',
+  Confused: '🤔',
+  Loved: '❤️',
+  Creative: '🎨',
+  Hopeful: '🌟',
+  Relaxed: '😎',
+  Melancholy: '😔',
+  Proud: '😌'
+};
 
 // Create a function to show the Friend Requests modal
 async function showFriendRequestsModal(authManager) {
@@ -641,29 +603,6 @@ async function showFriendRequestsModal(authManager) {
   }
 }
 
-// Helper functions - Keeping the same implementations
-// Mood to Emoji Mapping
-const moodEmojis = {
-  Calm: '😌',
-  Sad: '😢',
-  Tired: '😴',
-  Anxious: '😰',
-  Happy: '😊',
-  Angry: '😠',
-  Peaceful: '🙂',
-  Grateful: '🙏',
-  Energetic: '⚡',
-  Bored: '😒',
-  Nostalgic: '🌇',
-  Confused: '🤔',
-  Loved: '❤️',
-  Creative: '🎨',
-  Hopeful: '🌟',
-  Relaxed: '😎',
-  Melancholy: '😔',
-  Proud: '😌'
-};
-
 // Helper function to create a friend card
 function createFriendCard(name, mood, isCurrentUser) {
   const card = document.createElement('div');
@@ -695,12 +634,9 @@ function createFriendCard(name, mood, isCurrentUser) {
   // Add delete button only if it's not the current user's card
   if (!isCurrentUser) {
     cardHTML += `
-      <button class="delete-friend-btn" data-email="${mood.userEmail}" 
-          style="background-color: #f44336; color: white; border: none; 
-                 padding: 5px 10px; border-radius: 4px; margin-top: 10px; 
-                 cursor: pointer; font-size: 0.8rem; font-family: 'Nunito', sans-serif; font-weight: 600;">
-    Unfriend
-  </button>
+      <button class="delete-friend-btn" data-email="${mood.userEmail}">
+        Unfriend
+      </button>
     `;
   }
   
@@ -723,34 +659,162 @@ function createFriendCard(name, mood, isCurrentUser) {
   return card;
 }
 
+// Add this function to handle the note click - FIXED VERSION
+function handleNoteClick(event) {
+  event.stopPropagation(); // Prevent event bubbling
+  
+  const indicator = event.currentTarget;
+  const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
+  const date = indicator.getAttribute('data-date');
+  const time = indicator.getAttribute('data-time');
+  
+  console.log("Note clicked:", { notes, date, time });
+  
+  // Create and show custom note modal
+  showCustomNoteModal({
+    notes: notes,
+    date: date,
+    time: time || ''
+  });
+}
+
+// Custom modal function specifically for notes in the friends view
+function showCustomNoteModal(moodData) {
+  // Remove any existing note modals to prevent stacking
+  const existingModals = document.querySelectorAll('.note-modal');
+  existingModals.forEach(modal => {
+    if (modal.parentNode) {
+      modal.parentNode.removeChild(modal);
+    }
+  });
+  
+  // Create a modal that overlays everything
+  const modal = document.createElement('div');
+  modal.className = 'note-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  
+  // Add content with proper styling
+  modal.innerHTML = `
+    <div class="note-modal-content">
+      <div class="note-header">
+        <div class="note-date">${moodData.date} at ${moodData.time}</div>
+        <button class="note-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="note-body">${moodData.notes}</div>
+    </div>
+  `;
+  
+  // Style to ensure it appears on top
+  modal.style.position = 'fixed';
+  modal.style.top = '0';
+  modal.style.left = '0';
+  modal.style.width = '100%';
+  modal.style.height = '100%';
+  modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+  modal.style.display = 'flex';
+  modal.style.justifyContent = 'center';
+  modal.style.alignItems = 'center';
+  modal.style.zIndex = '2000'; // Higher than other modals
+  
+  // Style the content
+  const modalContent = modal.querySelector('.note-modal-content');
+  modalContent.style.backgroundColor = 'white';
+  modalContent.style.padding = '20px';
+  modalContent.style.borderRadius = '10px';
+  modalContent.style.width = '90%';
+  modalContent.style.maxWidth = '500px';
+  modalContent.style.maxHeight = '80vh';
+  modalContent.style.overflow = 'auto';
+  modalContent.style.boxShadow = '0 4px 15px rgba(0,0,0,0.2)';
+  modalContent.style.position = 'relative';
+  
+  // Style the header
+  const header = modal.querySelector('.note-header');
+  header.style.display = 'flex';
+  header.style.justifyContent = 'space-between';
+  header.style.alignItems = 'center';
+  header.style.marginBottom = '15px';
+  header.style.borderBottom = '1px solid #eee';
+  header.style.paddingBottom = '10px';
+  
+  // Style the close button
+  const closeBtn = modal.querySelector('.note-close');
+  closeBtn.style.background = 'none';
+  closeBtn.style.border = 'none';
+  closeBtn.style.fontSize = '1.5rem';
+  closeBtn.style.cursor = 'pointer';
+  closeBtn.style.color = '#777';
+  
+  // Add close functionality
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  // Close when clicking outside the content
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+  
+  // Close with Escape key
+  document.addEventListener('keydown', function closeOnEscape(e) {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+      document.removeEventListener('keydown', closeOnEscape);
+    }
+  });
+  
+  // Append to body
+  document.body.appendChild(modal);
+  
+  // Focus the close button for accessibility
+  setTimeout(() => closeBtn.focus(), 100);
+}
+
+// Setup note indicators function - FIXED VERSION
+function setupNoteIndicators() {
+  const noteIndicators = document.querySelectorAll('.mood-note-indicator');
+  console.log(`Setting up ${noteIndicators.length} note indicators`);
+  
+  noteIndicators.forEach(indicator => {
+    // Remove any existing event listeners to prevent duplicates
+    indicator.removeEventListener('click', handleNoteClick);
+    // Add the click event listener
+    indicator.addEventListener('click', handleNoteClick);
+    console.log("Added click listener to note indicator");
+  });
+}
+
 // Helper function to generate mood gradient
 function getMoodGradient(moods) {
-if (!moods || moods.length === 0) {
+  if (!moods || moods.length === 0) {
     return 'linear-gradient(to bottom, #f0f0f0, #d0d0d0)';
-}
+  }
 
-if (moods.length === 1) {
+  if (moods.length === 1) {
     return moods[0].color || '#f0f0f0';
-}
+  }
 
-// For two or more moods, create a gradient
-const colorStops = moods.map((mood, index) => {
+  // For two or more moods, create a gradient
+  const colorStops = moods.map((mood, index) => {
     const color = mood.color || '#f0f0f0';
     const percent = (index * 100) / (moods.length - 1);
     return `${color} ${percent}%`;
-}).join(', ');
+  }).join(', ');
 
-return `linear-gradient(to bottom, ${colorStops})`;
+  return `linear-gradient(to bottom, ${colorStops})`;
 }
 
 // Helper function to get mood name
 function getMoodName(moods) {
   if (!moods || moods.length === 0) {
-      return 'No Mood';
+    return 'No Mood';
   }
   
   if (moods.length === 1) {
-      return moods[0].name || 'Unknown Mood';
+    return moods[0].name || 'Unknown Mood';
   }
   
   // For multiple moods, create a compound name with all moods
@@ -787,7 +851,22 @@ function getBondshipHealth(friendsData) {
   return finalHealth;
 }
 
-// Placeholder for tree SVG (removed)
+// Helper function to get bondship status text
+function getBondshipStatus(health) {
+  if (health >= 80) {
+    return 'Blossoming Bondship!';
+  } else if (health >= 60) {
+    return 'A Healthy Bondship!';
+  } else if (health >= 40) {
+    return 'Growing Bondship!';
+  } else if (health >= 20) {
+    return 'New Bondship!';
+  } else {
+    return 'Plant Your Bondship!';
+  }
+}
+
+// Tree SVG generator
 function generateTreeSvg(health) {
   // Calculate stage (1-10)
   const stage = Math.max(1, Math.min(10, Math.ceil(health / 10)));
@@ -798,45 +877,7 @@ function generateTreeSvg(health) {
   return `<img src="bond-tree-logo.svg" alt="">`;
 }
 
-// Setup note indicators function
-function setupNoteIndicators() {
-  const noteIndicators = document.querySelectorAll('.mood-note-indicator');
-  noteIndicators.forEach(indicator => {
-    indicator.addEventListener('click', () => {
-      const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
-      const date = indicator.getAttribute('data-date');
-      const time = indicator.getAttribute('data-time');
-      showNoteModal({ notes, date, time });
-    });
-  });
-}
-
-// Add this function to handle the note click
-function handleNoteClick(event) {
-  event.stopPropagation(); // Prevent event bubbling
-  
-  const indicator = event.currentTarget;
-  const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
-  const date = indicator.getAttribute('data-date');
-  const time = indicator.getAttribute('data-time');
-  
-  console.log("Note clicked:", { notes, date, time });
-  
-  // Create a proper mood data object for the modal
-  const moodData = {
-    notes: notes,
-    date: date,
-    time: time || ''
-  };
-  
-  // Call the imported showNoteModal function
-  showNoteModal(moodData);
-}
-
-// Updated function to show Friends Modal with proper tree SVG
-/**
- * Show Friends Modal with enhanced debugging and error checking
- */
+// Updated function to show Friends Modal
 function showFriendsModal(authManager) {
   // Remove any existing modal first
   const existingModal = document.querySelector('.modal-overlay');
@@ -972,6 +1013,7 @@ function showFriendsModal(authManager) {
         }
       });
 
+      // IMPORTANT: Set up note indicators AFTER all cards are added to the DOM
       setupNoteIndicators();
       
       // Add event listeners to delete friend buttons
@@ -1014,8 +1056,6 @@ function showFriendsModal(authManager) {
           }
         });
       });
-
-      setupNoteIndicators();
     }).catch(error => {
       console.error('Error showing friends modal:', error);
       bondshipContainer.innerHTML = `
@@ -1034,74 +1074,58 @@ function showFriendsModal(authManager) {
       </div>
     `;
   }
-  setupNoteIndicators();
-}
-
-// Helper function to get bondship status text
-function getBondshipStatus(health) {
-  if (health >= 80) {
-    return 'Blossoming Bondship!';
-  } else if (health >= 60) {
-    return 'A Healthy Bondship!';
-  } else if (health >= 40) {
-    return 'Growing Bondship!';
-  } else if (health >= 20) {
-    return 'New Bondship!';
-  } else {
-    return 'Plant Your Bondship!';
-  }
 }
 
 // Helper function to update the notification badge
 function updateFriendRequestsBadge(authManager) {
-const friendRequestsBtn = document.getElementById('friend-requests-btn');
-if (!friendRequestsBtn) return;
-
-const requestCount = authManager.getFriendRequests().length;
-
-// Remove any existing badge
-const existingBadge = friendRequestsBtn.querySelector('.request-badge');
-if (existingBadge) {
-  existingBadge.remove();
-}
-
-// Add badge if there are requests
-if (requestCount > 0) {
-  const badge = document.createElement('span');
-  badge.className = 'request-badge';
-  badge.textContent = requestCount;
-  badge.style.cssText = `
-    background-color: #f44336;
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 0.75rem;
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    font-weight: bold;
-  `;
+  const friendRequestsBtn = document.getElementById('friend-requests-btn');
+  if (!friendRequestsBtn) return;
   
-  // Make the button position relative if it's not already
-  if (window.getComputedStyle(friendRequestsBtn).position === 'static') {
-    friendRequestsBtn.style.position = 'relative';
+  const requestCount = authManager.getFriendRequests().length;
+  
+  // Remove any existing badge
+  const existingBadge = friendRequestsBtn.querySelector('.request-badge');
+  if (existingBadge) {
+    existingBadge.remove();
   }
   
-  friendRequestsBtn.appendChild(badge);
-  
-  // Add a subtle animation to draw attention
-  friendRequestsBtn.style.animation = 'pulse 2s infinite';
-  const styleSheet = document.createElement('style');
-  styleSheet.innerHTML = `
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
+  // Add badge if there are requests
+  if (requestCount > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'request-badge';
+    badge.textContent = requestCount;
+    badge.style.cssText = `
+      background-color: #f44336;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 0.75rem;
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      font-weight: bold;
+    `;
+    
+    // Make the button position relative if it's not already
+    if (window.getComputedStyle(friendRequestsBtn).position === 'static') {
+      friendRequestsBtn.style.position = 'relative';
     }
-  `;
-  document.head.appendChild(styleSheet);
-} else {
-  // Remove any animation
-  friendRequestsBtn.style.animation = '';
-}
+    
+    friendRequestsBtn.appendChild(badge);
+    
+    // Add a subtle animation to draw attention
+    friendRequestsBtn.style.animation = 'pulse 2s infinite';
+    const styleSheet = document.createElement('style');
+    styleSheet.innerHTML = `
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+    `;
+    document.head.appendChild(styleSheet);
+  } else {
+    // Remove any animation
+    friendRequestsBtn.style.animation = '';
+  }
 }
