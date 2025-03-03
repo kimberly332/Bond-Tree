@@ -149,6 +149,12 @@ body {
   margin-top: 20px;
 }
 
+/* Full width element that spans both columns */
+.dashboard-buttons > div[style*="grid-column"] {
+  text-align: center;
+  margin-top: 10px;
+}
+
 /* Button Icon Styles */
 .btn-icon {
   font-size: 24px;

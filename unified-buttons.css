@@ -63,8 +63,9 @@ button:disabled,
 
 /* Button with full width */
 .btn-block {
-  width: 100%;
-  display: flex;
+    display: inline-flex;
+    margin: 0 auto;
+    max-width: 200px;
 }
 
 /* Button Variations */
@@ -90,11 +91,14 @@ button:disabled,
 }
 
 .btn-danger {
-  background-color: #f44336;
+    background-color: #f44336;
+    color: white;
 }
 
 .btn-danger:hover {
-  background-color: #d32f2f;
+    background-color: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-light {
