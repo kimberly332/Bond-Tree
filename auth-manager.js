@@ -1,12 +1,12 @@
 // auth-manager.js - Complete optimized version with security enhancements
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
 import { 
   getAuth, 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged 
-} from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
+} from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
 import { 
   getFirestore, 
   doc, 
@@ -19,8 +19,8 @@ import {
   collection, 
   where, 
   getDocs,
-  writeBatch // Add this import
-} from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+  writeBatch
+} from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
 
 // Firebase configuration
 const firebaseConfig = {
