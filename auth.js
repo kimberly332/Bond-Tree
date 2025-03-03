@@ -800,15 +800,37 @@ function generateTreeSvg(health) {
 
 // Setup note indicators function
 function setupNoteIndicators() {
-const noteIndicators = document.querySelectorAll('.mood-note-indicator');
-noteIndicators.forEach(indicator => {
-  indicator.addEventListener('click', () => {
-    const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
-    const date = indicator.getAttribute('data-date');
-    const time = indicator.getAttribute('data-time');
-    showNoteModal({ notes, date, time });
+  const noteIndicators = document.querySelectorAll('.mood-note-indicator');
+  noteIndicators.forEach(indicator => {
+    indicator.addEventListener('click', () => {
+      const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
+      const date = indicator.getAttribute('data-date');
+      const time = indicator.getAttribute('data-time');
+      showNoteModal({ notes, date, time });
+    });
   });
-});
+}
+
+// Add this function to handle the note click
+function handleNoteClick(event) {
+  event.stopPropagation(); // Prevent event bubbling
+  
+  const indicator = event.currentTarget;
+  const notes = decodeURIComponent(indicator.getAttribute('data-notes'));
+  const date = indicator.getAttribute('data-date');
+  const time = indicator.getAttribute('data-time');
+  
+  console.log("Note clicked:", { notes, date, time });
+  
+  // Create a proper mood data object for the modal
+  const moodData = {
+    notes: notes,
+    date: date,
+    time: time || ''
+  };
+  
+  // Call the imported showNoteModal function
+  showNoteModal(moodData);
 }
 
 // Updated function to show Friends Modal with proper tree SVG
@@ -949,6 +971,8 @@ function showFriendsModal(authManager) {
           cardsContainer.appendChild(friendCard);
         }
       });
+
+      setupNoteIndicators();
       
       // Add event listeners to delete friend buttons
       const deleteButtons = cardsContainer.querySelectorAll('.delete-friend-btn');
@@ -1010,6 +1034,7 @@ function showFriendsModal(authManager) {
       </div>
     `;
   }
+  setupNoteIndicators();
 }
 
 // Helper function to get bondship status text
