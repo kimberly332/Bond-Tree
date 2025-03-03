@@ -23,7 +23,7 @@ const db = getFirestore(app);
 // Initialize App Check (get your reCAPTCHA site key from Firebase console)
 // Replace 'YOUR_RECAPTCHA_SITE_KEY' with your actual key
 const appCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
+  provider: new ReCaptchaV3Provider('6LdxyucqAAAAADpzRfHZEixTTiqxKzaYJRHQiQsN'),
   isTokenAutoRefreshEnabled: true
 });
 
