@@ -282,12 +282,15 @@
     }
   </style>
   <link rel="icon" href="bond-tree-logo.svg">
+  <script type="text/javascript" src="loading-handler.js"></script>
 </head>
 <body>
-<div id="loading-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f7;">
+  <div id="loading-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f7;">
     <div style="text-align: center;">
         <div style="font-size: 2rem; color: #4a90e2; margin-bottom: 20px; font-family: 'Poppins', sans-serif; font-weight: 600;">Bond Tree</div>
         <div class="loading-spinner"></div>
+        <p id="loading-message" style="margin-top: 20px; color: #666; font-family: 'Nunito', sans-serif;">Loading your bonds...</p>
+        <button id="retry-button" style="display: none; margin-top: 20px; padding: 10px 20px; background-color: #4a90e2; color: white; border: none; border-radius: 8px; font-family: 'Nunito', sans-serif; cursor: pointer;">Retry</button>
     </div>
 </div>
   <div class="auth-container" style="display: none;">
@@ -311,7 +314,7 @@
         <input type="password" id="login-password" required>
       </div>
       
-      <button class="btn" id="login-btn">Log In</button>
+      <button class="btn btn-primary" id="login-btn">Log In</button>
       
       <div class="toggle-form">
         Don't have an account? <a id="show-signup">Sign Up</a>
@@ -348,7 +351,7 @@
         <input type="password" id="signup-confirm-password" required>
       </div>
       
-      <button class="btn" id="signup-btn">Create Account</button>
+      <button class="btn btn-primary" id="signup-btn">Create Account</button>
       
       <div class="toggle-form">
         Already have an account? <a id="show-login">Log In</a>
@@ -359,23 +362,23 @@
         <h2>Welcome, <span id="user-name"></span>!</h2>
         <p>Your Username: <span id="user-username" style="font-weight: bold; color: #4a90e2;"></span></p>
         <div class="dashboard-buttons">
-          <button id="create-mood-btn" class="dashboard-btn mood">
+          <button id="create-mood-btn" class="btn btn-accent dashboard-btn mood">
             <i class="fas fa-smile-beam btn-icon"></i>
             Create Mood
           </button>
-          <button class="dashboard-btn friend" id="add-friend-btn">
+          <button class="btn btn-primary dashboard-btn friend" id="add-friend-btn">
             <i class="fas fa-user-plus btn-icon"></i>
             Add Bond
           </button>
-          <button class="dashboard-btn request" id="friend-requests-btn">
+          <button class="btn btn-secondary dashboard-btn request" id="friend-requests-btn">
             <i class="fas fa-bell btn-icon"></i>
             Bonding Requests
           </button>
-          <button class="dashboard-btn view" id="view-friends-btn">
+          <button class="btn btn-outline dashboard-btn view" id="view-friends-btn">
             <i class="fas fa-tree btn-icon"></i>
             View Bondships
           </button>
-          <button class="dashboard-btn logout" id="logout-btn">
+          <button class="btn btn-danger dashboard-btn logout" id="logout-btn">
             <i class="fas fa-sign-out-alt"></i>
             Log Out
           </button>

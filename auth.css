@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap');
+/* Buttons now use the unified button styles */
+@import url('unified-button-styles.css');
 
 * {
   box-sizing: border-box;
@@ -255,7 +257,8 @@ button {
 /* Button Icon Styles */
 .btn-icon {
   font-size: 24px;
-  margin-bottom: 8px;
+  line-height: unset;
+  /* margin-bottom: 8px; */
 }
 
 /* Modal Styles */
