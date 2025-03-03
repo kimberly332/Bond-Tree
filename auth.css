@@ -255,7 +255,11 @@ button {
 /* Button Icon Styles */
 .btn-icon {
   font-size: 24px;
-  margin-bottom: 8px;
+  /* margin-bottom: 8px; */
+}
+
+i.btn-icon {
+  line-height: unset;
 }
 
 /* Modal Styles */
