@@ -1,5 +1,7 @@
 // Import AuthManager and auth from the optimized auth-manager.js
 import AuthManager, { auth } from './auth-manager.js';
+import { showNoteModal } from './mood-ball.js';
+
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
   });
-  
+
   console.log("DOM loaded - initializing auth.js with Firebase");
 
   // Check for dashboard parameter in URL

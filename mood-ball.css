@@ -235,6 +235,20 @@
     text-align: center;
     margin-bottom: 5px;
   }
+
+  /* Consistent delete button styling */
+.saved-mood .btn-danger {
+  margin-top: 8px;
+  min-width: 80px;
+}
+
+/* Ensure proper vertical spacing between mood items */
+.saved-mood {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px;
+}
   
   .saved-mood-ball {
     width: min(60px, 15vw);
@@ -463,25 +477,6 @@
     left: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
-  }
-
-
-  .delete-mood-btn {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 600;
-    background-color: #f44336; 
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: background-color 0.3s ease;
-    margin-top: 10px;
-  }
-  
-  .delete-mood-btn:hover {
-    background-color: #d32f2f;
   }
 
   .mood-names {

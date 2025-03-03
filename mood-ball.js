@@ -556,81 +556,71 @@ function updateMoodBall() {
  * Show note modal when clicking on a note
  * @param {Object} moodData - The mood data object
  */
+
 function showNoteModal(moodData) {
-  try {
-    // Remove any existing modals
-    const existingModal = document.querySelector('.note-modal');
-    if (existingModal) {
-      document.body.removeChild(existingModal);
-    }
-    
-    // Create modal elements
-    const modal = document.createElement('div');
-    modal.className = 'note-modal';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-labelledby', 'note-modal-title');
-    
-    const modalContent = document.createElement('div');
-    modalContent.className = 'note-modal-content';
-    
-    const header = document.createElement('div');
-    header.className = 'note-header';
-    
-    const date = document.createElement('div');
-    date.className = 'note-date';
-    date.id = 'note-modal-title';
-    date.textContent = `${moodData.date} at ${moodData.time || ''}`;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'modal-close';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.setAttribute('aria-label', 'Close');
-    closeBtn.addEventListener('click', () => {
-      document.body.removeChild(modal);
-    });
-    
-    header.appendChild(date);
-    header.appendChild(closeBtn);
-    
-    const body = document.createElement('div');
-    body.className = 'note-body';
-    body.textContent = moodData.notes;
-    
-    // Assemble modal
-    modalContent.appendChild(header);
-    modalContent.appendChild(body);
-    modal.appendChild(modalContent);
-    
-    // Add click handler to close when clicking outside
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        document.body.removeChild(modal);
-      }
-    });
-    
-    // Add keyboard handling for accessibility
-    modal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        document.body.removeChild(modal);
-      }
-    });
-    
-    // Make modal focusable for keyboard accessibility
-    modal.tabIndex = -1;
-    
-    // Add to document
-    document.body.appendChild(modal);
-    
-    // Focus the close button for keyboard accessibility
-    setTimeout(() => closeBtn.focus(), 100);
-    
-    // Announce for screen readers
-    announceToScreenReader('Note modal opened');
-  } catch (error) {
-    console.error("Error showing note modal:", error);
-    alert(`Note from ${moodData.date}: ${moodData.notes}`);
+  // Remove any existing modals
+  const existingModal = document.querySelector('.note-modal');
+  if (existingModal) {
+    document.body.removeChild(existingModal);
   }
+  
+  // Create modal elements
+  const modal = document.createElement('div');
+  modal.className = 'note-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'note-modal-title');
+  
+  const modalContent = document.createElement('div');
+  modalContent.className = 'note-modal-content';
+  
+  const header = document.createElement('div');
+  header.className = 'note-header';
+  
+  const date = document.createElement('div');
+  date.className = 'note-date';
+  date.id = 'note-modal-title';
+  date.textContent = `${moodData.date} at ${moodData.time || ''}`;
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'modal-close';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.setAttribute('aria-label', 'Close');
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modal);
+  });
+  
+  header.appendChild(date);
+  header.appendChild(closeBtn);
+  
+  const body = document.createElement('div');
+  body.className = 'note-body';
+  body.textContent = moodData.notes;
+  
+  // Assemble modal
+  modalContent.appendChild(header);
+  modalContent.appendChild(body);
+  modal.appendChild(modalContent);
+  
+  // Add click handler to close when clicking outside
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      document.body.removeChild(modal);
+    }
+  });
+  
+  // Add keyboard handling for accessibility
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.body.removeChild(modal);
+    }
+  });
+  
+  // Add to document
+  document.body.appendChild(modal);
+  
+  // Focus the close button for keyboard accessibility
+  setTimeout(() => closeBtn.focus(), 100);
 }
 
 /**
@@ -733,7 +723,7 @@ function createSavedMoodElement(saved) {
   // Add delete button
   const deleteButton = document.createElement('button');
   deleteButton.textContent = 'Delete';
-  deleteButton.classList.add('delete-mood-btn');
+  deleteButton.className = 'btn btn-danger btn-sm';
   deleteButton.addEventListener('click', () => handleDeleteMood(saved));
   
     // Center the delete button
@@ -813,5 +803,6 @@ export {
   initApp,
   handleColorSelection,
   updateMoodBall,
-  updateSavedMoods
+  updateSavedMoods,
+  showNoteModal
 };
