@@ -126,28 +126,23 @@ export async function initializeSampleUsers() {
 }
 
 export default class AuthManager {
-  // Add this to the beginning of the AuthManager constructor in auth-manager.js
-
-constructor() {
-  // Set up auth state listener
-  this.currentUser = null;
-  this.sessionHeartbeatInterval = null;
-  
-  // Create rate limiter instance
-  this.apiRateLimiter = new RateLimiter(5, 10000); // 5 requests per 10 seconds
-  
-  // Initialize CSRF token if not exists
-  if (!sessionStorage.getItem('csrfToken')) {
-    generateCsrfToken();
-  }
-  
-  // Add a try-catch block around the auth state listener setup
-  try {
+  constructor() {
+    // Set up auth state listener
+    this.currentUser = null;
+    this.sessionHeartbeatInterval = null;
+    
+    // Create rate limiter instance
+    this.apiRateLimiter = new RateLimiter(5, 10000); // 5 requests per 10 seconds
+    
+    // Initialize CSRF token if not exists
+    if (!sessionStorage.getItem('csrfToken')) {
+      generateCsrfToken();
+    }
+    
     // Set up Firebase auth state listener
     this.unsubscribeFromAuth = onAuthStateChanged(auth, async (user) => {
-      try {
-        if (user) {
-          console.log("User authenticated:", user.uid);
+      if (user) {
+        try {
           // Try to get data from IndexedDB cache first (if implemented)
           // ...
           
@@ -162,50 +157,21 @@ constructor() {
             
             // Start tracking user session
             this.trackUserSession();
-            console.log("User data loaded successfully");
           } else {
             console.error("User document not found");
             this.currentUser = null;
           }
-        } else {
-          // Cleanup on sign out
-          this.clearSessionHeartbeat();
+        } catch (error) {
+          console.error("Error fetching user data:", error);
           this.currentUser = null;
-          console.log("No user authenticated");
         }
-        
-        // Always make sure to unhide the auth container after auth state is determined
-        this.ensureAuthContainerVisibility();
-        
-      } catch (error) {
-        console.error("Error in auth state change handler:", error);
+      } else {
+        // Cleanup on sign out
+        this.clearSessionHeartbeat();
         this.currentUser = null;
-        this.ensureAuthContainerVisibility();
       }
     });
-  } catch (error) {
-    console.error("Error setting up auth state listener:", error);
-    // Make sure UI is visible even if auth listener fails
-    this.ensureAuthContainerVisibility();
   }
-}
-
-// Add this method to the AuthManager class
-ensureAuthContainerVisibility() {
-  // Hide loading screen and show auth container
-  setTimeout(() => {
-    const loadingContainer = document.getElementById('loading-container');
-    const authContainer = document.querySelector('.auth-container');
-    
-    if (loadingContainer) {
-      loadingContainer.style.display = 'none';
-    }
-    
-    if (authContainer) {
-      authContainer.style.display = 'block';
-    }
-  }, 500); // Short delay to ensure DOM is ready
-}
   
   // Verify user's authentication token
   async verifyIdToken() {

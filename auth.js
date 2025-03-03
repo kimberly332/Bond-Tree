@@ -2,24 +2,8 @@
 import AuthManager, { auth } from './auth-manager.js';
 
 // Wait for the DOM to be fully loaded
-
-// Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log("DOM loaded - initializing auth.js with Firebase");
-
-  // Add a timeout to prevent infinite loading screen
-  const loadingTimeout = setTimeout(() => {
-    const loadingContainer = document.getElementById('loading-container');
-  const authContainer = document.querySelector('.auth-container');
-    
-  if (loadingContainer && loadingContainer.style.display !== 'none') {
-    console.log("Loading timeout triggered - forcing display of auth container");
-    loadingContainer.style.display = 'none';
-    if (authContainer) {
-      authContainer.style.display = 'block';
-    }
-  }
-  }, 8000); // 8 seconds timeout
 
   // Check for dashboard parameter in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,28 +22,412 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initialize authentication manager
-  try {
-    const authManager = new AuthManager();
-    console.log("AuthManager initialized successfully");
-    
-    // Your existing code continues here...
-    // (Rest of the auth.js code remains unchanged)
-    
-  } catch (error) {
-    console.error("Error initializing AuthManager:", error);
-  // If AuthManager fails to initialize, show the login screen
-  const loadingContainer = document.getElementById('loading-container');
-  const authContainer = document.querySelector('.auth-container');
-  
-  if (loadingContainer) loadingContainer.style.display = 'none';
-  if (authContainer) authContainer.style.display = 'block';
-  
-  // Display error to user
+  const authManager = new AuthManager();
+
+  // DOM Elements for auth
+  const loginForm = document.getElementById('login-form');
+  const signupForm = document.getElementById('signup-form');
+  const dashboardForm = document.getElementById('dashboard');
+
+  const loginBtn = document.getElementById('login-btn');
+  const signupBtn = document.getElementById('signup-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const addFriendBtn = document.getElementById('add-friend-btn');
+  const sendFriendRequestBtn = document.getElementById('send-friend-request-btn');
+  const viewFriendsBtn = document.getElementById('view-friends-btn');
+  const createMoodBtn = document.getElementById('create-mood-btn');
+  const friendRequestsBtn = document.getElementById('friend-requests-btn');
+
+  const showSignupLink = document.getElementById('show-signup');
+  const showLoginLink = document.getElementById('show-login');
+
   const loginError = document.getElementById('login-error');
-  if (loginError) {
-    loginError.textContent = "There was a problem loading the application. Please try again.";
-    loginError.style.display = 'block';
+  const signupError = document.getElementById('signup-error');
+  const userNameSpan = document.getElementById('user-name');
+
+  // Add this to the DOMContentLoaded event handler
+  const usernameInput = document.getElementById('signup-username');
+  const usernameStatus = document.getElementById('username-status');
+  let usernameTimer;
+
+  if (usernameInput) {
+    usernameInput.addEventListener('input', () => {
+      const username = usernameInput.value.trim();
+      
+      // Clear previous timer
+      clearTimeout(usernameTimer);
+      
+      // Reset status
+      usernameStatus.textContent = '';
+      usernameStatus.style.color = '';
+      
+      // Basic format validation
+      if (username.length > 0) {
+        if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
+          usernameStatus.textContent = 'Username must be 3-15 characters with only letters, numbers, and underscores';
+          usernameStatus.style.color = '#e74c3c';
+          return;
+        }
+        
+        // Show checking message
+        usernameStatus.textContent = 'Checking availability...';
+        usernameStatus.style.color = '#3498db';
+        
+        // Set a small delay to avoid too many requests while typing
+        usernameTimer = setTimeout(async () => {
+          const isAvailable = await authManager.checkUsernameAvailability(username);
+          
+          if (isAvailable) {
+            usernameStatus.textContent = 'Username is available!';
+            usernameStatus.style.color = '#2ecc71';
+          } else {
+            usernameStatus.textContent = 'Username is already taken';
+            usernameStatus.style.color = '#e74c3c';
+          }
+        }, 500); // Wait 500ms after the user stops typing
+      }
+    });
   }
+
+  console.log("DOM elements initialized");
+
+  // Toggle between login and signup forms
+  if (showSignupLink) {
+    showSignupLink.addEventListener('click', () => {
+      loginForm.style.display = 'none';
+      signupForm.style.display = 'block';
+      loginError.style.display = 'none';
+    });
+  }
+
+  if (showLoginLink) {
+    showLoginLink.addEventListener('click', () => {
+      signupForm.style.display = 'none';
+      loginForm.style.display = 'block';
+      signupError.style.display = 'none';
+    });
+  }
+
+  // Login functionality
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+
+      // Disable the button during login
+      loginBtn.disabled = true;
+      
+      try {
+        const result = await authManager.login(email, password);
+        
+        if (result.success) {
+          // Show dashboard
+          loginForm.style.display = 'none';
+          signupForm.style.display = 'none';
+          dashboardForm.style.display = 'block';
+          userNameSpan.textContent = authManager.currentUser.name;
+          loginError.style.display = 'none';
+        } else {
+          loginError.textContent = result.message || 'Invalid email or password';
+          loginError.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        loginError.textContent = `Error: ${error.message || 'Invalid email or password'}`;
+        loginError.style.display = 'block';
+      } finally {
+        loginBtn.disabled = false;
+      }
+    });
+  }
+
+  // Signup functionality
+  if (signupBtn) {
+    signupBtn.addEventListener('click', async () => {
+      const name = document.getElementById('signup-name').value;
+      const email = document.getElementById('signup-email').value;
+      const password = document.getElementById('signup-password').value;
+      const confirmPassword = document.getElementById('signup-confirm-password').value;
+      const username = document.getElementById('signup-username').value;
+        
+      // Validate inputs
+      if (!name || !email || !password || !username) {
+        signupError.textContent = 'Please fill in all fields';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      // Check if username is valid
+      if (usernameStatus.style.color !== 'rgb(46, 204, 113)') { // The green color hex #2ecc71
+        signupError.textContent = 'Please choose a valid and available username';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      // Check password strength
+      if (password.length < 6) {
+        signupError.textContent = 'Password must be at least 6 characters long';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      // Validate username format
+      if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
+        signupError.textContent = 'Username must be 3-15 characters and contain only letters, numbers, and underscores';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        signupError.textContent = 'Passwords do not match';
+        signupError.style.display = 'block';
+        return;
+      }
+
+      // Disable button during signup
+      signupBtn.disabled = true;
+
+      // Add this line to change the text:
+      signupBtn.textContent = "Creating Account...";
+      
+      try {
+        // Attempt to sign up
+        const result = await authManager.signup(name, email, password, username);
+        
+        if (result.success) {
+          // Show dashboard
+          loginForm.style.display = 'none';
+          signupForm.style.display = 'none';
+          dashboardForm.style.display = 'block';
+          userNameSpan.textContent = name;
+          signupError.style.display = 'none';
+        } else {
+          // Show the specific error message
+          signupError.textContent = result.message;
+          signupError.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Signup error:', error);
+        signupError.textContent = 'An unexpected error occurred. Please try again.';
+        signupError.style.display = 'block';
+      } finally {
+        signupBtn.disabled = false;
+        // Add this line to reset the text:
+        signupBtn.textContent = "Create Account";
+      }
+    });
+  }
+
+  // Logout functionality
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        const result = await authManager.logout();
+        if (result.success) {
+          dashboardForm.style.display = 'none';
+          loginForm.style.display = 'block';
+        } else {
+          alert('Error logging out: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Error logging out: ' + error.message);
+      }
+    });
+  }
+
+  // Create Mood functionality
+  if (createMoodBtn) {
+    createMoodBtn.addEventListener('click', () => {
+      if (authManager.currentUser) {
+        // Redirect to the mood ball page
+        window.location.href = 'mood-ball.html';
+      }
+    });
+  }
+
+  // Add Friend functionality
+  if (addFriendBtn) {
+    addFriendBtn.addEventListener('click', async () => {
+      // Changed to use sendFriendRequest instead of addFriend
+      const friendIdentifier = prompt('Enter your friend\'s username or email:');
+      
+      if (friendIdentifier) {
+        try {
+          const result = await authManager.sendFriendRequest(friendIdentifier);
+          if (result.success) {
+            alert('Friend request sent successfully!');
+          } else {
+            alert(result.message || 'Could not send friend request. They may not exist or a request is already pending.');
+          }
+        } catch (error) {
+          console.error('Add friend error:', error);
+          alert('Error sending friend request: ' + error.message);
+        }
+      }
+    });
+  }
+
+  // Send Friend Request functionality
+  if (sendFriendRequestBtn) {
+    sendFriendRequestBtn.addEventListener('click', async () => {
+      // Create a more user-friendly input dialog
+      const friendIdentifierPrompt = prompt('Enter your friend\'s username or email:');
+      
+      if (friendIdentifierPrompt) {
+        // Disable button and show loading state (if we had direct access to the button)
+        try {
+          const result = await authManager.sendFriendRequest(friendIdentifierPrompt);
+          if (result.success) {
+            alert('Friend request sent successfully!');
+          } else {
+            alert(result.message || 'Could not send friend request. Please check the username or email and try again.');
+          }
+        } catch (error) {
+          console.error('Send friend request error:', error);
+          alert('Error sending friend request: ' + error.message);
+        }
+      }
+    });
+  }
+
+  // View Friends functionality
+  if (viewFriendsBtn) {
+    viewFriendsBtn.addEventListener('click', () => {
+      showFriendsModal(authManager);
+    });
+  }
+
+  // Friend Requests Button functionality
+  if (friendRequestsBtn) {
+    friendRequestsBtn.addEventListener('click', () => {
+      showFriendRequestsModal(authManager);
+    });
+  }
+
+  // Set up Firebase auth state listener for UI updates
+  auth.onAuthStateChanged(user => {
+    // Hide the loading screen
+    const loadingContainer = document.getElementById('loading-container');
+    if (loadingContainer) {
+      loadingContainer.style.display = 'none';
+    }
+  
+    // Show the auth container
+    const authContainer = document.querySelector('.auth-container');
+    if (authContainer) {
+      authContainer.style.display = 'block';
+    }
+    
+    // Check if we're returning from mood-ball page
+    const returnToDashboard = sessionStorage.getItem('returnToDashboard');
+    
+    if (user) {
+      // User is logged in, show dashboard
+      if (loginForm) loginForm.style.display = 'none';
+      if (signupForm) signupForm.style.display = 'none';
+      if (dashboardForm) {
+        dashboardForm.style.display = 'block';
+        
+        const updateUserInfo = () => {
+          if (authManager.currentUser) {
+            // Update the user name
+            if (userNameSpan) {
+              userNameSpan.textContent = authManager.currentUser.name;
+            }
+            
+            // Display the username
+            const usernameSpan = document.getElementById('user-username');
+            if (usernameSpan) {
+              // Check if username exists in the user data
+              if (authManager.currentUser.username) {
+                usernameSpan.textContent = authManager.currentUser.username;
+              } else {
+                usernameSpan.textContent = "No username set";
+              }
+              
+              // For debugging - log what we're seeing
+              console.log("Current user data:", authManager.currentUser);
+            } else {
+              console.error("Username span element not found!");
+            }
+            
+            // Clear the flag after using it
+            if (returnToDashboard) {
+              sessionStorage.removeItem('returnToDashboard');
+            }
+            
+            // Update friend requests badge
+            updateFriendRequestsBadge(authManager);
+          } else {
+            // If currentUser isn't available yet, wait a short time and try again
+            setTimeout(updateUserInfo, 100);
+          }
+        };
+        
+        // Start trying to update the user info
+        updateUserInfo();
+      }
+    } else {
+      // User is logged out, show login form
+      if (dashboardForm) dashboardForm.style.display = 'none';
+      if (loginForm) loginForm.style.display = 'block';
+      if (signupForm) signupForm.style.display = 'none';
+    }
+  });
+
+  // Helper function to update the friend requests notification badge
+  function updateFriendRequestsBadge(authManager) {
+    const friendRequestsBtn = document.getElementById('friend-requests-btn');
+    if (!friendRequestsBtn) return;
+    
+    const requestCount = authManager.getFriendRequests().length;
+    
+    // Remove any existing badge
+    const existingBadge = friendRequestsBtn.querySelector('.request-badge');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+    
+    // Add badge if there are requests
+    if (requestCount > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'request-badge';
+      badge.textContent = requestCount;
+      badge.style.cssText = `
+        background-color: #f44336;
+        color: white;
+        border-radius: 50%;
+        padding: 2px 6px;
+        font-size: 0.75rem;
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        font-weight: bold;
+      `;
+      
+      // Make the button position relative if it's not already
+      if (window.getComputedStyle(friendRequestsBtn).position === 'static') {
+        friendRequestsBtn.style.position = 'relative';
+      }
+      
+      friendRequestsBtn.appendChild(badge);
+      
+      // Add a subtle animation to draw attention
+      friendRequestsBtn.style.animation = 'pulse 2s infinite';
+      const styleSheet = document.createElement('style');
+      styleSheet.innerHTML = `
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+      `;
+      document.head.appendChild(styleSheet);
+    } else {
+      // Remove any animation
+      friendRequestsBtn.style.animation = '';
+    }
   }
 });
 
@@ -79,7 +447,7 @@ async function showFriendRequestsModal(authManager) {
     <div class="modal-container">
       <div class="modal-header">
         <h2 class="modal-title">Friend Requests</h2>
-        <button class="modal-close btn btn-icon">&times;</button>
+        <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <div id="friend-requests-container">
@@ -140,8 +508,8 @@ async function showFriendRequestsModal(authManager) {
               <p>${request.from}</p>
             </div>
             <div class="friend-request-actions">
-              <button class="accept-request btn btn-primary" data-email="${request.from}">Accept</button>
-              <button class="reject-reques btn btn-danger" data-email="${request.from}">Reject</button>
+              <button class="accept-request" data-email="${request.from}">Accept</button>
+              <button class="reject-request" data-email="${request.from}">Reject</button>
             </div>
           </div>
         `).join('')}
@@ -315,7 +683,7 @@ function createFriendCard(name, mood, isCurrentUser) {
   // Add delete button only if it's not the current user's card
   if (!isCurrentUser) {
     cardHTML += `
-      <button class="delete-friend-btn btn btn-danger" data-email="${mood.userEmail}" 
+      <button class="delete-friend-btn" data-email="${mood.userEmail}" 
           style="background-color: #f44336; color: white; border: none; 
                  padding: 5px 10px; border-radius: 4px; margin-top: 10px; 
                  cursor: pointer; font-size: 0.8rem; font-family: 'Nunito', sans-serif; font-weight: 600;">
