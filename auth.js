@@ -111,14 +111,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Login functionality
   if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
-      const email = document.getElementById('login-email').value;
+      const identifier = document.getElementById('login-email').value;
       const password = document.getElementById('login-password').value;
 
       // Disable the button during login
       loginBtn.disabled = true;
       
       try {
-        const result = await authManager.login(email, password);
+        const result = await authManager.login(identifier, password);
         
         if (result.success) {
           // Show dashboard
@@ -128,12 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
           userNameSpan.textContent = authManager.currentUser.name;
           loginError.style.display = 'none';
         } else {
-          loginError.textContent = result.message || 'Invalid email or password';
+          loginError.textContent = result.message || 'Invalid username/email or password';
           loginError.style.display = 'block';
         }
       } catch (error) {
         console.error('Login error:', error);
-        loginError.textContent = `Error: ${error.message || 'Invalid email or password'}`;
+        loginError.textContent = `Error: ${error.message || 'Invalid username/email or password'}`;
         loginError.style.display = 'block';
       } finally {
         loginBtn.disabled = false;

@@ -310,8 +310,8 @@ export default class AuthManager {
     }
   }
   
-  // Log in an existing user
-  async login(email, password) {
+  // Log in an existing user with email or username
+  async login(identifier, password) {
     try {
       // Apply rate limiting
       if (!this.apiRateLimiter.isAllowed('login')) {
@@ -321,7 +321,30 @@ export default class AuthManager {
         };
       }
       
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Determine if the identifier is an email by checking for @ symbol
+      const isEmail = identifier.includes('@');
+      let userEmail = identifier;
+      
+      // If the identifier is a username, we need to find the associated email
+      if (!isEmail) {
+        // Query Firestore to find the user with this username
+        const usernameQuery = await getDocs(
+          query(collection(db, 'users'), where('username', '==', identifier))
+        );
+        
+        if (usernameQuery.empty) {
+          return { 
+            success: false, 
+            message: 'Invalid username or password'
+          };
+        }
+        
+        // Get the email from the user document
+        userEmail = usernameQuery.docs[0].data().email;
+      }
+      
+      // Now sign in with the email
+      const userCredential = await signInWithEmailAndPassword(auth, userEmail, password);
       const user = userCredential.user;
 
       // Fetch user document
@@ -349,7 +372,7 @@ export default class AuthManager {
       return handleError(
         error,
         error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' 
-          ? 'Invalid email or password' 
+          ? 'Invalid ' + (identifier.includes('@') ? 'email' : 'username') + ' or password' 
           : 'Login failed. Please try again.'
       );
     }
