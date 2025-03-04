@@ -542,32 +542,3 @@
     min-width: 44px;
   }
 }
-
-/* Add after the existing mood-colors styles */
-.custom-mood-section {
-  margin: 20px 0;
-  padding: 15px;
-}
-
-.custom-mood-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  align-items: center;
-}
-
-.color-wheel,
-.emoji-picker,
-.mood-name-input {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  width: 200px;
-}
-
-.custom-moods-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
-}
