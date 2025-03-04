@@ -33,7 +33,8 @@ let elements = {
   
   // Main UI
   moodColorsContainer: null,
-  customMoodsSeparator: null
+  customMoodsGrid: null,
+  addCustomMoodBtn: null
 };
 
 // State
@@ -82,7 +83,7 @@ function cacheElements() {
     
     // Main UI
     moodColorsContainer: document.querySelector('.mood-colors'),
-    customMoodsSeparator: null
+    customMoodsGrid: document.querySelector('.custom-moods-grid')
   };
   
   console.log('Custom mood elements cached:', elements);
@@ -187,8 +188,11 @@ function setupEventListeners() {
     }
   });
   
-  // Create the "Manage Custom Moods" button
+  // Create the "Manage Custom Moods" button if it doesn't exist
   createManageCustomMoodsButton();
+  
+  // Create and set up the "Add Custom Mood" button
+  setupAddCustomMoodButton();
 }
 
 /**
@@ -236,6 +240,11 @@ function saveCustomMood() {
  * Open the modal to create a new custom mood
  */
 function openCreateCustomMoodModal() {
+  if (!elements.customMoodModal) {
+    console.error('Custom mood modal not found');
+    return;
+  }
+  
   // Reset form
   elements.customMoodForm.reset();
   elements.customMoodId.value = '';
@@ -253,7 +262,11 @@ function openCreateCustomMoodModal() {
   // Reset emoji selection
   const emojiOptions = document.querySelectorAll('.emoji-option');
   emojiOptions.forEach(emoji => emoji.classList.remove('selected'));
-  document.querySelector(`.emoji-option[data-emoji="😊"]`).classList.add('selected');
+  
+  const defaultEmoji = document.querySelector('.emoji-option[data-emoji="😊"]');
+  if (defaultEmoji) {
+    defaultEmoji.classList.add('selected');
+  }
   
   // Reset state
   editingMoodId = null;
@@ -359,55 +372,105 @@ function renderCustomMoodsList() {
  * Create a button to manage custom moods in the mood selection area
  */
 function createManageCustomMoodsButton() {
-  if (!elements.moodColorsContainer) return;
-  
-  // Create a container for custom moods section
-  const customMoodsContainer = document.createElement('div');
-  customMoodsContainer.className = 'custom-moods-container';
-  customMoodsContainer.innerHTML = `
-    <h3 class="section-title" style="margin-top: 30px; font-size: 1.2rem;">Your Custom Moods</h3>
-    <div class="custom-moods-grid"></div>
-    <div class="manage-custom-moods-btn-container" style="text-align: center; margin-top: 15px;">
-      <button id="manage-custom-moods" class="btn btn-primary btn-sm">
-        Manage Custom Moods
-      </button>
-    </div>
-  `;
-  
-  // Add custom moods section after standard moods
-  elements.moodColorsContainer.parentNode.insertBefore(customMoodsContainer, elements.moodColorsContainer.nextSibling);
-  
-  // Set up the manage custom moods button
-  const manageBtn = document.getElementById('manage-custom-moods');
-  if (manageBtn) {
-    manageBtn.addEventListener('click', () => {
-      openManageCustomMoodsModal();
-    });
+    if (!elements.moodColorsContainer) return;
+    
+    // Check if the container already exists
+    let customMoodsContainer = document.querySelector('.custom-moods-container');
+    
+    if (!customMoodsContainer) {
+      // Add a visual separator before the custom moods section
+      const separator = document.createElement('div');
+      separator.className = 'section-separator';
+      elements.moodColorsContainer.parentNode.insertBefore(separator, elements.moodColorsContainer.nextSibling);
+      
+      // Create a container for custom moods section
+      customMoodsContainer = document.createElement('div');
+      customMoodsContainer.className = 'custom-moods-container';
+      customMoodsContainer.innerHTML = `
+        <h3 class="section-title">Your Custom Moods</h3>
+        <div class="custom-moods-grid"></div>
+        <div class="manage-custom-moods-btn-container">
+          <button id="manage-custom-moods" class="btn btn-primary btn-sm">
+            Manage Custom Moods
+          </button>
+        </div>
+      `;
+      
+      // Add custom moods section after the separator
+      elements.moodColorsContainer.parentNode.insertBefore(customMoodsContainer, separator.nextSibling);
+      
+      // Update reference to custom moods grid
+      elements.customMoodsGrid = document.querySelector('.custom-moods-grid');
+      
+      // Set up the manage custom moods button
+      const manageBtn = document.getElementById('manage-custom-moods');
+      if (manageBtn) {
+        manageBtn.addEventListener('click', () => {
+          openManageCustomMoodsModal();
+        });
+      }
+    }
+  }
+
+/**
+ * Create and set up the "Add Custom Mood" button
+ */
+function setupAddCustomMoodButton() {
+  // Check if button already exists
+  const existingBtn = document.querySelector('.add-custom-mood-button');
+  if (existingBtn) {
+    existingBtn.addEventListener('click', openCreateCustomMoodModal);
+    return;
   }
   
-  // Create "Add Custom Mood" button in mood colors
+  // Create "Add Custom Mood" button to add to the mood colors
   const addCustomMoodBtn = document.createElement('div');
   addCustomMoodBtn.className = 'color-option add-custom-mood-button';
+  addCustomMoodBtn.setAttribute('tabindex', '0');
+  addCustomMoodBtn.setAttribute('role', 'button');
+  addCustomMoodBtn.setAttribute('aria-label', 'Create new custom mood');
+  
   addCustomMoodBtn.innerHTML = `
-    <div class="add-custom-icon">+</div>
-    <span class="add-custom-text">Create New Mood</span>
+    <div class="color-sample">
+      <div>+</div>
+    </div>
+    <span class="color-name">Create New</span>
   `;
   
-  addCustomMoodBtn.addEventListener('click', () => {
-    openCreateCustomMoodModal();
+  // Add click handler
+  addCustomMoodBtn.addEventListener('click', openCreateCustomMoodModal);
+  
+  // Add keyboard handler for accessibility
+  addCustomMoodBtn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openCreateCustomMoodModal();
+    }
   });
   
-  elements.moodColorsContainer.appendChild(addCustomMoodBtn);
+  // Add to the mood colors container
+  if (elements.moodColorsContainer) {
+    elements.moodColorsContainer.appendChild(addCustomMoodBtn);
+  }
   
-  // Update reference to custom moods grid
-  elements.customMoodsGrid = document.querySelector('.custom-moods-grid');
+  // Save reference
+  elements.addCustomMoodBtn = addCustomMoodBtn;
 }
 
 /**
  * Render custom moods in the mood selector
  */
 function renderCustomMoodsInSelector() {
-  if (!elements.customMoodsGrid) return;
+  if (!elements.customMoodsGrid) {
+    console.error('Custom moods grid not found');
+    // Try to re-cache the element
+    elements.customMoodsGrid = document.querySelector('.custom-moods-grid');
+    
+    if (!elements.customMoodsGrid) {
+      console.error('Still unable to find custom moods grid');
+      return;
+    }
+  }
   
   // Clear the custom moods grid
   elements.customMoodsGrid.innerHTML = '';
@@ -417,7 +480,7 @@ function renderCustomMoodsInSelector() {
   
   if (customMoods.length === 0) {
     elements.customMoodsGrid.innerHTML = `
-      <p style="text-align: center; color: #777; font-style: italic; padding: 15px;">
+      <p style="text-align: center; color: #777; font-style: italic; padding: 15px; grid-column: 1 / -1;">
         No custom moods yet. Create your first one!
       </p>
     `;
@@ -432,28 +495,26 @@ function renderCustomMoodsInSelector() {
     colorOption.setAttribute('data-name', mood.name);
     colorOption.setAttribute('data-custom', 'true');
     colorOption.setAttribute('data-id', mood.id);
+    colorOption.setAttribute('tabindex', '0');
+    colorOption.setAttribute('role', 'button');
+    colorOption.setAttribute('aria-pressed', 'false');
     
     colorOption.innerHTML = `
-      <div class="color-sample">
+      <div class="color-sample" style="position: relative;">
         <div style="background-color: ${mood.color}; width: 100%; height: 100%;"></div>
+        <div class="custom-mood-emoji-small">${mood.emoji}</div>
       </div>
       <span class="color-name">${mood.name}</span>
-      <span class="custom-mood-emoji-small">${mood.emoji}</span>
     `;
     
     // Add to the grid
     elements.customMoodsGrid.appendChild(colorOption);
     
-    // Add click handler for mood selection (this will be handled by the main mood selection handler)
-    colorOption.addEventListener('click', () => {
-      // We'll let the main mood-ball.js handleColorSelection function handle this
-      // The data attributes we added will be used to identify this as a custom mood
-    });
-    
     // Add edit button with stopPropagation
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-custom-mood-btn';
     editBtn.innerHTML = '✏️';
+    editBtn.setAttribute('aria-label', `Edit ${mood.name} mood`);
     editBtn.style.position = 'absolute';
     editBtn.style.top = '5px';
     editBtn.style.right = '5px';
@@ -465,20 +526,21 @@ function renderCustomMoodsInSelector() {
     editBtn.style.padding = '0';
     editBtn.style.cursor = 'pointer';
     editBtn.style.fontSize = '12px';
-    editBtn.style.display = 'none';
-    editBtn.style.alignItems = 'center';
-    editBtn.style.justifyContent = 'center';
+    editBtn.style.opacity = '0';
+    editBtn.style.transition = 'opacity 0.2s';
+    editBtn.style.zIndex = '10';
     
-    colorOption.style.position = 'relative';
-    colorOption.appendChild(editBtn);
+    const colorSample = colorOption.querySelector('.color-sample');
+    colorSample.style.position = 'relative';
+    colorSample.appendChild(editBtn);
     
     // Show edit button on hover
     colorOption.addEventListener('mouseenter', () => {
-      editBtn.style.display = 'flex';
+      editBtn.style.opacity = '1';
     });
     
     colorOption.addEventListener('mouseleave', () => {
-      editBtn.style.display = 'none';
+      editBtn.style.opacity = '0';
     });
     
     // Edit button click
@@ -487,8 +549,6 @@ function renderCustomMoodsInSelector() {
       openEditCustomMoodModal(mood.id);
     });
   });
-  // Re-cache color options after adding custom moods
-    elements.colorOptions = document.querySelectorAll('.color-option');
 }
 
 /**
@@ -505,7 +565,7 @@ export function getMoodEmoji(moodName) {
     return customMood.emoji;
   }
   
-  // If not a custom mood, use the standard emoji mapping from mood-ball.js
+  // If not a custom mood, use the standard emoji mapping
   const MOOD_EMOJIS = {
     Calm: '😌',
     Sad: '😢',

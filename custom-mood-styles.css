@@ -1,0 +1,587 @@
+/* Custom Mood Styles for Bond Tree */
+
+/* Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .modal-header h3 {
+    margin: 0;
+    color: #4a90e2;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+  }
+  
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+  }
+  
+  .modal-body {
+    padding: 10px 0;
+  }
+  
+  /* Form Elements */
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .form-group input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+  }
+  
+  .form-group input[type="text"]:focus {
+    outline: none;
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  }
+  
+  /* Color Picker */
+  .color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  input[type="color"] {
+    -webkit-appearance: none;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  
+  input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  
+  input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+  }
+  
+  .color-preview {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+  }
+  
+  /* Emoji Picker */
+  .emoji-picker {
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #f9f9f9;
+  }
+  
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+  
+  .emoji-option {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, background-color 0.2s;
+    border-radius: 8px;
+  }
+  
+  .emoji-option:hover {
+    background-color: #eee;
+    transform: scale(1.1);
+  }
+  
+  .emoji-option.selected {
+    background-color: #e3f2fd;
+    box-shadow: 0 0 0 2px #4a90e2;
+  }
+  
+  /* Buttons Group */
+  .buttons-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .buttons-group button {
+    flex: 1;
+  }
+  
+  /* Custom Moods List */
+  .custom-moods-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .custom-mood-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background-color: #f5f5f7;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .custom-mood-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .custom-mood-color {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 15px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .custom-mood-info {
+    flex: 1;
+  }
+  
+  .custom-mood-name {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .custom-mood-emoji {
+    font-size: 1.5rem;
+    margin-left: 10px;
+  }
+  
+  /* Empty state */
+  .empty-custom-moods {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+  }
+  
+  .text-center {
+    text-align: center;
+  }
+  
+  /* Center alignment for mood colors grid */
+  .mood-colors {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 12px;
+    justify-content: center;
+    margin: 0 auto 30px auto;
+    width: 100%;
+    max-width: 600px;
+    padding: 0 10px;
+  }
+  
+  /* Section separator */
+  .section-separator {
+    width: 100%;
+    max-width: 600px;
+    margin: 30px auto;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(74, 144, 226, 0.3), transparent);
+  }
+  
+  /* Custom Moods Container Styling */
+  .custom-moods-container {
+    margin: 40px auto 30px;
+    padding: 25px 15px;
+    background-color: #f5f8ff;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(74, 144, 226, 0.1);
+    max-width: 640px;
+    position: relative;
+    width: 100%;
+  }
+  
+  /* Custom moods title styling */
+  .custom-moods-container h3.section-title {
+    margin-top: 0;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    color: #4a90e2;
+    font-size: 1.3rem;
+    position: relative;
+    padding-bottom: 12px;
+  }
+  
+  /* Add a subtle underline to the title */
+  .custom-moods-container h3.section-title:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: #4a90e2;
+    border-radius: 3px;
+  }
+  
+  /* Custom moods grid styling */
+  .custom-moods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 12px;
+    margin: 0 auto 15px auto;
+    width: 100%;
+  }
+  
+  .custom-moods-grid .color-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 8px;
+    border-radius: 12px;
+  }
+  
+  .custom-moods-grid .color-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .custom-moods-grid .color-option.selected {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .custom-moods-grid .color-sample {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    overflow: hidden;
+    position: relative;
+    margin-bottom: 5px;
+  }
+  
+  .custom-moods-grid .color-name {
+    margin-top: 5px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  /* Fix for emoji display in custom moods */
+  .custom-mood-emoji-small {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  /* Fix for the "Create New" button to match other mood buttons */
+  .add-custom-mood-button .color-sample {
+    border: 2px dashed #4a90e2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(74, 144, 226, 0.1);
+    transition: background-color 0.2s;
+  }
+  
+  .add-custom-mood-button:hover .color-sample {
+    background-color: rgba(74, 144, 226, 0.2);
+  }
+  
+  .add-custom-mood-button .color-sample div {
+    font-size: 24px;
+    color: #4a90e2;
+  }
+  
+  .add-custom-mood-button .color-name {
+    color: #4a90e2;
+  }
+  
+  /* Manage Custom Moods button styling */
+  .manage-custom-moods-btn-container {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 5px;
+  }
+  
+  /* Section title styling */
+  .section-title {
+    text-align: center;
+    margin: 15px auto;
+    font-size: clamp(1.2rem, 4vw, 1.5rem);
+    color: #4a90e2;
+  }
+  
+  /* Responsive fixes */
+  @media (max-width: 768px) {
+    .custom-moods-container {
+      margin-top: 35px;
+      margin-bottom: 35px;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .mood-colors,
+    .custom-moods-container,
+    .custom-moods-grid {
+      padding: 0 15px;
+    }
+  }
+  
+  @media (max-width: 500px) {
+    .custom-moods-grid {
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 8px;
+    }
+    
+    .custom-moods-grid .color-sample {
+      width: 45px;
+      height: 45px;
+    }
+    
+    .custom-moods-grid .color-name {
+      font-size: 0.8rem;
+    }
+    
+    .emoji-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .emoji-option {
+      width: 36px;
+      height: 36px;
+    }
+    
+    .buttons-group {
+      flex-direction: column;
+    }
+    
+    .modal-content {
+      width: 95%;
+      padding: 20px;
+    }
+  }
+
+  /* Ensure consistent sizing and spacing for both standard and custom moods */
+.mood-colors,
+.custom-moods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 12px;
+  justify-content: center;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 600px;
+  padding: 0 10px;
+}
+
+/* Consistent styling for both standard and custom mood options */
+.mood-colors .color-option,
+.custom-moods-grid .color-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+  padding: 5px;
+  text-align: center;
+}
+
+/* Ensure color samples have identical dimensions */
+.mood-colors .color-sample,
+.custom-moods-grid .color-sample {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto 5px;
+}
+
+/* Align text labels */
+.mood-colors .color-name,
+.custom-moods-grid .color-name {
+  margin-top: 5px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-align: center;
+  width: 100%;
+}
+
+/* Add proper spacing in the custom moods container */
+.custom-moods-container {
+  margin: 40px auto 30px;
+  padding: 25px 15px 20px;
+  background-color: #f5f8ff;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(74, 144, 226, 0.1);
+  max-width: 640px;
+  position: relative;
+  width: 100%;
+}
+
+/* Fix for the mood circles in custom moods grid to ensure perfect circles */
+.custom-moods-grid .color-option .color-sample {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid #ddd;
+}
+
+/* Ensure emojis are properly centered in custom moods */
+.custom-mood-emoji-small {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.5rem;
+  z-index: 2;
+}
+
+/* Responsive adjustments */
+@media (max-width: 500px) {
+  .mood-colors,
+  .custom-moods-grid {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+  }
+  
+  .mood-colors .color-sample,
+  .custom-moods-grid .color-sample {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+/* Add these styles to your custom-mood-styles.css file */
+
+/* Match the "Your Custom Moods" heading with "How are you feeling?" */
+.custom-moods-container h3.section-title,
+.custom-moods-container .section-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  color: #4a90e2;
+  font-size: 1.8rem;
+  margin: 0 0 20px 0;
+  padding-bottom: 0;
+  text-align: center;
+}
+
+/* Remove the underline from the title */
+.custom-moods-container h3.section-title:after {
+  display: none;
+}
+
+/* Add the blue underline below the title */
+.custom-moods-title-underline {
+  height: 3px;
+  width: 140px;
+  background-color: #4a90e2;
+  margin: 10px auto 25px;
+  border-radius: 2px;
+}
+
+/* Style the Manage Custom Moods button to match Save Today's Mood */
+#manage-custom-moods {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 100px;
+  padding: 14px 20px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+  min-width: 200px;
+  cursor: pointer;
+  display: inline-block;
+  text-align: center;
+  transition: background-color 0.3s;
+  margin: 10px auto;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+#manage-custom-moods:hover {
+  background-color: #45a049;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.manage-custom-moods-btn-container {
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 5px;
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .custom-moods-container h3.section-title,
+  .custom-moods-container .section-title {
+    font-size: 1.6rem;
+  }
+  
+  #manage-custom-moods {
+    width: 80%;
+    max-width: 300px;
+  }
+}
