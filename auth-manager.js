@@ -1197,6 +1197,21 @@ async deleteMood(mood) {
     return handleError(error, 'Error deleting your mood');
   }
 }
+
+async saveCustomMood(moodData) {
+  try {
+    if (!this.currentUser) return { success: false, message: 'Not logged in' };
+    
+    const userRef = doc(db, 'users', this.currentUser.id);
+    await updateDoc(userRef, {
+      customMoods: arrayUnion(moodData)
+    });
+    
+    return { success: true };
+  } catch (error) {
+    return handleError(error, 'Error saving custom mood');
+  }
+}
   
   // Fetch friends data with enhanced error handling and logging
 async getFriendsData() {

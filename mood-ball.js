@@ -39,6 +39,8 @@ const MOOD_EMOJIS = {
   Proud: '😌'
 };
 
+const CUSTOM_MOODS_KEY = 'customMoods';
+
 // Cache DOM elements to avoid repeated lookups
 let elements = {
   loginWarning: null,
@@ -299,27 +301,104 @@ function initializeMoodBallPage() {
  * Set up all event listeners
  */
 function initializeEventListeners() {
-  // Back button
+  // Existing event listeners
   if (elements.backButton) {
     elements.backButton.addEventListener('click', handleBackButtonClick);
   }
   
-  // Character counter for mood notes
   if (elements.moodNotes && elements.charsCount) {
     elements.moodNotes.addEventListener('input', handleNotesInput);
   }
   
-  // Color options
   if (elements.colorOptions) {
     elements.colorOptions.forEach(option => {
       option.addEventListener('click', () => handleColorSelection(option));
     });
   }
   
-  // Save button
   if (elements.saveButton) {
     elements.saveButton.addEventListener('click', handleSaveMood);
   }
+
+  // Add custom mood event listeners
+  const saveMoodBtn = document.getElementById('saveMood');
+  if (saveMoodBtn) {
+    saveMoodBtn.addEventListener('click', handleCustomMoodSave);
+  }
+
+  const colorWheel = document.getElementById('colorWheel');
+  if (colorWheel) {
+    colorWheel.addEventListener('change', (e) => {
+      document.getElementById('moodPreview').style.backgroundColor = e.target.value;
+    });
+  }
+}
+
+function initializeCustomMoods() {
+  const savedCustomMoods = localStorage.getItem(CUSTOM_MOODS_KEY);
+  return savedCustomMoods ? JSON.parse(savedCustomMoods) : [];
+}
+
+/**
+ * Handle saving custom mood
+ */
+function handleCustomMoodSave() {
+  const color = document.getElementById('colorWheel').value;
+  const emoji = document.getElementById('emojiPicker').value;
+  const name = document.getElementById('moodName').value;
+  
+  if (!color || !emoji || !name) {
+    alert('Please fill in all fields');
+    return;
+  }
+  
+  const customMoods = initializeCustomMoods();
+  customMoods.push({ 
+    id: Date.now(),
+    color, 
+    emoji, 
+    name 
+  });
+  
+  localStorage.setItem('customMoods', JSON.stringify(customMoods));
+  renderCustomMoods();
+  clearCustomMoodInputs();
+}
+
+/**
+ * Clear custom mood input fields
+ */
+function clearCustomMoodInputs() {
+  document.getElementById('colorWheel').value = '#000000';
+  document.getElementById('emojiPicker').value = '';
+  document.getElementById('moodName').value = '';
+}
+
+/**
+ * Render custom moods in the UI
+ */
+function renderCustomMoods() {
+  const container = document.getElementById('customMoods');
+  if (!container) return;
+
+  const customMoods = initializeCustomMoods();
+  container.innerHTML = '';
+
+  customMoods.forEach(mood => {
+    const moodElement = document.createElement('div');
+    moodElement.className = 'custom-mood-item';
+    moodElement.innerHTML = `
+      <div class="custom-mood-preview" style="background-color: ${mood.color}">
+        ${mood.emoji}
+      </div>
+      <div class="custom-mood-name">${mood.name}</div>
+      <div class="custom-mood-actions">
+        <button class="edit-mood-btn" onclick="editCustomMood(${mood.id})">Edit</button>
+        <button class="delete-mood-btn" onclick="deleteCustomMood(${mood.id})">Delete</button>
+      </div>
+    `;
+    container.appendChild(moodElement);
+  });
 }
 
 /**
