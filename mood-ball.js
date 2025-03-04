@@ -10,6 +10,7 @@
 
 import { auth } from './firebase-config.js';
 import AuthManager from './auth-manager.js';
+import { initCustomMoodFeature, getMoodEmoji } from './custom-mood-functionality.js';
 
 // Constants and configuration
 const MAX_MOODS = 3;
@@ -293,6 +294,9 @@ function initializeMoodBallPage() {
   
   // Announce for screen readers
   announceToScreenReader('Mood tracker loaded successfully');
+
+  // Initialize custom mood feature
+  initCustomMoodFeature();
 }
 
 /**
@@ -356,6 +360,8 @@ function handleNotesInput() {
 function handleColorSelection(option) {
   const color = option.getAttribute('data-color');
   const name = option.getAttribute('data-name');
+  const isCustom = option.getAttribute('data-custom') === 'true';
+  const customId = option.getAttribute('data-id');
   
   // Check if already selected
   const existingIndex = appState.selectedMoods.findIndex(mood => mood.name === name);
@@ -368,7 +374,15 @@ function handleColorSelection(option) {
   } else {
     // Add if not selected (max 3)
     if (appState.selectedMoods.length < MAX_MOODS) {
-      appState.selectedMoods.push({ color, name });
+      const moodObj = { color, name };
+      
+      // Add custom mood properties if applicable
+      if (isCustom && customId) {
+        moodObj.isCustom = true;
+        moodObj.customId = customId;
+      }
+      
+      appState.selectedMoods.push(moodObj);
       option.classList.add('color-option--selected');
       option.setAttribute('aria-pressed', 'true');
     } else {
@@ -383,7 +397,16 @@ function handleColorSelection(option) {
       }
       
       appState.selectedMoods.shift();
-      appState.selectedMoods.push({ color, name });
+      
+      const moodObj = { color, name };
+      
+      // Add custom mood properties if applicable
+      if (isCustom && customId) {
+        moodObj.isCustom = true;
+        moodObj.customId = customId;
+      }
+      
+      appState.selectedMoods.push(moodObj);
       option.classList.add('color-option--selected');
       option.setAttribute('aria-pressed', 'true');
     }
@@ -541,12 +564,15 @@ function updateMoodBall() {
     section.style.top = `${index * sectionHeight}%`;
     section.style.height = `${sectionHeight}%`;
     
-    // Add corresponding emoji
-    const emoji = document.createElement('div');
-    emoji.className = 'mood-emoji';
-    emoji.textContent = MOOD_EMOJIS[mood.name] || '';
-    emoji.setAttribute('aria-hidden', 'true'); // Hide from screen readers (already in aria-label)
-    section.appendChild(emoji);
+    // Add corresponding emoji - UPDATED to handle custom moods
+const emoji = document.createElement('div');
+emoji.className = 'mood-emoji';
+
+// Get emoji based on mood name (works for both standard and custom moods)
+emoji.textContent = getMoodEmoji(mood.name);
+
+emoji.setAttribute('aria-hidden', 'true'); // Hide from screen readers
+section.appendChild(emoji);
     
     elements.moodBall.appendChild(section);
   });
@@ -680,6 +706,10 @@ function createSavedMoodElement(saved) {
   
   // Create sections for the saved mood
   const sectionHeight = 100 / saved.moods.length;
+
+  const moodEmojisForCard = saved.moods
+    .map(m => getMoodEmoji(m.name))
+    .join(' ');
   
   saved.moods.forEach((mood, index) => {
     const section = document.createElement('div');

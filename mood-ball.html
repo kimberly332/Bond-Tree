@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="mood-ball.css">
   <link rel="stylesheet" href="bond-tree-enhanced-friends.css">
   <link rel="stylesheet" href="unified-buttons.css">
+  <link rel="stylesheet" href="custom-mood-styles.css">
   <link rel="icon" href="bond-tree-logo.svg">
 </head>
 <body>
@@ -217,4 +218,95 @@
   <script type="module" src="auth-manager.js"></script>
   <script type="module" src="mood-ball.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+
+  <!-- Custom Mood Modal -->
+<div id="custom-mood-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="custom-mood-title">Create Custom Mood</h3>
+      <button class="modal-close" id="close-custom-mood-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="custom-mood-form">
+        <input type="hidden" id="custom-mood-id">
+        
+        <div class="form-group">
+          <label for="custom-mood-name">Mood Name</label>
+          <input type="text" id="custom-mood-name" maxlength="15" placeholder="Enter mood name" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Mood Color</label>
+          <div class="color-picker-container">
+            <input type="color" id="custom-mood-color" value="#4a90e2">
+            <div class="color-preview" id="color-preview"></div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Choose Emoji</label>
+          <div class="emoji-picker">
+            <div class="emoji-grid">
+              <span class="emoji-option" data-emoji="😊">😊</span>
+              <span class="emoji-option" data-emoji="😃">😃</span>
+              <span class="emoji-option" data-emoji="🥰">🥰</span>
+              <span class="emoji-option" data-emoji="😍">😍</span>
+              <span class="emoji-option" data-emoji="🤔">🤔</span>
+              <span class="emoji-option" data-emoji="😌">😌</span>
+              <span class="emoji-option" data-emoji="😴">😴</span>
+              <span class="emoji-option" data-emoji="😢">😢</span>
+              <span class="emoji-option" data-emoji="😭">😭</span>
+              <span class="emoji-option" data-emoji="😤">😤</span>
+              <span class="emoji-option" data-emoji="😠">😠</span>
+              <span class="emoji-option" data-emoji="😡">😡</span>
+              <span class="emoji-option" data-emoji="🥳">🥳</span>
+              <span class="emoji-option" data-emoji="🤩">🤩</span>
+              <span class="emoji-option" data-emoji="😎">😎</span>
+              <span class="emoji-option" data-emoji="🙄">🙄</span>
+              <span class="emoji-option" data-emoji="😒">😒</span>
+              <span class="emoji-option" data-emoji="🤗">🤗</span>
+              <span class="emoji-option" data-emoji="🥺">🥺</span>
+              <span class="emoji-option" data-emoji="😱">😱</span>
+              <span class="emoji-option" data-emoji="🤯">🤯</span>
+              <span class="emoji-option" data-emoji="😪">😪</span>
+              <span class="emoji-option" data-emoji="😵">😵</span>
+              <span class="emoji-option" data-emoji="🤢">🤢</span>
+            </div>
+          </div>
+          <input type="hidden" id="custom-mood-emoji" value="😊">
+        </div>
+        
+        <div class="form-group buttons-group">
+          <button type="submit" id="save-custom-mood" class="btn btn-success">Save Custom Mood</button>
+          <button type="button" id="delete-custom-mood" class="btn btn-danger" style="display: none;">Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Moods Management Modal -->
+<div id="manage-custom-moods-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Manage Custom Moods</h3>
+      <button class="modal-close" id="close-manage-moods-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="custom-moods-list" class="custom-moods-list">
+        <!-- Custom moods will be added here dynamically -->
+      </div>
+      
+      <div class="empty-custom-moods" id="empty-custom-moods">
+        <p>You haven't created any custom moods yet.</p>
+      </div>
+      
+      <div class="form-group text-center">
+        <button id="add-new-custom-mood" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add New Custom Mood
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
