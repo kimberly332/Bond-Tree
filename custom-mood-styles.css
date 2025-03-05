@@ -436,3 +436,95 @@
       padding: 20px;
     }
   }
+
+
+/* Adding Selection Indicator Styles to custom-mood-styles.css */
+
+/* Mood Selection Indicator */
+.mood-selection-indicator {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    background-color: #4CAF50;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+    transition: transform 0.2s ease;
+    opacity: 1;
+  }
+  
+  /* Enhanced selected state for mood options */
+  .mood-colors .color-option.selected,
+  .custom-moods-grid .color-option.selected {
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .mood-colors .color-option:not(.selected),
+  .custom-moods-grid .color-option:not(.selected) {
+    background-color: transparent;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .mood-colors .color-option.selected .color-sample,
+  .custom-moods-grid .color-option.selected .color-sample {
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 2px #4CAF50;
+  }
+  
+  .mood-colors .color-option:not(.selected) .color-sample,
+  .custom-moods-grid .color-option:not(.selected) .color-sample {
+    border-color: #ddd;
+    box-shadow: none;
+  }
+  
+  /* Position fix for selection indicators */
+  .mood-colors .color-option,
+  .custom-moods-grid .color-option {
+    position: relative;
+  }
+  
+  /* Ensure custom mood emoji is centered */
+  .custom-mood-emoji-small {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  /* Improve hover transition for mood options */
+  .mood-colors .color-option:hover,
+  .custom-moods-grid .color-option:hover {
+    transform: translateY(-5px);
+  }
+  
+  /* Improve animation for selection */
+  .mood-selection-indicator {
+    animation: pop 0.3s ease;
+  }
+  
+  @keyframes pop {
+    0% {
+      transform: scale(0);
+    }
+    70% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }

@@ -10,7 +10,7 @@
 
 import { auth } from './firebase-config.js';
 import AuthManager from './auth-manager.js';
-import { initCustomMoodFeature, getMoodEmoji } from './custom-mood-functionality.js';
+import { getMoodEmoji } from './mood-emoji-utils.js';
 
 // Constants and configuration
 const MAX_MOODS = 3;
@@ -295,8 +295,21 @@ function initializeMoodBallPage() {
   // Announce for screen readers
   announceToScreenReader('Mood tracker loaded successfully');
 
-  // Initialize custom mood feature
-  initCustomMoodFeature();
+  // Initialize custom mood feature if available
+  if (typeof window.initCustomMoodFeature === 'function') {
+    window.initCustomMoodFeature();
+  } else {
+    console.log("Custom mood feature not available");
+    
+    // Try to load it dynamically
+    import('./custom-mood-functionality.js')
+      .then(module => {
+        if (module.initCustomMoodFeature) {
+          module.initCustomMoodFeature();
+        }
+      })
+      .catch(err => console.log("Could not load custom mood feature:", err));
+  }
 }
 
 /**
