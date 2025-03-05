@@ -45,17 +45,23 @@ let editingMoodId = null;
  * Initialize the custom mood functionality
  */
 export function initCustomMoodFeature() {
-  console.log('Initializing custom mood feature');
-  
-  // Cache DOM elements
-  cacheElements();
-  
-  // Set up event listeners
-  setupEventListeners();
-  
-  // Load custom moods to the UI
-  renderCustomMoodsInSelector();
-}
+    console.log('Initializing custom mood feature');
+    
+    // First create the manage custom moods button which creates the grid
+    createManageCustomMoodsButton();
+    
+    // Wait a brief moment to ensure DOM elements are created
+    setTimeout(() => {
+      // Re-cache elements after creation
+      cacheElements();
+      
+      // Set up event listeners
+      setupEventListeners();
+      
+      // Finally render custom moods
+      renderCustomMoodsInSelector();
+    }, 100);
+  }
 
 /**
  * Cache DOM elements for better performance
@@ -461,16 +467,23 @@ function setupAddCustomMoodButton() {
  * Render custom moods in the mood selector
  */
 function renderCustomMoodsInSelector() {
-  if (!elements.customMoodsGrid) {
-    console.error('Custom moods grid not found');
-    // Try to re-cache the element
-    elements.customMoodsGrid = document.querySelector('.custom-moods-grid');
-    
     if (!elements.customMoodsGrid) {
-      console.error('Still unable to find custom moods grid');
-      return;
-    }
-  }
+        console.error('Failed to create custom moods grid');
+        
+        // Try to get the grid again
+        elements.customMoodsGrid = document.querySelector('.custom-moods-grid');
+        
+        if (!elements.customMoodsGrid) {
+          // If still not found, try to create it
+          createManageCustomMoodsButton();
+          elements.customMoodsGrid = document.querySelector('.custom-moods-grid');
+          
+          if (!elements.customMoodsGrid) {
+            console.error('Could not create or find custom moods grid');
+            return;
+          }
+        }
+      }
   
   // Clear the custom moods grid
   elements.customMoodsGrid.innerHTML = '';
