@@ -378,6 +378,8 @@ function handleColorSelection(option) {
   
   // Check if already selected
   const existingIndex = appState.selectedMoods.findIndex(mood => mood.name === name);
+
+  window.handleColorSelection = handleColorSelection;
   
   if (existingIndex >= 0) {
     // Remove if already selected

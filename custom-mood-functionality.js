@@ -322,64 +322,122 @@ function attachMoodSelectionHandlers() {
 }
 
 /**
+ * Clean up duplicate custom moods in storage
+ */
+function cleanupDuplicateCustomMoods() {
+    const allMoods = customMoodManager.getAllCustomMoods();
+    const uniqueMoods = [];
+    const usedNames = new Set();
+    
+    // Keep only the first instance of each mood name
+    allMoods.forEach(mood => {
+      if (!usedNames.has(mood.name.toLowerCase())) {
+        usedNames.add(mood.name.toLowerCase());
+        uniqueMoods.push(mood);
+      }
+    });
+    
+    // If we found duplicates, update the storage
+    if (uniqueMoods.length < allMoods.length) {
+      console.log(`Removed ${allMoods.length - uniqueMoods.length} duplicate moods`);
+      
+      // Update local storage directly
+      try {
+        localStorage.setItem('bondTree_customMoods', JSON.stringify(uniqueMoods));
+        console.log('Storage updated with deduplicated moods');
+      } catch (error) {
+        console.error('Error updating storage:', error);
+      }
+    }
+  }
+
+/**
  * Initialize the custom mood functionality
  */
 export function initCustomMoodFeature() {
-  console.log('Initializing custom mood feature');
-  
-  // First create the manage custom moods button which creates the grid
-  createManageCustomMoodsButton();
-  
-  // Wait a brief moment to ensure DOM elements are created
-  setTimeout(() => {
-    // Re-cache elements after creation
-    cacheElements();
+    console.log('Initializing custom mood feature');
     
-    // Set up event listeners
-    setupEventListeners();
+    // Clean up any duplicate moods
+    cleanupDuplicateCustomMoods();
     
-    // Finally render custom moods
-    renderCustomMoodsInSelector();
-    
-    // Initialize selection indicators
-    initMoodSelectionIndicators();
-    
-    // Attach selection handlers
-    attachMoodSelectionHandlers();
-  }, 100);
-}
+    // Rest of your existing code...
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        initializeWithRetry();
+      });
+    } else {
+      initializeWithRetry();
+    }
+  }
 
-/**
- * Cache DOM elements for better performance
- */
-function cacheElements() {
-  elements = {
-    // Custom Mood Modal
-    customMoodModal: document.getElementById('custom-mood-modal'),
-    customMoodForm: document.getElementById('custom-mood-form'),
-    customMoodId: document.getElementById('custom-mood-id'),
-    customMoodName: document.getElementById('custom-mood-name'),
-    customMoodColor: document.getElementById('custom-mood-color'),
-    customMoodEmoji: document.getElementById('custom-mood-emoji'),
-    saveCustomMoodBtn: document.getElementById('save-custom-mood'),
-    deleteCustomMoodBtn: document.getElementById('delete-custom-mood'),
-    closeCustomMoodModal: document.getElementById('close-custom-mood-modal'),
-    colorPreview: document.getElementById('color-preview'),
+  function initializeWithRetry(attempts = 0) {
+    // Create the manage custom moods button which creates the grid
+    createManageCustomMoodsButton();
     
-    // Manage Custom Moods Modal
-    manageCustomMoodsModal: document.getElementById('manage-custom-moods-modal'),
-    customMoodsList: document.getElementById('custom-moods-list'),
-    emptyCustomMoods: document.getElementById('empty-custom-moods'),
-    addNewCustomMoodBtn: document.getElementById('add-new-custom-mood'),
-    closeManageMoodsModal: document.getElementById('close-manage-moods-modal'),
-    
-    // Main UI
-    moodColorsContainer: document.querySelector('.mood-colors'),
-    customMoodsGrid: document.querySelector('.custom-moods-grid')
-  };
-  
-  console.log('Custom mood elements cached:', elements);
-}
+    // Wait a brief moment to ensure DOM elements are created
+    setTimeout(() => {
+      // Re-cache elements after creation
+      cacheElements();
+      
+      // If key elements are missing and we haven't tried too many times, retry
+      if (!elements.customMoodsGrid && attempts < 3) {
+        console.log(`Retrying initialization (attempt ${attempts + 1})`);
+        initializeWithRetry(attempts + 1);
+        return;
+      }
+      
+      // Set up event listeners
+      setupEventListeners();
+      
+      // Finally render custom moods
+      renderCustomMoodsInSelector();
+      
+      // Initialize selection indicators
+      initMoodSelectionIndicators();
+      
+      // Attach selection handlers
+      attachMoodSelectionHandlers();
+    }, 100 * (attempts + 1)); // Increase timeout with each retry
+  }
+
+  function cacheElements() {
+    try {
+      elements = {
+        // Custom Mood Modal
+        customMoodModal: document.getElementById('custom-mood-modal'),
+        customMoodForm: document.getElementById('custom-mood-form'),
+        customMoodId: document.getElementById('custom-mood-id'),
+        customMoodName: document.getElementById('custom-mood-name'),
+        customMoodColor: document.getElementById('custom-mood-color'),
+        customMoodEmoji: document.getElementById('custom-mood-emoji'),
+        saveCustomMoodBtn: document.getElementById('save-custom-mood'),
+        deleteCustomMoodBtn: document.getElementById('delete-custom-mood'),
+        closeCustomMoodModal: document.getElementById('close-custom-mood-modal'),
+        colorPreview: document.getElementById('color-preview'),
+        
+        // Manage Custom Moods Modal
+        manageCustomMoodsModal: document.getElementById('manage-custom-moods-modal'),
+        customMoodsList: document.getElementById('custom-moods-list'),
+        emptyCustomMoods: document.getElementById('empty-custom-moods'),
+        addNewCustomMoodBtn: document.getElementById('add-new-custom-mood'),
+        closeManageMoodsModal: document.getElementById('close-manage-moods-modal'),
+        
+        // Main UI
+        moodColorsContainer: document.querySelector('.mood-colors'),
+        customMoodsGrid: document.querySelector('.custom-moods-grid')
+      };
+      
+      // Log status of key elements
+      console.log('Custom mood elements cached:', {
+        modalFound: !!elements.customMoodModal,
+        formFound: !!elements.customMoodForm,
+        moodColorsFound: !!elements.moodColorsContainer,
+        customMoodsGridFound: !!elements.customMoodsGrid
+      });
+    } catch (error) {
+      console.error('Error caching custom mood elements:', error);
+    }
+  }
 
 /**
  * Set up event listeners for custom mood functionality
@@ -491,81 +549,104 @@ function setupEventListeners() {
  * Save a custom mood from the form
  */
 function saveCustomMood() {
-  try {
-    const moodName = elements.customMoodName.value.trim();
-    const moodColor = elements.customMoodColor.value;
-    const moodEmoji = elements.customMoodEmoji.value;
-    
-    if (!moodName) {
-      alert('Please enter a name for your custom mood.');
-      return;
+    try {
+      const moodName = elements.customMoodName.value.trim();
+      const moodColor = elements.customMoodColor.value;
+      const moodEmoji = elements.customMoodEmoji.value;
+      
+      if (!moodName) {
+        alert('Please enter a name for your custom mood.');
+        return;
+      }
+      
+      // Check if a mood with this name already exists
+      const existingMoods = customMoodManager.getAllCustomMoods();
+      const isDuplicate = existingMoods.some(mood => 
+        mood.name.toLowerCase() === moodName.toLowerCase() && 
+        mood.id !== editingMoodId // Skip the current mood if editing
+      );
+      
+      if (isDuplicate) {
+        alert('A mood with this name already exists. Please use a different name.');
+        return;
+      }
+      
+      const moodData = {
+        name: moodName,
+        color: moodColor,
+        emoji: moodEmoji
+      };
+      
+      // Check if we're editing or creating
+      if (editingMoodId) {
+        customMoodManager.updateCustomMood(editingMoodId, moodData);
+        alert('Custom mood updated successfully!');
+      } else {
+        customMoodManager.addCustomMood(moodData);
+        alert('Custom mood created successfully!');
+      }
+      
+      // Close the modal
+      elements.customMoodModal.style.display = 'none';
+      
+      // Refresh the UI
+      renderCustomMoodsInSelector();
+      
+    } catch (error) {
+      console.error('Error saving custom mood:', error);
+      alert('Error saving custom mood: ' + error.message);
     }
-    
-    const moodData = {
-      name: moodName,
-      color: moodColor,
-      emoji: moodEmoji
-    };
-    
-    // Check if we're editing or creating
-    if (editingMoodId) {
-      customMoodManager.updateCustomMood(editingMoodId, moodData);
-      alert('Custom mood updated successfully!');
-    } else {
-      customMoodManager.addCustomMood(moodData);
-      alert('Custom mood created successfully!');
-    }
-    
-    // Close the modal
-    elements.customMoodModal.style.display = 'none';
-    
-    // Refresh the UI
-    renderCustomMoodsInSelector();
-    
-  } catch (error) {
-    console.error('Error saving custom mood:', error);
-    alert('Error saving custom mood: ' + error.message);
   }
-}
 
-/**
- * Open the modal to create a new custom mood
- */
 function openCreateCustomMoodModal() {
-  if (!elements.customMoodModal) {
-    console.error('Custom mood modal not found');
-    return;
+    if (!elements.customMoodModal) {
+      console.error('Custom mood modal not found');
+      // Try to get it again
+      elements.customMoodModal = document.getElementById('custom-mood-modal');
+      
+      if (!elements.customMoodModal) {
+        alert('Could not open the custom mood creator. Please refresh the page and try again.');
+        return;
+      }
+    }
+    
+    try {
+      // Reset form
+      if (elements.customMoodForm) elements.customMoodForm.reset();
+      if (elements.customMoodId) elements.customMoodId.value = '';
+      if (elements.customMoodName) elements.customMoodName.value = '';
+      if (elements.customMoodColor) elements.customMoodColor.value = '#4a90e2';
+      if (elements.customMoodEmoji) elements.customMoodEmoji.value = '😊';
+      if (elements.colorPreview) elements.colorPreview.style.backgroundColor = '#4a90e2';
+      
+      // Update modal title
+      const titleElement = document.getElementById('custom-mood-title');
+      if (titleElement) titleElement.textContent = 'Create Custom Mood';
+      
+      // Hide delete button
+      if (elements.deleteCustomMoodBtn) elements.deleteCustomMoodBtn.style.display = 'none';
+      
+      // Reset emoji selection
+      const emojiOptions = document.querySelectorAll('.emoji-option');
+      if (emojiOptions) {
+        emojiOptions.forEach(emoji => emoji.classList.remove('selected'));
+        
+        const defaultEmoji = document.querySelector('.emoji-option[data-emoji="😊"]');
+        if (defaultEmoji) {
+          defaultEmoji.classList.add('selected');
+        }
+      }
+      
+      // Reset state
+      editingMoodId = null;
+      
+      // Show modal
+      elements.customMoodModal.style.display = 'flex';
+    } catch (error) {
+      console.error('Error opening custom mood modal:', error);
+      alert('There was an error opening the custom mood creator. Please try again.');
+    }
   }
-  
-  // Reset form
-  elements.customMoodForm.reset();
-  elements.customMoodId.value = '';
-  elements.customMoodName.value = '';
-  elements.customMoodColor.value = '#4a90e2';
-  elements.customMoodEmoji.value = '😊';
-  elements.colorPreview.style.backgroundColor = '#4a90e2';
-  
-  // Update modal title
-  document.getElementById('custom-mood-title').textContent = 'Create Custom Mood';
-  
-  // Hide delete button
-  elements.deleteCustomMoodBtn.style.display = 'none';
-  
-  // Reset emoji selection
-  const emojiOptions = document.querySelectorAll('.emoji-option');
-  emojiOptions.forEach(emoji => emoji.classList.remove('selected'));
-  
-  const defaultEmoji = document.querySelector('.emoji-option[data-emoji="😊"]');
-  if (defaultEmoji) {
-    defaultEmoji.classList.add('selected');
-  }
-  
-  // Reset state
-  editingMoodId = null;
-  
-  // Show modal
-  elements.customMoodModal.style.display = 'flex';
-}
 
 /**
  * Open the modal to edit an existing custom mood
@@ -708,50 +789,69 @@ function createManageCustomMoodsButton() {
  * Render custom moods in the mood selector grid
  */
 function renderCustomMoodsInSelector() {
-  if (!elements.customMoodsGrid) {
-    console.error('Custom moods grid not found');
-    return;
+    if (!elements.customMoodsGrid) {
+      console.error('Custom moods grid not found');
+      return;
+    }
+    
+    // Clear the grid
+    elements.customMoodsGrid.innerHTML = '';
+    
+    // Get all custom moods
+    const customMoods = customMoodManager.getAllCustomMoods();
+    
+    // Deduplicate moods based on name
+    const uniqueMoods = [];
+    const usedNames = new Set();
+    
+    customMoods.forEach(mood => {
+      if (!usedNames.has(mood.name.toLowerCase())) {
+        usedNames.add(mood.name.toLowerCase());
+        uniqueMoods.push(mood);
+      } else {
+        console.warn(`Duplicate mood found: ${mood.name}. Only showing one instance.`);
+      }
+    });
+    
+    // Add each custom mood to the grid
+    uniqueMoods.forEach(mood => {
+      const moodOption = document.createElement('div');
+      moodOption.className = 'color-option';
+      moodOption.setAttribute('data-color', mood.color);
+      moodOption.setAttribute('data-name', mood.name);
+      moodOption.setAttribute('data-custom', 'true');
+      moodOption.setAttribute('data-id', mood.id);
+      moodOption.setAttribute('tabindex', '0');
+      moodOption.setAttribute('role', 'button');
+      moodOption.setAttribute('aria-pressed', 'false');
+      
+      moodOption.innerHTML = `
+        <div class="color-sample">
+          <div style="background-color: ${mood.color}; width: 100%; height: 100%;"></div>
+          <div class="custom-mood-emoji-small">${mood.emoji}</div>
+        </div>
+        <span class="color-name">${mood.name}</span>
+        <div class="mood-selection-indicator" style="display: none;"></div>
+      `;
+      
+      elements.customMoodsGrid.appendChild(moodOption);
+    });
+    
+    // Add "Create New" button if it doesn't exist
+    let addButton = elements.customMoodsGrid.querySelector('.add-custom-mood-button');
+    if (!addButton) {
+      setupAddCustomMoodButton();
+    }
+    
+    // Add selection indicators to custom moods
+    addSelectionIndicatorsToCustomMoods();
+    
+    // Update selection states
+    updateExistingSelections();
+    
+    // Reattach event handlers
+    attachMoodSelectionHandlers();
   }
-  
-  // Clear the grid
-  elements.customMoodsGrid.innerHTML = '';
-  
-  // Get all custom moods
-  const customMoods = customMoodManager.getAllCustomMoods();
-  
-  // Add each custom mood to the grid
-  customMoods.forEach(mood => {
-    const moodOption = document.createElement('div');
-    moodOption.className = 'color-option';
-    moodOption.setAttribute('data-color', mood.color);
-    moodOption.setAttribute('data-name', mood.name);
-    moodOption.setAttribute('data-custom', 'true');
-    moodOption.setAttribute('data-id', mood.id);
-    moodOption.setAttribute('tabindex', '0');
-    moodOption.setAttribute('role', 'button');
-    moodOption.setAttribute('aria-pressed', 'false');
-    
-    moodOption.innerHTML = `
-      <div class="color-sample">
-        <div style="background-color: ${mood.color}; width: 100%; height: 100%;"></div>
-        <div class="custom-mood-emoji-small">${mood.emoji}</div>
-      </div>
-      <span class="color-name">${mood.name}</span>
-      <div class="mood-selection-indicator" style="display: none;"></div>
-    `;
-    
-    elements.customMoodsGrid.appendChild(moodOption);
-  });
-  
-  // Add selection indicators to custom moods
-  addSelectionIndicatorsToCustomMoods();
-  
-  // Update selection states
-  updateExistingSelections();
-  
-  // Reattach event handlers
-  attachMoodSelectionHandlers();
-}
 
 /**
  * Create and set up the "Add Custom Mood" button
