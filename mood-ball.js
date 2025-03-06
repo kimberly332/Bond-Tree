@@ -66,6 +66,9 @@ let appState = {
   isSaving: false
 };
 
+// Add this near the top of mood-ball.js, after initializing appState
+window.appState = appState;
+
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', initApp);
 

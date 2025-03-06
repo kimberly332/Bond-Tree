@@ -33,7 +33,8 @@ const STANDARD_MOOD_EMOJIS = {
    * @param {Array} customMoods - Optional array of custom moods
    * @returns {string} The emoji for the mood
    */
-  export function getMoodEmoji(moodName, customMoods = []) {
+// In mood-emoji-utils.js
+export function getMoodEmoji(moodName, customMoods = []) {
     // Check if it's a custom mood
     if (customMoods && customMoods.length > 0) {
       const customMood = customMoods.find(mood => mood.name === moodName);
