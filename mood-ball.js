@@ -849,3 +849,23 @@ export {
   updateSavedMoods,
   showNoteModal
 };
+
+// Properly expose the initCustomMoodFeature function
+window.addEventListener('DOMContentLoaded', async () => {
+  try {
+    // Try to import the custom mood functionality module
+    const module = await import('./custom-mood-functionality.js');
+    
+    // Make it available globally
+    window.initCustomMoodFeature = module.initCustomMoodFeature;
+    
+    // Initialize if the document is already loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      window.initCustomMoodFeature();
+    }
+    
+    console.log('Custom mood feature loaded successfully');
+  } catch (error) {
+    console.error('Error loading custom mood feature:', error);
+  }
+});
