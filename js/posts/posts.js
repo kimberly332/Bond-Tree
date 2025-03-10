@@ -8,8 +8,8 @@
  * - Handling post privacy settings
  */
 
-import { auth } from './firebase-config.js';
-import AuthManager from './auth-manager.js';
+import { auth } from './js/firebase-config.js';
+import AuthManager from './js/auth/auth-manager.js';
 import PostsManager from './posts-manager.js';
 
 // Initialize managers

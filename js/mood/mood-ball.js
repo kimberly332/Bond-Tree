@@ -8,7 +8,7 @@
  * - Displaying saved mood history
  */
 
-import { auth } from './firebase-config.js';
+import { auth } from '../firebase-config.js';
 import AuthManager from './auth-manager.js';
 import { getMoodEmoji } from './mood-emoji-utils.js';
 
