@@ -214,6 +214,12 @@ button:disabled,
   border-left: 4px solid #9c27b0;
 }
 
+.dashboard-btn.journal {
+  background-color: #f4f3f3;
+  color: #333;
+  border-left: 4px solid #333;
+}
+
 .dashboard-btn.logout {
   background-color: #f44336;
   color: white;
