@@ -17,11 +17,12 @@
   --dark-text: #333333;
   --dark-text-secondary: #666666;
   --card-radius: 16px;
-  --btn-radius: 12px;
+  --btn-radius: 8px;
   --transition-smooth: 0.3s ease;
 }
 
 body {
+  padding: 0;
   font-family: 'Nunito', sans-serif;
   background-color: var(--light-bg);
   color: var(--dark-text);
@@ -43,6 +44,7 @@ body {
 }
 
 header {
+  width: 100%;
   background-color: #4a90e2;
   color: white;
   padding: 15px 10px;
@@ -57,6 +59,7 @@ h1 {
 }
 
 .tagline {
+  color: white;
   font-family: 'Nunito', sans-serif;
   font-style: italic;
   margin-top: 5px;
@@ -541,6 +544,7 @@ h1 {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 
 .back-btn:hover {
@@ -551,6 +555,7 @@ h1 {
 
 /* Footer */
 footer {
+  width: 100%;
   text-align: center;
   padding: 15px;
   color: #888;
@@ -944,143 +949,4 @@ footer {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
-  }
-  
-  /* Custom styles to match mood-ball.html */
-  /* These override the styles above to ensure perfect matching */
-  
-  body {
-    background-color: #f9f9fb;
-  }
-  
-  header {
-    background-color: #4a90e2;
-    padding: 20px 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  }
-  
-  h1 {
-    font-size: 24px;
-  }
-  
-  .tagline {
-    margin-top: 5px;
-    font-size: 14px;
-  }
-  
-  .section {
-    border-radius: 20px;
-    background-color: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    padding: 25px;
-    margin-bottom: 25px;
-  }
-  
-  .section-title {
-    color: #4a90e2;
-    font-size: 20px;
-    margin-bottom: 25px;
-  }
-  
-  input[type="text"],
-  textarea {
-    border-radius: 20px;
-    padding: 14px 18px;
-    border: 1px solid #e0e0e0;
-    background-color: #fafbfc;
-  }
-  
-  .media-upload-btn {
-    border-radius: 20px;
-    padding: 12px 20px;
-    background-color: #f5f5f7;
-    box-shadow: none;
-    border: 1px solid #e0e0e0;
-  }
-  
-  .privacy-option {
-    background-color: #f5f5f7;
-    border-radius: 15px;
-    border: 2px solid transparent;
-    padding: 20px 10px;
-  }
-  
-  .privacy-option input:checked + .option-icon {
-    color: #4a90e2;
-  }
-  
-  .privacy-option input:checked ~ .option-text {
-    color: #4a90e2;
-  }
-  
-  .btn-success {
-    background-color: #4CAF50;
-    border-radius: 30px;
-    padding: 12px 30px;
-    box-shadow: none;
-  }
-  
-  .btn-success:hover {
-    background-color: #43A047;
-    box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
-  }
-  
-  .filter-select {
-    border-radius: 20px;
-    padding: 8px 15px;
-    background-color: white;
-    border: 1px solid #e0e0e0;
-  }
-  
-  .post-card {
-    background-color: white;
-    border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  }
-  
-  footer {
-    background-color: transparent;
-    padding: 20px;
-    color: #888;
-  }
-  
-  /* Fix privacy options to match mood-ball.html's circular option design */
-  .privacy-options {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-  }
-  
-  .privacy-option {
-    min-width: 110px;
-    text-align: center;
-    padding: 15px 10px;
-    transition: all 0.2s ease;
-  }
-  
-  .privacy-option input:checked + .option-icon::after {
-    display: none; /* Remove the green dot to match mood-ball.html */
-  }
-  
-  .privacy-option input:checked + .option-icon {
-    color: #4a90e2;
-  }
-  
-  .privacy-option input:checked ~ .option-text {
-    color: #4a90e2;
-  }
-  
-  .privacy-option input:checked + .privacy-option {
-    background-color: #e3f2fd;
-    border-color: #4a90e2;
-  }
-  
-  .option-icon {
-    font-size: 24px;
-    margin-bottom: 10px;
-  }
-  
-  .option-text {
-    font-size: 14px;
-    font-weight: 600;
   }
