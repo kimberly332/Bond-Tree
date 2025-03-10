@@ -1,26 +1,39 @@
 /* Bond Tree Enhanced Friends Layout */
-/* Add this to all CSS files */
+
+/* Base Layout Adjustments */
 body {
   overflow-x: hidden;
   width: 100%;
   min-height: 100vh;
-  /* Use the custom property in addition to vh */
-  min-height: calc(var(--vh, 1vh) * 100);
+  min-height: calc(var(--vh, 1vh) * 100); /* Fix for iOS Safari 100vh issue */
 }
 
-/* Fix for iOS Safari 100vh issue */
-.modal-overlay, .note-modal, .friend-note-modal {
+/* Modal height fix for mobile browsers */
+.modal-overlay, 
+.note-modal, 
+.friend-note-modal {
   height: 100vh;
   height: calc(var(--vh, 1vh) * 100);
 }
 
-/* Updated Card-based friends list styling */
+/* Friends List Container */
 .friends-list {
   display: flex;
   flex-direction: column;
   gap: 15px;
   max-width: 600px;
   margin: 0 auto;
+}
+
+/* Bondship Tree Visualization */
+.bondship-tree {
+  background: linear-gradient(135deg, #4a90e2 0%, #7ed6df 100%);
+  padding: 30px 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-radius: 15px 15px 0 0;
 }
 
 .tree-icon {
@@ -37,20 +50,11 @@ body {
   object-fit: contain;
 }
 
-.bondship-tree {
-  background: linear-gradient(135deg, #4a90e2 0%, #7ed6df 100%);
-  padding: 30px 20px 0px 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  border-radius: 15px 15px 0 0;
-}
-
 .tree-pot {
   display: none; /* Removed pot as it's now part of the SVG */
 }
 
+/* Bondship Status Bar */
 .bondship-status {
   background-color: #f9ca24;
   padding: 15px;
@@ -65,7 +69,7 @@ body {
   margin: 0;
 }
 
-/* Friend Cards Container */
+/* Friend Cards Layout */
 .friend-cards-container {
   display: flex;
   flex-wrap: wrap;
@@ -76,7 +80,6 @@ body {
   border-radius: 0 0 16px 16px;
 }
 
-/* Individual Friend Card */
 .friend-card {
   background-color: white;
   border-radius: 12px;
@@ -103,7 +106,7 @@ body {
   color: #333;
 }
 
-/* Mood Circle */
+/* Mood Circle & Information */
 .friend-mood-circle {
   width: 120px;
   height: 120px;
@@ -126,7 +129,6 @@ body {
   text-align: center;
 }
 
-/* Mood Emojis */
 .mood-emojis {
   display: flex;
   justify-content: center;
@@ -135,22 +137,22 @@ body {
   font-size: 1.5rem;
 }
 
-/* Delete Friend Button */
+/* Action Buttons */
 .delete-friend-btn {
   font-family: 'Nunito', sans-serif;
-font-weight: 600;
-background-color: #e74c3c;
-color: white;
-border: none;
-padding: 8px 15px;
-border-radius: 6px;
-font-size: 0.8rem;
-cursor: pointer;
-margin-top: 10px;
-transition: all 0.3s ease;
-display: inline-flex;
-align-items: center;
-justify-content: center;
+  font-weight: 600;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-friend-btn:hover {
@@ -177,55 +179,7 @@ justify-content: center;
   color: #4a90e2;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 600px) {
-  .friend-cards-container {
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-  }
-  
-  .friend-card {
-    width: 90%;
-    max-width: 300px;
-  }
-}
-
-/* Add this to bond-tree-enhanced-friends.css */
-@media (max-width: 480px) {
-  .bondship-tree {
-    padding: 20px 10px 0px 10px;
-  }
-  
-  .friend-cards-container {
-    padding: 15px 10px;
-  }
-  
-  .friend-card {
-    width: 100%;
-    max-width: none;
-  }
-  
-  .friend-mood-circle {
-    width: 100px;
-    height: 100px;
-  }
-  
-  .delete-friend-btn {
-    min-height: 44px;
-    min-width: 44px;
-    width: 100%;
-  }
-  
-  /* .friend-note-modal-content {
-    width: 100%;
-    height: 100%;
-    max-height: 100%;
-    border-radius: 0;
-  } */
-}
-
-/* Dashboard Grid Fix */
+/* Dashboard Layout */
 .dashboard-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -254,7 +208,7 @@ justify-content: center;
   margin-bottom: 10px;
 }
 
-/* Make logout button its own row but centered */
+/* Logout Button Layout */
 #logout-btn-container {
   grid-column: 1 / span 2;
   display: flex;
@@ -265,4 +219,44 @@ justify-content: center;
 #logout-btn {
   max-width: 250px;
   width: 100%;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 600px) {
+  .friend-cards-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .friend-card {
+    width: 90%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bondship-tree {
+    padding: 20px 10px 0;
+  }
+  
+  .friend-cards-container {
+    padding: 15px 10px;
+  }
+  
+  .friend-card {
+    width: 100%;
+    max-width: none;
+  }
+  
+  .friend-mood-circle {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .delete-friend-btn {
+    min-height: 44px;
+    min-width: 44px;
+    width: 100%;
+  }
 }

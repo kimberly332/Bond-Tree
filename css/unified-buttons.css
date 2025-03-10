@@ -1,21 +1,24 @@
 /* Unified Button Styles for Bond Tree
  * This stylesheet provides consistent button styling across the application
  */
- body {
-    overflow-x: hidden;
-    width: 100%;
-    min-height: 100vh;
-    /* Use the custom property in addition to vh */
-    min-height: calc(var(--vh, 1vh) * 100);
-  }
-  
-  /* Fix for iOS Safari 100vh issue */
-  .modal-overlay, .note-modal, .friend-note-modal {
-    height: 100vh;
-    height: calc(var(--vh, 1vh) * 100);
-  }
 
-/* Base Button Style */
+/* ===== Layout & iOS Fix ===== */
+body {
+  overflow-x: hidden;
+  width: 100%;
+  min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100); /* Fix for iOS Safari 100vh issue */
+}
+
+/* Fix for iOS Safari 100vh issue */
+.modal-overlay, 
+.note-modal, 
+.friend-note-modal {
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* ===== Base Button Styles ===== */
 button,
 .btn {
   font-family: 'Nunito', sans-serif;
@@ -36,7 +39,7 @@ button,
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Hover state */
+/* Button States */
 button:hover,
 .btn:hover {
   background-color: #3a7bc8;
@@ -44,7 +47,6 @@ button:hover,
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Active/focus states */
 button:active,
 button:focus,
 .btn:active,
@@ -53,7 +55,6 @@ button:focus,
   box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
 }
 
-/* Disabled state */
 button:disabled,
 .btn:disabled {
   background-color: #a9c7e8;
@@ -63,7 +64,7 @@ button:disabled,
   opacity: 0.7;
 }
 
-/* Button sizes */
+/* ===== Button Sizes ===== */
 .btn-lg {
   padding: 14px 24px;
   font-size: 1rem;
@@ -74,14 +75,13 @@ button:disabled,
   font-size: 0.8rem;
 }
 
-/* Button with full width */
 .btn-block {
-    display: inline-flex;
-    margin: 0 auto;
-    max-width: 200px;
+  display: inline-flex;
+  margin: 0 auto;
+  max-width: 200px;
 }
 
-/* Button Variations */
+/* ===== Button Color Variations ===== */
 .btn-primary {
   background-color: #4a90e2;
 }
@@ -104,14 +104,14 @@ button:disabled,
 }
 
 .btn-danger {
-    background-color: #f44336;
-    color: white;
+  background-color: #f44336;
+  color: white;
 }
 
 .btn-danger:hover {
-    background-color: #d32f2f;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  background-color: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-light {
@@ -124,7 +124,7 @@ button:disabled,
   background-color: #e8e8ea;
 }
 
-/* Icon Button (circular) */
+/* ===== Icon Buttons ===== */
 .btn-icon {
   width: 40px;
   height: 40px;
@@ -145,7 +145,7 @@ button:disabled,
   height: 48px;
 }
 
-/* Back button specific styling */
+/* ===== Navigation Buttons ===== */
 .back-btn {
   position: fixed;
   top: 15px;
@@ -168,7 +168,7 @@ button:disabled,
   transform: translateY(-2px);
 }
 
-/* Dashboard button styling */
+/* ===== Dashboard Buttons ===== */
 .dashboard-btn {
   background-color: white;
   color: #333;
@@ -190,6 +190,7 @@ button:disabled,
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
+/* Dashboard Button Variants */
 .dashboard-btn.mood {
   background-color: #e8f5e9;
   color: #05a268;
@@ -233,7 +234,7 @@ button:disabled,
   background-color: #d32f2f;
 }
 
-/* Modal buttons */
+/* ===== Modal Buttons ===== */
 .modal-close {
   position: absolute;
   top: 8px;
@@ -258,7 +259,7 @@ button:disabled,
   transform: none;
 }
 
-/* Friend request action buttons */
+/* ===== Friend Management Buttons ===== */
 .friend-request-actions button {
   padding: 8px 15px;
   border-radius: 8px;
@@ -281,7 +282,6 @@ button:disabled,
   background-color: #E53935;
 }
 
-/* Delete friend button */
 .delete-friend-btn {
   background-color: #f44336;
   padding: 8px 15px;
@@ -294,20 +294,20 @@ button:disabled,
   background-color: #d32f2f;
 }
 
-/* Add this to unified-buttons.css */
+/* ===== Responsive Adjustments ===== */
 @media (max-width: 480px) {
-    button,
-    .btn {
-      min-height: 44px;
-      min-width: 44px;
-    }
-    
-    .btn-block {
-      width: 100%;
-      max-width: none;
-    }
-    
-    .dashboard-btn {
-      min-height: 100px;
-    }
+  button,
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
   }
+  
+  .btn-block {
+    width: 100%;
+    max-width: none;
+  }
+  
+  .dashboard-btn {
+    min-height: 100px;
+  }
+}

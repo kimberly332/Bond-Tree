@@ -1,5 +1,7 @@
+/* Bond Tree Authentication Stylesheet */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap');
 
+/* Base Styles */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -29,20 +31,20 @@ body {
   align-items: center;
   min-height: 100vh;
   padding: 15px;
-
   overflow-x: hidden;
   width: 100%;
-  min-height: 100vh;
-  /* Use the custom property in addition to vh */
-  min-height: calc(var(--vh, 1vh) * 100);
+  min-height: calc(var(--vh, 1vh) * 100); /* Fix for iOS Safari 100vh issue */
 }
 
-/* Fix for iOS Safari 100vh issue */
-.modal-overlay, .note-modal, .friend-note-modal {
+/* Modal height fix for mobile browsers */
+.modal-overlay, 
+.note-modal, 
+.friend-note-modal {
   height: 100vh;
   height: calc(var(--vh, 1vh) * 100);
 }
 
+/* Authentication Container */
 .auth-container {
   background-color: var(--light-card);
   border-radius: 24px;
@@ -77,6 +79,7 @@ body {
   text-align: center;
 }
 
+/* Form Styling */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -137,6 +140,7 @@ body {
   display: none;
 }
 
+/* Dashboard Styles */
 .dashboard {
   display: none;
   text-align: center;
@@ -235,7 +239,7 @@ i.btn-icon {
   background-color: var(--light-bg) !important;
 }
 
-/* ====== Friend Requests Styles ====== */
+/* Friend Requests Styles */
 .friend-requests-list {
   display: flex;
   flex-direction: column;
@@ -313,7 +317,7 @@ i.btn-icon {
   position: relative;
 }
 
-/* Add this to auth.css */
+/* Responsive Adjustments */
 @media (max-width: 480px) {
   .auth-container {
     padding: 20px 15px;
