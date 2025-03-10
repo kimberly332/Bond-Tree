@@ -398,9 +398,12 @@
   
   @media (max-width: 600px) {
     .mood-colors,
-    .custom-moods-container,
-    .custom-moods-grid {
+    .custom-moods-container {
       padding: 0 15px;
+    }
+
+    .custom-moods-grid {
+      padding: 0;
     }
   }
   

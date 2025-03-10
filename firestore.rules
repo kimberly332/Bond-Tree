@@ -1,3 +1,4 @@
+// firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,6 +19,27 @@ service cloud.firestore {
               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests', 'friends', 'sentFriendRequests']);
               
       allow delete: if request.auth.uid == userId;
+    }
+    
+    // Posts collection rules
+    match /posts/{postId} {
+      // Allow reading posts if:
+      // 1. The user is authenticated and is the author
+      // 2. The post is public
+      // 3. The post is for friends and the user is a friend of the author
+      allow read: if request.auth != null && 
+        (resource.data.authorId == request.auth.uid || 
+         resource.data.privacy == "public" ||
+         (resource.data.privacy == "friends" && 
+          resource.data.authorId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.friends));
+          
+      // Allow creating posts if authenticated and setting themselves as author
+      allow create: if request.auth != null &&
+                    request.resource.data.authorId == request.auth.uid;
+                    
+      // Allow update and delete if authenticated and is the author
+      allow update, delete: if request.auth != null && 
+                             resource.data.authorId == request.auth.uid;
     }
   }
 }

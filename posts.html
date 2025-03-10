@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' https://www.gstatic.com https://cdnjs.cloudflare.com https://www.google.com https://www.recaptcha.net https://apis.google.com;
+  style-src 'self' https://fonts.googleapis.com https://cdnjs.cloudflare.com 'unsafe-inline';
+  font-src https://fonts.gstatic.com https://cdnjs.cloudflare.com data:;
+  img-src 'self' data: https://firebasestorage.googleapis.com;
+  connect-src *;
+  frame-src https://www.google.com https://www.recaptcha.net;
+  media-src 'self' https://firebasestorage.googleapis.com;
+">
+  <title>Bond Tree - My Journal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="bond-tree-enhanced-friends.css">
+  <link rel="stylesheet" href="unified-buttons.css">
+  <link rel="stylesheet" href="posts.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="icon" href="bond-tree-logo.svg">
+</head>
+<body>
+  <div id="login-warning" style="display: none; color: red; text-align: center; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 30px auto; max-width: 500px;">
+    <h3>Please log in first!</h3>
+    <p>You need to be logged in to use this feature.</p>
+    <a href="index.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background-color: #4a90e2; color: white; text-decoration: none; border-radius: 5px;">Go to Login</a>
+  </div>
+
+  <!-- Back button -->
+  <a href="index.html" class="back-btn" id="back-to-dashboard" aria-label="Back to Dashboard">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+      <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" fill="currentColor" />
+    </svg>
+  </a>
+  
+  <!-- Header -->
+  <header>
+    <h1>Bond Tree</h1>
+    <div class="tagline">Let's grow your bondship</div>
+  </header>
+
+  <!-- Main content area -->
+  <div class="container">
+    <!-- Create post card -->
+    <div class="section">
+      <h2 class="section-title">Create New Post</h2>
+      
+      <form id="post-form">
+        <div class="form-group">
+          <input type="text" id="post-title" placeholder="Title (optional)" maxlength="100">
+        </div>
+        
+        <div class="form-group">
+          <textarea id="post-content" placeholder="What's on your mind today?" required></textarea>
+          <div class="char-counter"><span id="chars-count">0</span>/1000</div>
+        </div>
+        
+        <div class="form-group media-upload">
+          <label for="post-media" class="btn btn-light media-upload-btn">
+            <i class="fas fa-image"></i> Add Photos/Videos
+          </label>
+          <input type="file" id="post-media" accept="image/*,video/*" multiple style="display: none;">
+          <div id="media-preview" class="media-preview"></div>
+        </div>
+        
+        <div class="form-group privacy-setting">
+          <label>Who can see this?</label>
+          <div class="privacy-options">
+            <label class="privacy-option">
+              <input type="radio" name="privacy" value="private" checked>
+              <span class="option-icon"><i class="fas fa-lock"></i></span>
+              <span class="option-text">Only Me</span>
+            </label>
+            <label class="privacy-option">
+              <input type="radio" name="privacy" value="friends">
+              <span class="option-icon"><i class="fas fa-user-friends"></i></span>
+              <span class="option-text">My Bonds</span>
+            </label>
+            <label class="privacy-option">
+              <input type="radio" name="privacy" value="public">
+              <span class="option-icon"><i class="fas fa-globe"></i></span>
+              <span class="option-text">Everyone</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="save-section">
+          <button type="submit" id="publish-button" class="btn btn-success btn-block">Publish Post</button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- Journal section -->
+    <div class="section">
+      <div class="posts-filter">
+        <h2 class="section-title">My Journal</h2>
+        <div class="filter-options">
+          <select id="privacy-filter" class="filter-select">
+            <option value="all">All Posts</option>
+            <option value="private">Private Posts</option>
+            <option value="friends">Friend Posts</option>
+            <option value="public">Public Posts</option>
+          </select>
+          <select id="sort-filter" class="filter-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="posts-container">
+        <!-- Posts will be loaded here -->
+        <div class="loading-indicator">
+          <div class="loading-spinner"></div>
+          <p>Loading your posts...</p>
+        </div>
+      </div>
+      
+      <div id="no-posts-message" style="display: none;">
+        <i class="fas fa-book" style="font-size: 3rem; color: #ccc; margin-bottom: 15px;"></i>
+        <p>You haven't created any posts yet. Start by sharing your thoughts above!</p>
+      </div>
+      
+      <div id="load-more-container" style="text-align: center; margin: 20px 0; display: none;">
+        <button id="load-more-btn" class="btn btn-light">Load More</button>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <p>Bond Tree - Connect with your emotions and share your journey</p>
+  </footer>
+
+  <!-- Post Edit Modal -->
+  <div id="edit-post-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Post</h3>
+        <button class="modal-close" id="close-edit-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-post-form">
+          <input type="hidden" id="edit-post-id">
+          
+          <div class="form-group">
+            <input type="text" id="edit-post-title" placeholder="Title (optional)" maxlength="100">
+          </div>
+          
+          <div class="form-group">
+            <textarea id="edit-post-content" placeholder="What's on your mind today?" required></textarea>
+            <div class="char-counter"><span id="edit-chars-count">0</span>/1000</div>
+          </div>
+          
+          <div class="form-group privacy-setting">
+            <label>Who can see this?</label>
+            <div class="privacy-options">
+              <label class="privacy-option">
+                <input type="radio" name="edit-privacy" value="private">
+                <span class="option-icon"><i class="fas fa-lock"></i></span>
+                <span class="option-text">Only Me</span>
+              </label>
+              <label class="privacy-option">
+                <input type="radio" name="edit-privacy" value="friends">
+                <span class="option-icon"><i class="fas fa-user-friends"></i></span>
+                <span class="option-text">My Bonds</span>
+              </label>
+              <label class="privacy-option">
+                <input type="radio" name="edit-privacy" value="public">
+                <span class="option-icon"><i class="fas fa-globe"></i></span>
+                <span class="option-text">Everyone</span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="edit-media-preview" id="edit-media-preview">
+            <!-- Existing media previews will be shown here -->
+          </div>
+          
+          <div class="form-group buttons-group">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <button type="button" id="delete-post-btn" class="btn btn-danger">Delete Post</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Post View Modal -->
+  <div id="view-post-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="view-post-title">Post Title</h3>
+        <button class="modal-close" id="close-view-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="post-metadata">
+          <div class="post-author">
+            <span id="view-post-author">Author Name</span>
+          </div>
+          <div class="post-date">
+            <span id="view-post-date">Date</span>
+          </div>
+          <div class="post-privacy">
+            <span id="view-post-privacy-icon"><i class="fas fa-lock"></i></span>
+            <span id="view-post-privacy-text">Private</span>
+          </div>
+        </div>
+        
+        <div id="view-post-content" class="post-content-view">
+          <!-- Post content will be shown here -->
+        </div>
+        
+        <div id="view-media-container" class="media-gallery">
+          <!-- Media will be shown here -->
+        </div>
+        
+        <div class="post-actions" id="view-post-actions">
+          <button id="edit-post-btn" class="btn btn-light">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button id="share-post-btn" class="btn btn-light">
+            <i class="fas fa-share"></i> Share
+          </button>
+          <button id="download-post-btn" class="btn btn-light">
+            <i class="fas fa-download"></i> Download
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image/Video Viewer Modal -->
+  <div id="media-viewer-modal" class="modal">
+    <div class="modal-content media-viewer-content">
+      <button class="modal-close" id="close-media-viewer">&times;</button>
+      <div id="media-viewer-container"></div>
+      <div class="media-navigation">
+        <button id="prev-media" class="nav-button"><i class="fas fa-chevron-left"></i></button>
+        <div id="media-counter">1 / 1</div>
+        <button id="next-media" class="nav-button"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load scripts as ES modules -->
+  <script type="module" src="auth-manager.js"></script>
+  <script type="module" src="posts-manager.js"></script>
+  <script type="module" src="posts.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+</body>
+</html>
