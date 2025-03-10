@@ -653,131 +653,178 @@ async function handleCreatePost(e) {
  * @returns {HTMLElement} Post element
  */
 function createPostElement(post) {
-    const postElement = document.createElement('div');
-    postElement.className = 'post-card';
-    postElement.dataset.id = post.id;
-    
-    // Format date
-    const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
-    const formattedDate = postDate.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    
-    // Get privacy icon and text
-    let privacyIcon = '';
-    let privacyText = '';
-    
-    switch (post.privacy) {
-      case 'private':
-        privacyIcon = '<i class="fas fa-lock"></i>';
-        privacyText = 'Only Me';
-        break;
-      case 'friends':
-        privacyIcon = '<i class="fas fa-user-friends"></i>';
-        privacyText = 'My Bonds';
-        break;
-      case 'public':
-        privacyIcon = '<i class="fas fa-globe"></i>';
-        privacyText = 'Everyone';
-        break;
-      default:
-        privacyIcon = '<i class="fas fa-lock"></i>';
-        privacyText = 'Only Me';
-    }
-    
-    // Create truncated content
-    let contentText = post.content || '';
-    const isTruncated = contentText.length > TRUNCATE_LENGTH;
-    
-    if (isTruncated) {
-      contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
-    }
-    
-    // Create HTML structure
-    let mediaHTML = '';
-    
-    // Add media previews if available
-    if (post.media && post.media.length > 0) {
-      if (post.media.length > 4) {
-        // Show first 3 and a count for the rest
-        mediaHTML = `
-          <div class="post-media">
-            ${post.media.slice(0, 3).map((media, index) => `
-              <div class="post-media-item" data-index="${index}" data-id="${post.id}">
-                ${media.type === 'image' 
-                  ? `<img src="${media.url}" alt="Post image ${index + 1}">`
-                  : `<video src="${media.url}" muted></video>`
-                }
-                <div class="media-type-icon">
-                  <i class="fas fa-${media.type === 'image' ? 'image' : 'video'}"></i>
-                </div>
-              </div>
-            `).join('')}
-            <div class="post-media-item post-media-count" data-id="${post.id}">
-              +${post.media.length - 3}
-            </div>
-          </div>
-        `;
-      } else {
-        // Show all media
-        mediaHTML = `
-          <div class="post-media">
-            ${post.media.map((media, index) => `
-              <div class="post-media-item" data-index="${index}" data-id="${post.id}">
-                ${media.type === 'image' 
-                  ? `<img src="${media.url}" alt="Post image ${index + 1}">`
-                  : `<video src="${media.url}" muted></video>`
-                }
-                <div class="media-type-icon">
-                  <i class="fas fa-${media.type === 'image' ? 'image' : 'video'}"></i>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      }
-    }
-    
-    postElement.innerHTML = `
-      <div class="post-header">
-        <div>
-          <h3 class="post-title">${post.title || 'Untitled Post'}</h3>
-          <div class="post-date">${formattedDate}</div>
-        </div>
-        <div class="post-privacy-badge">
-          ${privacyIcon} ${privacyText}
-        </div>
-      </div>
-      <div class="post-content ${isTruncated ? 'truncated' : ''}">
-        ${contentText}
-      </div>
-      ${isTruncated ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
-      ${mediaHTML}
-      <div class="post-actions">
-        <button class="action-btn view-btn" aria-label="View post">
-          <i class="fas fa-eye"></i> View
-        </button>
-        <button class="action-btn edit-btn" aria-label="Edit post">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button class="action-btn share-btn" aria-label="Share post">
-          <i class="fas fa-share"></i> Share
-        </button>
-        <button class="action-btn delete-btn" aria-label="Delete post">
-          <i class="fas fa-trash"></i> Delete
-        </button>
-      </div>
-    `;
-    
-    // Add event listeners as in the original function
-    // ...
+  const postElement = document.createElement('div');
+  postElement.className = 'post-card';
+  postElement.dataset.id = post.id;
   
-    return postElement;
+  // Format date
+  const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
+  const formattedDate = postDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Get privacy icon and text
+  let privacyIcon = '';
+  let privacyText = '';
+  
+  switch (post.privacy) {
+    case 'private':
+      privacyIcon = '<i class="fas fa-lock"></i>';
+      privacyText = 'Only Me';
+      break;
+    case 'friends':
+      privacyIcon = '<i class="fas fa-user-friends"></i>';
+      privacyText = 'My Bonds';
+      break;
+    case 'public':
+      privacyIcon = '<i class="fas fa-globe"></i>';
+      privacyText = 'Everyone';
+      break;
+    default:
+      privacyIcon = '<i class="fas fa-lock"></i>';
+      privacyText = 'Only Me';
   }
+  
+  // Create truncated content
+  let contentText = post.content || '';
+  const isTruncated = contentText.length > TRUNCATE_LENGTH;
+  
+  if (isTruncated) {
+    contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
+  }
+  
+  // Create HTML structure
+  let mediaHTML = '';
+  
+  // Add media previews if available
+  if (post.media && post.media.length > 0) {
+    if (post.media.length > 4) {
+      // Show first 3 and a count for the rest
+      mediaHTML = `
+        <div class="post-media">
+          ${post.media.slice(0, 3).map((media, index) => `
+            <div class="post-media-item" data-index="${index}" data-id="${post.id}">
+              ${media.type === 'image' 
+                ? `<img src="${media.url}" alt="Post image ${index + 1}">`
+                : `<video src="${media.url}" muted></video>`
+              }
+              <div class="media-type-icon">
+                <i class="fas fa-${media.type === 'image' ? 'image' : 'video'}"></i>
+              </div>
+            </div>
+          `).join('')}
+          <div class="post-media-item post-media-count" data-id="${post.id}">
+            +${post.media.length - 3}
+          </div>
+        </div>
+      `;
+    } else {
+      // Show all media
+      mediaHTML = `
+        <div class="post-media">
+          ${post.media.map((media, index) => `
+            <div class="post-media-item" data-index="${index}" data-id="${post.id}">
+              ${media.type === 'image' 
+                ? `<img src="${media.url}" alt="Post image ${index + 1}">`
+                : `<video src="${media.url}" muted></video>`
+              }
+              <div class="media-type-icon">
+                <i class="fas fa-${media.type === 'image' ? 'image' : 'video'}"></i>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+  
+  postElement.innerHTML = `
+    <div class="post-header">
+      <div>
+        <h3 class="post-title">${post.title || 'Untitled Post'}</h3>
+        <div class="post-date">${formattedDate}</div>
+      </div>
+      <div class="post-privacy-badge">
+        ${privacyIcon} ${privacyText}
+      </div>
+    </div>
+    <div class="post-content ${isTruncated ? 'truncated' : ''}">
+      ${contentText}
+    </div>
+    ${isTruncated ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
+    ${mediaHTML}
+    <div class="post-actions">
+      <button class="action-btn view-btn" aria-label="View post">
+        <i class="fas fa-eye"></i> View
+      </button>
+      <button class="action-btn edit-btn" aria-label="Edit post">
+        <i class="fas fa-edit"></i> Edit
+      </button>
+      <button class="action-btn share-btn" aria-label="Share post">
+        <i class="fas fa-share"></i> Share
+      </button>
+      <button class="action-btn delete-btn" aria-label="Delete post">
+        <i class="fas fa-trash"></i> Delete
+      </button>
+    </div>
+  `;
+  
+  // Add event listeners for buttons
+  // 1. View button
+  const viewButton = postElement.querySelector('.view-btn');
+  if (viewButton) {
+    viewButton.addEventListener('click', () => {
+      openViewModal(post);
+    });
+  }
+  
+  // 2. Edit button
+  const editButton = postElement.querySelector('.edit-btn');
+  if (editButton) {
+    editButton.addEventListener('click', () => {
+      openEditModal(post);
+    });
+  }
+  
+  // 3. Share button
+  const shareButton = postElement.querySelector('.share-btn');
+  if (shareButton) {
+    shareButton.addEventListener('click', () => {
+      sharePost(post);
+    });
+  }
+  
+  // 4. Delete button
+  const deleteButton = postElement.querySelector('.delete-btn');
+  if (deleteButton) {
+    deleteButton.addEventListener('click', () => {
+      confirmDeletePost(post);
+    });
+  }
+  
+  // 5. Read more link
+  const readMoreLink = postElement.querySelector('.read-more');
+  if (readMoreLink) {
+    readMoreLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      openViewModal(post);
+    });
+  }
+  
+  // 6. Media items
+  const mediaItems = postElement.querySelectorAll('.post-media-item');
+  mediaItems.forEach((item, index) => {
+    item.addEventListener('click', () => {
+      openMediaViewer(post, index);
+    });
+  });
+  
+  return postElement;
+}
 
 /**
  * Open the edit modal for a post
