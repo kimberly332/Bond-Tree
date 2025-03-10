@@ -9,8 +9,8 @@
  */
 
 import { auth } from '../firebase-config.js';
-import AuthManager from './auth-manager.js';
-import { getMoodEmoji } from './mood-emoji-utils.js';
+import AuthManager from '../auth/auth-manager.js';
+import { getMoodEmoji } from '../mood/mood-emoji-utils.js';
 
 // Constants and configuration
 const MAX_MOODS = 3;

@@ -1,6 +1,6 @@
 // Import AuthManager and auth from the optimized auth-manager.js
-import AuthManager, { auth } from './auth-manager.js';
-import { showNoteModal } from '../../mood-ball.js';
+import AuthManager, { auth } from '../auth/auth-manager.js';
+import { showNoteModal } from '../mood/mood-ball.js';
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -835,7 +835,7 @@ function generateTreeSvg(health) {
   // Opacity variations based on health
   const opacity = Math.max(0.3, stage / 10);
 
-  return `<img src="bond-tree-logo.svg" alt="">`;
+  return `<img src="assets/images/bond-tree-logo.svg" alt="">`;
 }
 
 // Updated function to show Friends Modal
