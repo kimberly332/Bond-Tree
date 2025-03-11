@@ -16,9 +16,62 @@ import PostsManager from './posts-manager.js';
 const authManager = new AuthManager();
 const postsManager = new PostsManager();
 
+// Declare elements outside of the function to make it global
+let elements = {};
+
+// App state
+const appState = {
+  currentUser: null,
+  isLoading: false,
+  currentFilters: {
+    privacy: 'all',
+    sort: 'newest'
+  },
+  currentPost: null,
+  currentMediaIndex: 0,
+  mediaItems: []
+};
+
+// Constants
+const MAX_CONTENT_LENGTH = 1000;
+const TRUNCATE_LENGTH = 300;
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', initApp);
+
 /**
- * Cache DOM elements to avoid repeated lookups
+ * Initialize the application
  */
+function initApp() {
+  console.log("DOM loaded - initializing posts.js");
+  
+  // Set up keyboard accessibility
+  setupKeyboardAccessibility();
+  
+  // Add viewport height fix for mobile browsers
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+  
+  // Update on resize
+  window.addEventListener('resize', () => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  });
+  
+  // Cache DOM elements
+  cacheElements();
+
+  // Add event listeners
+  addEventListeners();
+
+  // Add this line here:
+  setupPasscodeField();
+
+  // Check authentication state with Firebase
+  auth.onAuthStateChanged(handleAuthStateChange);
+}
+
+// Cache DOM elements to avoid repeated lookups
 function cacheElements() {
   elements = {
     // Main containers
@@ -99,58 +152,6 @@ function cacheElements() {
   };
   
   console.log("DOM elements cached");
-}
-
-// App state
-const appState = {
-  currentUser: null,
-  isLoading: false,
-  currentFilters: {
-    privacy: 'all',
-    sort: 'newest'
-  },
-  currentPost: null,
-  currentMediaIndex: 0,
-  mediaItems: []
-};
-
-// Constants
-const MAX_CONTENT_LENGTH = 1000;
-const TRUNCATE_LENGTH = 300;
-
-// Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', initApp);
-
-/**
- * Initialize the application
- */
-function initApp() {
-  console.log("DOM loaded - initializing posts.js");
-  
-  // Set up keyboard accessibility
-  setupKeyboardAccessibility();
-  
-  // Add viewport height fix for mobile browsers
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
-  
-  // Update on resize
-  window.addEventListener('resize', () => {
-    const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', `${vh}px`);
-  });
-  
-  // Cache DOM elements
-  cacheElements();
-
-  // Add event listeners
-  addEventListeners();
-
-  // Add this line here:
-  setupPasscodeField();
-
-  // Check authentication state with Firebase
-  auth.onAuthStateChanged(handleAuthStateChange);
 }
 
 /**
