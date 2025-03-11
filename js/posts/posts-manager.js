@@ -62,7 +62,6 @@ const storage = getStorage(firebaseApp);
 
 // Privacy levels
 const PRIVACY = {
-  PRIVATE: 'private',  // Only the author can see
   FRIENDS: 'friends',  // Author and friends can see
   PUBLIC: 'public',    // Everyone can see
   PASSCODE: 'passcode' // Anyone with passcode can see
@@ -213,7 +212,7 @@ class PostsManager {
         authorName: postData.authorName || 'Anonymous',
         title: postData.title || '',
         content: postData.content,
-        privacy: postData.privacy || PRIVACY.PRIVATE,
+        privacy: postData.privacy || PRIVACY.FRIENDS,
         tags: postData.tags || [],
         media: [],
         reactions: {
@@ -883,10 +882,10 @@ class PostsManager {
     if (!this.currentUser) {
       throw new Error('User must be logged in to fetch posts');
     }
-    
+  
     try {
       let postsQuery;
-      
+  
       // If looking at own posts, show all
       if (authorId === this.currentUser.uid) {
         postsQuery = query(
@@ -895,32 +894,30 @@ class PostsManager {
           orderBy('createdAt', 'desc')
         );
       } else {
-        // If looking at someone else's posts, only show public and potentially friends posts
+        // If looking at someone else's posts, show public, friends-only, and passcode-protected posts
         postsQuery = query(
           collection(db, 'posts'),
           where('authorId', '==', authorId),
-          where('privacy', '==', PRIVACY.PUBLIC),
+          where('privacy', 'in', [PRIVACY.PUBLIC, PRIVACY.FRIENDS, PRIVACY.PASSCODE]),
           orderBy('createdAt', 'desc')
         );
-        
-        // For friends' posts, we'd need to check friendship status
       }
-      
+  
       const querySnapshot = await getDocs(postsQuery);
-      
+  
       // Convert to array of post objects
       const posts = querySnapshot.docs.map(doc => {
         const data = doc.data();
-        
+  
         // Convert timestamps to dates
-        const createdAt = data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate() 
+        const createdAt = data.createdAt instanceof Timestamp
+          ? data.createdAt.toDate()
           : new Date();
-          
+  
         const updatedAt = data.updatedAt instanceof Timestamp
           ? data.updatedAt.toDate()
           : createdAt;
-        
+  
         return {
           id: doc.id,
           ...data,
@@ -928,12 +925,47 @@ class PostsManager {
           updatedAt
         };
       });
-      
-      return posts;
+  
+      // Check if the current user is a friend of the author
+      const isFriend = await this.isUserFriendOfAuthor(authorId);
+  
+      // If not a friend, filter out friends-only and passcode-protected posts
+      if (!isFriend) {
+        return posts.filter(post => post.privacy === PRIVACY.PUBLIC);
+      }
+  
+      // If a friend, include friends-only posts and add a flag for passcode-protected posts
+      return posts.map(post => {
+        if (post.privacy === PRIVACY.PASSCODE) {
+          return {
+            ...post,
+            isPasscodeProtected: true,
+            content: 'This post is passcode-protected'
+          };
+        }
+        return post;
+      });
     } catch (error) {
       console.error('Error getting author posts:', error);
       throw error;
     }
+  }
+  
+  async isUserFriendOfAuthor(authorId) {
+    if (!this.currentUser) {
+      return false;
+    }
+  
+    const currentUserId = this.currentUser.uid;
+  
+    // Query the friends subcollection of the author
+    const friendsQuery = query(
+      collection(db, 'users', authorId, 'friends'),
+      where('userId', '==', currentUserId)
+    );
+  
+    const friendsSnapshot = await getDocs(friendsQuery);
+    return !friendsSnapshot.empty;
   }
   
   /**

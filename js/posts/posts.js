@@ -761,7 +761,7 @@ async function handleCreatePost(e) {
 function createPostElement(post) {
   if (!post) {
     console.error('Attempted to create post element with null/undefined post');
-    return document.createElement('div'); // Return an empty div instead of throwing an error
+    return document.createElement('div');
   }
   
   const postElement = document.createElement('div');
@@ -812,7 +812,7 @@ function createPostElement(post) {
     contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
   }
   
-  // Create HTML structure
+  // Create media HTML
   let mediaHTML = '';
   
   // Add media previews if available
@@ -856,7 +856,7 @@ function createPostElement(post) {
       `;
     }
   }
-  
+
   postElement.innerHTML = `
     <div class="post-header">
       <div>
@@ -879,9 +879,11 @@ function createPostElement(post) {
       <button class="action-btn edit-btn" aria-label="Edit post">
         <i class="fas fa-edit"></i> Edit
       </button>
-      <button class="action-btn share-btn" aria-label="Share post">
-        <i class="fas fa-share"></i> Share
-      </button>
+      ${post.privacy === 'public' || post.privacy === 'friends' 
+        ? `<button class="action-btn share-btn" aria-label="Share post">
+            <i class="fas fa-share"></i> Share
+           </button>` 
+        : ''}
       <button class="action-btn delete-btn" aria-label="Delete post">
         <i class="fas fa-trash"></i> Delete
       </button>
@@ -1019,22 +1021,39 @@ function openEditModal(post) {
   elements.editPostModal.style.display = 'flex';
 }
 
+async function isUserFriendOfAuthor(authorId) {
+  if (!authManager.currentUser) {
+    return false;
+  }
+
+  const currentUserId = authManager.currentUser.uid;
+
+  // Query the friends subcollection of the author
+  const friendsQuery = query(
+    collection(db, 'users', authorId, 'friends'),
+    where('userId', '==', currentUserId)
+  );
+
+  const friendsSnapshot = await getDocs(friendsQuery);
+  return !friendsSnapshot.empty;
+}
+
 // When a user tries to view a post
 async function openViewModal(post) {
   // Check if post is passcode-protected
-  if (post.privacy === 'passcode') {
-    // If user is the author, allow immediate access
-    if (post.authorId === appState.currentUser?.uid) {
-      // Show the post normally
-      showPostContent(post);
-    } else {
-      // Otherwise, request passcode
+  if (post.privacy === PRIVACY.PASSCODE) {
+    // Check if the viewer is a friend of the author
+    const isFriend = await isUserFriendOfAuthor(post.authorId);
+
+    if (isFriend) {
+      // If a friend, request passcode
       showPasscodeModal(post.id);
-      return; // Don't show post yet
+      return;
+    } else {
+      // If not a friend, show a message
+      alert('This post is only available to the author\'s friends with the passcode.');
+      return;
     }
-  } else {
-    // Handle normal post viewing
-    showPostContent(post);
   }
 }
 
@@ -1142,6 +1161,7 @@ function showPostContent(post) {
     
     const editBtn = elements.editPostBtn;
     const deleteBtn = elements.viewPostActions.querySelector('.delete-btn');
+    const shareBtn = elements.sharePostBtn;
     
     if (editBtn) {
       editBtn.style.display = isAuthor ? 'inline-flex' : 'none';
@@ -1149,6 +1169,14 @@ function showPostContent(post) {
     
     if (deleteBtn) {
       deleteBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    }
+
+    // Hide share button for private or passcode-protected posts
+    if (shareBtn) {
+      shareBtn.style.display = 
+        (post.privacy === 'private' || post.privacy === 'passcode') 
+          ? 'none' 
+          : 'inline-flex';
     }
   }
 
