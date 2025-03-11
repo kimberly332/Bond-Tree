@@ -337,6 +337,105 @@ class PostsManager {
   async getPosts(options = {}) {
     if (!this.currentUser) {
       console.error('No current user for fetching posts');
+      return []; 
+    }
+    
+    try {
+      const queryOptions = {
+        privacy: options.privacy || this.currentFilters.privacy,
+        sort: options.sort || this.currentFilters.sort,
+        loadMore: options.loadMore || false,
+        limit: options.limit || this.postsPerPage,
+        tags: options.tags || []
+      };
+      
+      // Base query conditions
+      const queryConditions = [
+        where('authorId', '==', this.currentUser.uid)
+      ];
+      
+      // Add privacy filter if not 'all'
+      if (queryOptions.privacy !== 'all') {
+        queryConditions.push(where('privacy', '==', queryOptions.privacy));
+      }
+      
+      // Construct base query with privacy condition
+      let baseQuery = query(
+        collection(db, 'posts'),
+        ...queryConditions,
+        orderBy('createdAt', 'desc')
+      );
+      
+      // Add pagination if loading more
+      if (queryOptions.loadMore && this.lastVisible) {
+        baseQuery = query(
+          baseQuery,
+          startAfter(this.lastVisible),
+          limit(queryOptions.limit)
+        );
+      } else {
+        baseQuery = query(baseQuery, limit(queryOptions.limit));
+      }
+      
+      const querySnapshot = await getDocs(baseQuery);
+      
+      // Convert to array of post objects
+      const posts = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Safely convert timestamps
+        const createdAt = data.createdAt instanceof Timestamp 
+          ? data.createdAt.toDate() 
+          : new Date(data.createdAt || Date.now());
+          
+        const updatedAt = data.updatedAt instanceof Timestamp
+          ? data.updatedAt.toDate()
+          : new Date(data.updatedAt || createdAt);
+        
+        return {
+          id: doc.id,
+          ...data,
+          createdAt,
+          updatedAt
+        };
+      });
+      
+      // Update last visible for pagination
+      this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+      
+      // Check if we've reached the end
+      this.reachedEnd = querySnapshot.docs.length < queryOptions.limit;
+      
+      return posts;
+    } catch (error) {
+      console.error('Detailed Posts Query Error:', {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      });
+      
+      // Specific guidance for index error
+      if (error.code === 'firestore/requires-index') {
+        console.warn('🚨 Missing Firestore Index 🚨\n' + 
+          'Please create a composite index with these fields:\n' +
+          '1. authorId (Ascending)\n' +
+          '2. privacy (Ascending)\n' +
+          '3. createdAt (Descending)\n' +
+          'Visit the Firebase Console to create the index.');
+      }
+      
+      return [];
+    }
+  }
+  
+  /**
+   * Get a single post by ID
+   * @param {string} postId - The ID of the post to get
+   * @returns {Promise<Object>} The post document
+   */
+  async getPosts(options = {}) {
+    if (!this.currentUser) {
+      console.error('No current user for fetching posts');
       return []; // Return empty array instead of throwing error
     }
     
@@ -349,14 +448,10 @@ class PostsManager {
         tags: options.tags || []
       };
       
-      // Log query options for debugging
-      console.log('Posts query options:', queryOptions);
-      
       // Construct base query
       let baseQuery = query(
         collection(db, 'posts'),
-        where('authorId', '==', this.currentUser.uid),
-        orderBy('createdAt', 'desc')
+        where('authorId', '==', this.currentUser.uid)
       );
       
       // Adjust query based on privacy
@@ -366,6 +461,12 @@ class PostsManager {
           where('privacy', '==', queryOptions.privacy)
         );
       }
+      
+      // Add ordering
+      baseQuery = query(
+        baseQuery,
+        orderBy('createdAt', 'desc')
+      );
       
       // Add pagination if loading more
       if (queryOptions.loadMore && this.lastVisible) {
@@ -409,73 +510,16 @@ class PostsManager {
         this.reachedEnd = true;
       }
       
-      // Log retrieved posts
-      console.log('Retrieved posts:', {
-        count: posts.length,
-        posts: posts.map(post => post.id)
-      });
-      
       return posts;
     } catch (error) {
       console.error('Error getting posts:', error);
       
-      // Log detailed error information
-      console.error('Detailed error:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
+      // If it's an index error, provide helpful guidance
+      if (error.code === 'firestore/requires-index') {
+        console.error('You need to create a composite index. Follow the link in the error message or go to Firebase Console > Firestore > Indexes');
+      }
       
-      // Return empty array instead of throwing error
       return [];
-    }
-  }
-  
-  /**
-   * Get a single post by ID
-   * @param {string} postId - The ID of the post to get
-   * @returns {Promise<Object>} The post document
-   */
-  async getPost(postId) {
-    if (!this.currentUser) {
-      throw new Error('User must be logged in to fetch posts');
-    }
-    
-    try {
-      const docRef = doc(db, 'posts', postId);
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) {
-        throw new Error('Post not found');
-      }
-      
-      const data = docSnap.data();
-      
-      // Check if user can access this post based on privacy
-      if (data.privacy === PRIVACY.PRIVATE && data.authorId !== this.currentUser.uid) {
-        throw new Error('You do not have permission to view this post');
-      }
-      
-      // For friends posts, we'd need to check if the user is friends with author
-      
-      // Convert timestamps to dates
-      const createdAt = data.createdAt instanceof Timestamp 
-        ? data.createdAt.toDate() 
-        : new Date();
-        
-      const updatedAt = data.updatedAt instanceof Timestamp
-        ? data.updatedAt.toDate()
-        : createdAt;
-      
-      return {
-        id: docSnap.id,
-        ...data,
-        createdAt,
-        updatedAt
-      };
-    } catch (error) {
-      console.error('Error getting post:', error);
-      throw error;
     }
   }
   

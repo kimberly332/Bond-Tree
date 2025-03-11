@@ -120,11 +120,63 @@ class FirebaseAuthManager {
         };
         return this.userDataCache;
       } else {
-        console.warn("User document doesn't exist for authenticated user");
-        return null;
+        console.warn("User document doesn't exist. Creating a new document.");
+        
+        // Create user document if it doesn't exist
+        const userData = {
+          username: null,
+          email: this.currentUser.email,
+          name: this.currentUser.displayName || '',
+          friends: [],
+          savedMoods: [],
+          friendRequests: [],
+          sentFriendRequests: [],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+        
+        await setDoc(userDocRef, userData);
+        
+        this.userDataCache = {
+          ...userData,
+          id: this.currentUser.uid
+        };
+        
+        return this.userDataCache;
       }
     } catch (error) {
-      console.error("Error loading user data:", error);
+      console.error("Detailed error loading user data:", {
+        message: error.message,
+        code: error.code,
+        name: error.name,
+        stack: error.stack
+      });
+      
+      // Provide more specific error handling
+      if (error.code === 'permission-denied') {
+        console.warn('Permission denied. Check Firestore security rules.');
+        
+        // Optional: Attempt to create user document if it doesn't exist
+        try {
+          const userData = {
+            username: null,
+            email: this.currentUser.email,
+            name: this.currentUser.displayName || '',
+            friends: [],
+            savedMoods: [],
+            friendRequests: [],
+            sentFriendRequests: [],
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+          
+          await setDoc(doc(db, 'users', this.currentUser.uid), userData);
+          console.log('User document created successfully');
+        } catch (createError) {
+          console.error('Failed to create user document:', createError);
+        }
+      }
+      
       throw error;
     }
   }
