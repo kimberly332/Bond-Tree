@@ -64,7 +64,8 @@ const storage = getStorage(firebaseApp);
 const PRIVACY = {
   PRIVATE: 'private',  // Only the author can see
   FRIENDS: 'friends',  // Author and friends can see
-  PUBLIC: 'public'     // Everyone can see
+  PUBLIC: 'public',    // Everyone can see
+  PASSCODE: 'passcode' // Anyone with passcode can see
 };
 
 /**
@@ -80,6 +81,7 @@ class PostsManager {
       privacy: 'all',
       sort: 'newest'
     };
+    
     
     // Set up auth state listener
     this.unsubscribeFromAuth = onAuthStateChanged(auth, async (user) => {
@@ -156,6 +158,42 @@ class PostsManager {
   clearPendingMedia() {
     this.pendingMedia = [];
   }
+
+  /**
+   * Hash a passcode securely
+   * @param {string} passcode - The passcode to hash
+   * @returns {string} - Hashed passcode
+   */
+  async hashPasscode(passcode) {
+    // Simple hash implementation for demo
+    // In production, use a strong crypto library
+    let hash = 0;
+    for (let i = 0; i < passcode.length; i++) {
+      const char = passcode.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    // Add salt
+    const salt = Date.now().toString(36);
+    return `${hash.toString(16)}_${salt}`;
+  }
+
+  /**
+   * Verify a passcode
+   * @param {string} passcode - The passcode to verify
+   * @param {string} storedHash - The stored hash
+   * @returns {boolean} - Whether the passcode is correct
+   */
+  verifyPasscode(passcode, storedHash) {
+    const [hashPart] = storedHash.split('_');
+    let hash = 0;
+    for (let i = 0; i < passcode.length; i++) {
+      const char = passcode.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hashPart === hash.toString(16);
+  }
   
   /**
    * Create a new post with optional media
@@ -188,6 +226,23 @@ class PostsManager {
         updatedAt: serverTimestamp()
       };
       
+      // Handle passcode if privacy is set to passcode
+      if (post.privacy === PRIVACY.PASSCODE && postData.passcode) {
+        // Validate passcode format
+        if (!/^\d{4}$/.test(postData.passcode)) {
+          throw new Error('Passcode must be exactly 4 digits');
+        }
+        
+        // Hash the passcode before storing
+        post.passcodeHash = await this.hashPasscode(postData.passcode);
+        
+        // Don't store the plain passcode
+        delete postData.passcode;
+      } else if (post.privacy === PRIVACY.PASSCODE && !postData.passcode) {
+        // If passcode privacy is selected but no passcode provided
+        throw new Error('Passcode is required for passcode-protected posts');
+      }
+      
       // Upload any pending media
       if (this.pendingMedia.length > 0) {
         const mediaPromises = this.pendingMedia.map(media => this.uploadMedia(media.file));
@@ -209,11 +264,26 @@ class PostsManager {
       
       // Get the actual document with server timestamp resolved
       const newPostDoc = await getDoc(docRef);
+      const newPostData = newPostDoc.data();
+      
+      // Convert timestamps to dates for client use
+      const createdAt = newPostData.createdAt instanceof Timestamp 
+        ? newPostData.createdAt.toDate() 
+        : new Date();
+        
+      const updatedAt = newPostData.updatedAt instanceof Timestamp
+        ? newPostData.updatedAt.toDate()
+        : createdAt;
+      
+      // Return the new post with converted timestamps
       const newPost = {
         id: docRef.id,
-        ...newPostDoc.data()
+        ...newPostData,
+        createdAt,
+        updatedAt
       };
       
+      console.log('Successfully created post:', newPost.id);
       return newPost;
     } catch (error) {
       console.error('Error creating post:', error);
@@ -553,70 +623,70 @@ class PostsManager {
     }
   }
   
-/**
- * Delete a post and its associated media
- * @param {string} postId - The ID of the post to delete
- * @returns {Promise<boolean>} Success status
- */
-async deletePost(postId) {
-  if (!this.currentUser) {
-    throw new Error('User must be logged in to delete posts');
-  }
-  
-  try {
-    // Validate the postId
-    if (!postId || typeof postId !== 'string') {
-      throw new Error('Invalid post ID. Post ID must be a string.');
+  /**
+   * Delete a post and its associated media
+   * @param {string} postId - The ID of the post to delete
+   * @returns {Promise<boolean>} Success status
+   */
+  async deletePost(postId) {
+    if (!this.currentUser) {
+      throw new Error('User must be logged in to delete posts');
     }
     
-    console.log(`Attempting to delete post with ID: ${postId}`);
-    
-    // Get the post first to check permissions and get media references
-    const docRef = doc(db, 'posts', postId);
-    const docSnap = await getDoc(docRef);
-    
-    if (!docSnap.exists()) {
-      throw new Error('Post not found');
-    }
-    
-    const postData = docSnap.data();
-    
-    // Check if user is the author
-    if (postData.authorId !== this.currentUser.uid) {
-      throw new Error('You can only delete your own posts');
-    }
-    
-    // Try to delete media files, but continue even if this fails
-    if (postData.media && postData.media.length > 0) {
-      for (const media of postData.media) {
-        if (media.path) {
-          try {
-            const mediaRef = ref(storage, media.path);
-            await deleteObject(mediaRef);
-            console.log(`Successfully deleted media: ${media.path}`);
-          } catch (error) {
-            // Log the error but continue with post deletion
-            console.error('Error deleting media file:', error);
-            
-            // If we get a permission error, just continue
-            if (error.code === 'storage/unauthorized') {
-              console.log('Insufficient permissions to delete media. Continuing with post deletion.');
+    try {
+      // Validate the postId
+      if (!postId || typeof postId !== 'string') {
+        throw new Error('Invalid post ID. Post ID must be a string.');
+      }
+      
+      console.log(`Attempting to delete post with ID: ${postId}`);
+      
+      // Get the post first to check permissions and get media references
+      const docRef = doc(db, 'posts', postId);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        throw new Error('Post not found');
+      }
+      
+      const postData = docSnap.data();
+      
+      // Check if user is the author
+      if (postData.authorId !== this.currentUser.uid) {
+        throw new Error('You can only delete your own posts');
+      }
+      
+      // Try to delete media files, but continue even if this fails
+      if (postData.media && postData.media.length > 0) {
+        for (const media of postData.media) {
+          if (media.path) {
+            try {
+              const mediaRef = ref(storage, media.path);
+              await deleteObject(mediaRef);
+              console.log(`Successfully deleted media: ${media.path}`);
+            } catch (error) {
+              // Log the error but continue with post deletion
+              console.error('Error deleting media file:', error);
+              
+              // If we get a permission error, just continue
+              if (error.code === 'storage/unauthorized') {
+                console.log('Insufficient permissions to delete media. Continuing with post deletion.');
+              }
             }
           }
         }
       }
+      
+      // Delete the post document from Firestore
+      await deleteDoc(docRef);
+      console.log(`Successfully deleted post document: ${postId}`);
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      throw error;
     }
-    
-    // Delete the post document from Firestore
-    await deleteDoc(docRef);
-    console.log(`Successfully deleted post document: ${postId}`);
-    
-    return true;
-  } catch (error) {
-    console.error('Error deleting post:', error);
-    throw error;
   }
-}
   
   /**
    * Add a reaction to a post (like, heart, celebrate)

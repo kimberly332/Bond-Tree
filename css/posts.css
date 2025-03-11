@@ -918,6 +918,62 @@ a:focus {
   outline-offset: 2px;
 }
 
+/* Passcode input styling */
+.passcode-input-container {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.passcode-input {
+  width: 50px;
+  height: 60px;
+  font-size: 24px;
+  text-align: center;
+  border: 2px solid #ddd;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+}
+
+.passcode-input:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+#passcode-error {
+  color: #e74c3c;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.passcode-hint {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+#post-passcode {
+  font-size: 18px;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+/* Passcode icon for post cards */
+.post-passcode-indicator {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #4a90e2;
+  margin-top: 5px;
+}
+
+.post-passcode-indicator i {
+  margin-right: 5px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;

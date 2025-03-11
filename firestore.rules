@@ -9,6 +9,13 @@ service cloud.firestore {
     
     // Existing user document write rules
     match /users/{userId} {
+      allow read: if request.auth != null && 
+        (resource.data.authorId == request.auth.uid || 
+         resource.data.privacy == "public" ||
+         (resource.data.privacy == "friends" && 
+          resource.data.authorId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.friends) ||
+         resource.data.privacy == "passcode"); // Allow reading passcode-protected posts
+  
       allow create: if request.auth != null 
                     && request.resource.data.username.size() >= 3 
                     && request.resource.data.username.size() <= 15

@@ -16,68 +16,90 @@ import PostsManager from './posts-manager.js';
 const authManager = new AuthManager();
 const postsManager = new PostsManager();
 
-// Cache DOM elements to avoid repeated lookups
-const elements = {
-  // Main containers
-  loginWarning: document.getElementById('login-warning'),
-  mainContent: document.querySelector('.container'),
-  header: document.querySelector('header'),
-  footer: document.querySelector('footer'),
-  backButton: document.getElementById('back-to-dashboard'),
+/**
+ * Cache DOM elements to avoid repeated lookups
+ */
+function cacheElements() {
+  elements = {
+    // Main containers
+    loginWarning: document.getElementById('login-warning'),
+    mainContent: document.querySelector('.container'),
+    header: document.querySelector('header'),
+    footer: document.querySelector('footer'),
+    backButton: document.getElementById('back-to-dashboard'),
+    
+    // New post form
+    postForm: document.getElementById('post-form'),
+    postTitle: document.getElementById('post-title'),
+    postContent: document.getElementById('post-content'),
+    postMedia: document.getElementById('post-media'),
+    mediaPreview: document.getElementById('media-preview'),
+    publishButton: document.getElementById('publish-button'),
+    charsCount: document.getElementById('chars-count'),
+    
+    // Posts container
+    postsContainer: document.getElementById('posts-container'),
+    noPostsMessage: document.getElementById('no-posts-message'),
+    loadMoreContainer: document.getElementById('load-more-container'),
+    loadMoreBtn: document.getElementById('load-more-btn'),
+    
+    // Filters
+    privacyFilter: document.getElementById('privacy-filter'),
+    sortFilter: document.getElementById('sort-filter'),
+    
+    // Edit post modal
+    editPostModal: document.getElementById('edit-post-modal'),
+    editPostForm: document.getElementById('edit-post-form'),
+    editPostId: document.getElementById('edit-post-id'),
+    editPostTitle: document.getElementById('edit-post-title'),
+    editPostContent: document.getElementById('edit-post-content'),
+    editMediaPreview: document.getElementById('edit-media-preview'),
+    deletePostBtn: document.getElementById('delete-post-btn'),
+    closeEditModal: document.getElementById('close-edit-modal'),
+    editCharsCount: document.getElementById('edit-chars-count'),
+    
+    // View post modal
+    viewPostModal: document.getElementById('view-post-modal'),
+    viewPostTitle: document.getElementById('view-post-title'),
+    viewPostAuthor: document.getElementById('view-post-author'),
+    viewPostDate: document.getElementById('view-post-date'),
+    viewPostPrivacyIcon: document.getElementById('view-post-privacy-icon'),
+    viewPostPrivacyText: document.getElementById('view-post-privacy-text'),
+    viewPostContent: document.getElementById('view-post-content'),
+    viewMediaContainer: document.getElementById('view-media-container'),
+    viewPostActions: document.getElementById('view-post-actions'),
+    editPostBtn: document.getElementById('edit-post-btn'),
+    sharePostBtn: document.getElementById('share-post-btn'),
+    downloadPostBtn: document.getElementById('download-post-btn'),
+    closeViewModal: document.getElementById('close-view-modal'),
+    
+    // Media viewer modal
+    mediaViewerModal: document.getElementById('media-viewer-modal'),
+    mediaViewerContainer: document.getElementById('media-viewer-container'),
+    prevMediaBtn: document.getElementById('prev-media'),
+    nextMediaBtn: document.getElementById('next-media'),
+    mediaCounter: document.getElementById('media-counter'),
+    closeMediaViewer: document.getElementById('close-media-viewer'),
+    
+    // Passcode modal elements
+    passcodeModal: document.getElementById('passcode-modal'),
+    passcodeInput1: document.getElementById('passcode-input-1'),
+    passcodeInput2: document.getElementById('passcode-input-2'),
+    passcodeInput3: document.getElementById('passcode-input-3'),
+    passcodeInput4: document.getElementById('passcode-input-4'),
+    passcodeError: document.getElementById('passcode-error'),
+    submitPasscodeBtn: document.getElementById('submit-passcode'),
+    closePasscodeModal: document.getElementById('close-passcode-modal'),
+    
+    // Passcode form fields
+    passcodeField: document.getElementById('passcode-field'),
+    postPasscode: document.getElementById('post-passcode'),
+    editPasscodeField: document.getElementById('edit-passcode-field'),
+    editPostPasscode: document.getElementById('edit-post-passcode')
+  };
   
-  // New post form
-  postForm: document.getElementById('post-form'),
-  postTitle: document.getElementById('post-title'),
-  postContent: document.getElementById('post-content'),
-  postMedia: document.getElementById('post-media'),
-  mediaPreview: document.getElementById('media-preview'),
-  publishButton: document.getElementById('publish-button'),
-  charsCount: document.getElementById('chars-count'),
-  
-  // Posts container
-  postsContainer: document.getElementById('posts-container'),
-  noPostsMessage: document.getElementById('no-posts-message'),
-  loadMoreContainer: document.getElementById('load-more-container'),
-  loadMoreBtn: document.getElementById('load-more-btn'),
-  
-  // Filters
-  privacyFilter: document.getElementById('privacy-filter'),
-  sortFilter: document.getElementById('sort-filter'),
-  
-  // Edit post modal
-  editPostModal: document.getElementById('edit-post-modal'),
-  editPostForm: document.getElementById('edit-post-form'),
-  editPostId: document.getElementById('edit-post-id'),
-  editPostTitle: document.getElementById('edit-post-title'),
-  editPostContent: document.getElementById('edit-post-content'),
-  editMediaPreview: document.getElementById('edit-media-preview'),
-  deletePostBtn: document.getElementById('delete-post-btn'),
-  closeEditModal: document.getElementById('close-edit-modal'),
-  editCharsCount: document.getElementById('edit-chars-count'),
-  
-  // View post modal
-  viewPostModal: document.getElementById('view-post-modal'),
-  viewPostTitle: document.getElementById('view-post-title'),
-  viewPostAuthor: document.getElementById('view-post-author'),
-  viewPostDate: document.getElementById('view-post-date'),
-  viewPostPrivacyIcon: document.getElementById('view-post-privacy-icon'),
-  viewPostPrivacyText: document.getElementById('view-post-privacy-text'),
-  viewPostContent: document.getElementById('view-post-content'),
-  viewMediaContainer: document.getElementById('view-media-container'),
-  viewPostActions: document.getElementById('view-post-actions'),
-  editPostBtn: document.getElementById('edit-post-btn'),
-  sharePostBtn: document.getElementById('share-post-btn'),
-  downloadPostBtn: document.getElementById('download-post-btn'),
-  closeViewModal: document.getElementById('close-view-modal'),
-  
-  // Media viewer modal
-  mediaViewerModal: document.getElementById('media-viewer-modal'),
-  mediaViewerContainer: document.getElementById('media-viewer-container'),
-  prevMediaBtn: document.getElementById('prev-media'),
-  nextMediaBtn: document.getElementById('next-media'),
-  mediaCounter: document.getElementById('media-counter'),
-  closeMediaViewer: document.getElementById('close-media-viewer')
-};
+  console.log("DOM elements cached");
+}
 
 // App state
 const appState = {
@@ -118,11 +140,17 @@ function initApp() {
     document.documentElement.style.setProperty('--vh', `${vh}px`);
   });
   
-  // Check authentication state with Firebase
-  auth.onAuthStateChanged(handleAuthStateChange);
-  
+  // Cache DOM elements
+  cacheElements();
+
   // Add event listeners
   addEventListeners();
+
+  // Add this line here:
+  setupPasscodeField();
+
+  // Check authentication state with Firebase
+  auth.onAuthStateChanged(handleAuthStateChange);
 }
 
 /**
@@ -302,6 +330,42 @@ function addEventListeners() {
     }
   });
 }
+
+// Add this function at the top of your posts.js file with other functions
+function setupPasscodeField() {
+  const privacyRadios = document.querySelectorAll('input[name="privacy"]');
+  const passcodeField = document.getElementById('passcode-field');
+  
+  privacyRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'passcode') {
+        passcodeField.style.display = 'block';
+      } else {
+        passcodeField.style.display = 'none';
+      }
+    });
+  });
+
+  // Same for edit form
+  const editPrivacyRadios = document.querySelectorAll('input[name="edit-privacy"]');
+  const editPasscodeField = document.getElementById('edit-passcode-field');
+  
+  editPrivacyRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'passcode') {
+        editPasscodeField.style.display = 'block';
+      } else {
+        editPasscodeField.style.display = 'none';
+      }
+    });
+  });
+}
+
+// Then call it when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // This will run regardless of your other initialization code
+  setupPasscodeField();
+});
 
 /**
  * Update character counter styling based on length
@@ -582,7 +646,7 @@ async function handleCreatePost(e) {
   e.preventDefault();
   
   try {
-    // Validate form
+    // Get form values
     const title = elements.postTitle.value.trim();
     const content = elements.postContent.value.trim();
     const privacyRadios = document.querySelectorAll('input[name="privacy"]');
@@ -607,10 +671,6 @@ async function handleCreatePost(e) {
       return;
     }
     
-    // Disable submit button to prevent double submission
-    elements.publishButton.disabled = true;
-    elements.publishButton.textContent = 'Publishing...';
-    
     // Create post data
     const postData = {
       title,
@@ -619,6 +679,23 @@ async function handleCreatePost(e) {
       authorName: authManager.currentUser?.name || 'Anonymous'
     };
     
+    // Add passcode if passcode privacy is selected
+    if (privacy === 'passcode') {
+      const passcodeInput = document.getElementById('post-passcode');
+      const passcode = passcodeInput.value.trim();
+      
+      if (!passcode || !/^\d{4}$/.test(passcode)) {
+        showError('Please enter a valid 4-digit passcode.');
+        return;
+      }
+      
+      postData.passcode = passcode;
+    }
+    
+    // Disable submit button to prevent double submission
+    elements.publishButton.disabled = true;
+    elements.publishButton.textContent = 'Publishing...';
+    
     // Create post
     const newPost = await postsManager.createPost(postData);
     
@@ -626,6 +703,7 @@ async function handleCreatePost(e) {
     elements.postForm.reset();
     elements.mediaPreview.innerHTML = '';
     elements.charsCount.textContent = '0';
+    document.getElementById('passcode-field').style.display = 'none';
     
     // Re-enable submit button
     elements.publishButton.disabled = false;
@@ -643,7 +721,7 @@ async function handleCreatePost(e) {
     elements.publishButton.disabled = false;
     elements.publishButton.textContent = 'Publish Post';
     
-    showError('Failed to publish post. Please try again.');
+    showError(error.message || 'Failed to publish post. Please try again.');
   }
 }
 
@@ -687,6 +765,14 @@ function createPostElement(post) {
     default:
       privacyIcon = '<i class="fas fa-lock"></i>';
       privacyText = 'Only Me';
+  }
+  
+  // Add passcode indicator if applicable
+  if (post.privacy === 'passcode') {
+    const passcodeIndicator = document.createElement('div');
+    passcodeIndicator.className = 'post-passcode-indicator';
+    passcodeIndicator.innerHTML = '<i class="fas fa-key"></i> Passcode protected';
+    postElement.querySelector('.post-content').after(passcodeIndicator);
   }
   
   // Create truncated content
@@ -904,108 +990,23 @@ function openEditModal(post) {
   elements.editPostModal.style.display = 'flex';
 }
 
-/**
- * Open the view modal for a post
- * @param {Object} post - Post data
- */
-function openViewModal(post) {
-  // Save current post to app state
-  appState.currentPost = post;
-  
-  // Set modal content
-  elements.viewPostTitle.textContent = post.title || 'Untitled Post';
-  elements.viewPostAuthor.textContent = post.authorName || 'Anonymous';
-  
-  // Format date
-  const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
-  const formattedDate = postDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  
-  elements.viewPostDate.textContent = formattedDate;
-  
-  // Set privacy icon and text
-  let privacyIcon = '';
-  let privacyText = '';
-  
-  switch (post.privacy) {
-    case 'private':
-      privacyIcon = '<i class="fas fa-lock"></i>';
-      privacyText = 'Only Me';
-      break;
-    case 'friends':
-      privacyIcon = '<i class="fas fa-user-friends"></i>';
-      privacyText = 'My Bonds';
-      break;
-    case 'public':
-      privacyIcon = '<i class="fas fa-globe"></i>';
-      privacyText = 'Everyone';
-      break;
-    default:
-      privacyIcon = '<i class="fas fa-lock"></i>';
-      privacyText = 'Only Me';
-  }
-  
-  elements.viewPostPrivacyIcon.innerHTML = privacyIcon;
-  elements.viewPostPrivacyText.textContent = privacyText;
-  
-  // Set post content
-  elements.viewPostContent.textContent = post.content || '';
-  
-  // Display media
-  elements.viewMediaContainer.innerHTML = '';
-  
-  if (post.media && post.media.length > 0) {
-    post.media.forEach((media, index) => {
-      const galleryItem = document.createElement('div');
-      galleryItem.className = 'gallery-item';
-      galleryItem.dataset.index = index;
-      
-      // Create appropriate media element based on type
-      if (media.type === 'image') {
-        const img = document.createElement('img');
-        img.src = media.url;
-        img.alt = 'Image';
-        galleryItem.appendChild(img);
-      } else {
-        const video = document.createElement('video');
-        video.src = media.url;
-        video.setAttribute('muted', 'true');
-        video.setAttribute('controls', 'true');
-        galleryItem.appendChild(video);
-      }
-      
-      // Add click handler to open media viewer
-      galleryItem.addEventListener('click', () => {
-        openMediaViewer(post, index);
-      });
-      
-      elements.viewMediaContainer.appendChild(galleryItem);
-    });
+// When a user tries to view a post
+async function openViewModal(post) {
+  // Check if post is passcode-protected
+  if (post.privacy === 'passcode') {
+    // If user is the author, allow immediate access
+    if (post.authorId === appState.currentUser?.uid) {
+      // Show the post normally
+      showPostContent(post);
+    } else {
+      // Otherwise, request passcode
+      showPasscodeModal(post.id);
+      return; // Don't show post yet
+    }
   } else {
-    elements.viewMediaContainer.style.display = 'none';
+    // Handle normal post viewing
+    showPostContent(post);
   }
-  
-  // Show/hide edit button based on ownership
-  if (post.authorId === appState.currentUser?.uid) {
-    elements.editPostBtn.style.display = 'inline-flex';
-  } else {
-    elements.editPostBtn.style.display = 'none';
-  }
-  
-  // Show/hide share button based on privacy
-  if (post.privacy !== 'private') {
-    elements.sharePostBtn.style.display = 'inline-flex';
-  } else {
-    elements.sharePostBtn.style.display = 'none';
-  }
-  
-  // Show modal
-  elements.viewPostModal.style.display = 'flex';
 }
 
 /**
@@ -1105,6 +1106,7 @@ function showNextMedia() {
  * Handle update post form submission
  * @param {Event} e - Submit event
  */
+// In posts.js, update the handleUpdatePost function
 async function handleUpdatePost(e) {
   e.preventDefault();
   
@@ -1142,6 +1144,22 @@ async function handleUpdatePost(e) {
       privacy
     };
     
+    // Add passcode if passcode privacy is selected
+    if (privacy === 'passcode') {
+      const passcodeInput = document.getElementById('edit-post-passcode');
+      const passcode = passcodeInput.value.trim();
+      
+      // If changing to passcode mode or changing existing passcode
+      if (passcode) {
+        if (!/^\d{4}$/.test(passcode)) {
+          showError('Please enter a valid 4-digit passcode.');
+          return;
+        }
+        
+        updateData.passcode = passcode;
+      }
+    }
+    
     // Update post
     await postsManager.updatePost(postId, updateData);
     
@@ -1155,7 +1173,7 @@ async function handleUpdatePost(e) {
     loadPosts();
   } catch (error) {
     console.error('Error updating post:', error);
-    showError('Failed to update post. Please try again.');
+    showError(error.message || 'Failed to update post. Please try again.');
   }
 }
 
