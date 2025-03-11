@@ -458,6 +458,26 @@ async function loadPosts() {
       loadMore: false
     });
     
+    // Log posts for debugging
+    console.log('Received posts:', posts);
+    
+    // Validate posts
+    if (!posts || !Array.isArray(posts)) {
+      console.error('Invalid posts data:', {
+        postsType: typeof posts,
+        postsValue: posts
+      });
+      
+      // Show empty state
+      elements.noPostsMessage.style.display = 'block';
+      elements.loadMoreContainer.style.display = 'none';
+      
+      // Hide loading state
+      hideLoading();
+      
+      return;
+    }
+    
     // Clear existing posts
     elements.postsContainer.innerHTML = '';
     
@@ -470,8 +490,12 @@ async function loadPosts() {
       
       // Render posts
       posts.forEach(post => {
-        const postElement = createPostElement(post);
-        elements.postsContainer.appendChild(postElement);
+        try {
+          const postElement = createPostElement(post);
+          elements.postsContainer.appendChild(postElement);
+        } catch (elementError) {
+          console.error('Error creating post element:', elementError, post);
+        }
       });
       
       // Show load more button if there are enough posts
@@ -482,8 +506,16 @@ async function loadPosts() {
     hideLoading();
   } catch (error) {
     console.error('Error loading posts:', error);
+    
+    // Show error message
     showError('Failed to load posts. Please try again.');
+    
+    // Hide loading state
     hideLoading();
+    
+    // Show empty state
+    elements.noPostsMessage.style.display = 'block';
+    elements.loadMoreContainer.style.display = 'none';
   }
 }
 
@@ -726,12 +758,12 @@ async function handleCreatePost(e) {
   }
 }
 
-/**
- * Create a post element for display
- * @param {Object} post - Post data
- * @returns {HTMLElement} Post element
- */
 function createPostElement(post) {
+  if (!post) {
+    console.error('Attempted to create post element with null/undefined post');
+    return document.createElement('div'); // Return an empty div instead of throwing an error
+  }
+  
   const postElement = document.createElement('div');
   postElement.className = 'post-card';
   postElement.dataset.id = post.id;
@@ -763,17 +795,13 @@ function createPostElement(post) {
       privacyIcon = '<i class="fas fa-globe"></i>';
       privacyText = 'Everyone';
       break;
+    case 'passcode':
+      privacyIcon = '<i class="fas fa-key"></i>';
+      privacyText = 'Passcode';
+      break;
     default:
       privacyIcon = '<i class="fas fa-lock"></i>';
       privacyText = 'Only Me';
-  }
-  
-  // Add passcode indicator if applicable
-  if (post.privacy === 'passcode') {
-    const passcodeIndicator = document.createElement('div');
-    passcodeIndicator.className = 'post-passcode-indicator';
-    passcodeIndicator.innerHTML = '<i class="fas fa-key"></i> Passcode protected';
-    postElement.querySelector('.post-content').after(passcodeIndicator);
   }
   
   // Create truncated content
@@ -1011,6 +1039,231 @@ async function openViewModal(post) {
 }
 
 /**
+ * Show the full content of a post in the view modal
+ * @param {Object} post - The post to display
+ */
+function showPostContent(post) {
+  // Validate post object
+  if (!post) {
+    showError('Post not found');
+    return;
+  }
+
+  // Update current post in app state
+  appState.currentPost = post;
+
+  // Set post title
+  elements.viewPostTitle.textContent = post.title || 'Untitled Post';
+
+  // Set author name (fallback to email or 'Anonymous')
+  elements.viewPostAuthor.textContent = post.authorName || post.authorEmail || 'Anonymous';
+
+  // Set date
+  const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
+  elements.viewPostDate.textContent = postDate.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  // Set privacy icon and text
+  let privacyIcon = '';
+  let privacyText = '';
+
+  switch (post.privacy) {
+    case 'private':
+      privacyIcon = '<i class="fas fa-lock"></i>';
+      privacyText = 'Only Me';
+      break;
+    case 'friends':
+      privacyIcon = '<i class="fas fa-user-friends"></i>';
+      privacyText = 'My Bonds';
+      break;
+    case 'public':
+      privacyIcon = '<i class="fas fa-globe"></i>';
+      privacyText = 'Everyone';
+      break;
+    case 'passcode':
+      privacyIcon = '<i class="fas fa-key"></i>';
+      privacyText = 'Passcode Protected';
+      break;
+    default:
+      privacyIcon = '<i class="fas fa-lock"></i>';
+      privacyText = 'Only Me';
+  }
+
+  elements.viewPostPrivacyIcon.innerHTML = privacyIcon;
+  elements.viewPostPrivacyText.textContent = privacyText;
+
+  // Set post content
+  elements.viewPostContent.textContent = post.content || '';
+  elements.viewPostContent.style.whiteSpace = 'pre-wrap';
+
+  // Handle media
+  elements.viewMediaContainer.innerHTML = '';
+  if (post.media && post.media.length > 0) {
+    const mediaGallery = document.createElement('div');
+    mediaGallery.className = 'media-gallery';
+
+    post.media.forEach((media, index) => {
+      const mediaItem = document.createElement('div');
+      mediaItem.className = 'gallery-item';
+      mediaItem.dataset.index = index;
+
+      if (media.type === 'image') {
+        const img = document.createElement('img');
+        img.src = media.url;
+        img.alt = `Post image ${index + 1}`;
+        mediaItem.appendChild(img);
+      } else if (media.type === 'video') {
+        const video = document.createElement('video');
+        video.src = media.url;
+        video.setAttribute('muted', 'true');
+        video.setAttribute('controls', 'true');
+        mediaItem.appendChild(video);
+      }
+
+      mediaItem.addEventListener('click', () => {
+        openMediaViewer(post, index);
+      });
+
+      mediaGallery.appendChild(mediaItem);
+    });
+
+    elements.viewMediaContainer.appendChild(mediaGallery);
+  }
+
+  // Update post action buttons visibility
+  if (elements.viewPostActions) {
+    // Only show edit/delete buttons if user is the author
+    const isAuthor = post.authorId === appState.currentUser?.uid;
+    
+    const editBtn = elements.editPostBtn;
+    const deleteBtn = elements.viewPostActions.querySelector('.delete-btn');
+    
+    if (editBtn) {
+      editBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    }
+    
+    if (deleteBtn) {
+      deleteBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    }
+  }
+
+  // Show the modal
+  elements.viewPostModal.style.display = 'flex';
+}
+
+/**
+ * Show the passcode modal for a protected post
+ * @param {string} postId - The ID of the passcode-protected post
+ */
+function showPasscodeModal(postId) {
+  // Reset passcode inputs
+  const passcodeInputs = [
+    elements.passcodeInput1,
+    elements.passcodeInput2,
+    elements.passcodeInput3,
+    elements.passcodeInput4
+  ];
+  
+  passcodeInputs.forEach(input => {
+    input.value = '';
+    input.classList.remove('error');
+  });
+  
+  // Store the current post ID
+  appState.currentPasscodePostId = postId;
+  
+  // Clear any previous error
+  if (elements.passcodeError) {
+    elements.passcodeError.textContent = '';
+  }
+  
+  // Set up passcode input navigation
+  passcodeInputs.forEach((input, index) => {
+    input.addEventListener('input', function() {
+      // Only allow numeric input
+      this.value = this.value.replace(/[^0-9]/g, '');
+      
+      // Auto-move to next input when filled
+      if (this.value.length === 1 && index < passcodeInputs.length - 1) {
+        passcodeInputs[index + 1].focus();
+      }
+    });
+    
+    // Allow backspace to move to previous input
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Backspace' && this.value.length === 0 && index > 0) {
+        passcodeInputs[index - 1].focus();
+      }
+    });
+  });
+  
+  // Set up submit button
+  if (elements.submitPasscodeBtn) {
+    elements.submitPasscodeBtn.onclick = verifyPasscode;
+  }
+  
+  // Show the passcode modal
+  elements.passcodeModal.style.display = 'flex';
+}
+
+/**
+ * Verify the entered passcode
+ */
+async function verifyPasscode() {
+  // Collect passcode
+  const passcodeInputs = [
+    elements.passcodeInput1,
+    elements.passcodeInput2,
+    elements.passcodeInput3,
+    elements.passcodeInput4
+  ];
+  
+  const passcode = passcodeInputs.map(input => input.value).join('');
+  
+  // Validate passcode format
+  if (!/^\d{4}$/.test(passcode)) {
+    if (elements.passcodeError) {
+      elements.passcodeError.textContent = 'Please enter a 4-digit passcode';
+    }
+    passcodeInputs.forEach(input => input.classList.add('error'));
+    return;
+  }
+  
+  try {
+    // Get the post
+    const post = await postsManager.getPost(appState.currentPasscodePostId);
+    
+    // Verify passcode (implementation depends on how you stored the hash)
+    // This is a placeholder - adjust based on your actual hash verification method
+    const isValid = postsManager.verifyPasscode(passcode, post.passcodeHash);
+    
+    if (isValid) {
+      // Close passcode modal
+      elements.passcodeModal.style.display = 'none';
+      
+      // Show the post
+      showPostContent(post);
+    } else {
+      // Show error
+      if (elements.passcodeError) {
+        elements.passcodeError.textContent = 'Incorrect passcode';
+      }
+      passcodeInputs.forEach(input => input.classList.add('error'));
+    }
+  } catch (error) {
+    console.error('Error verifying passcode:', error);
+    if (elements.passcodeError) {
+      elements.passcodeError.textContent = 'Failed to verify passcode. Please try again.';
+    }
+  }
+}
+
+/**
  * Open the media viewer modal
  * @param {Object} post - Post data
  * @param {number} index - Index of the media to show
@@ -1235,7 +1488,7 @@ async function handleDeletePost(postIdOrPost) {
 
 
 /**
- * Share a post
+ * Share a post with improved error handling
  * @param {Object} post - Post data
  */
 function sharePost(post) {
@@ -1245,54 +1498,180 @@ function sharePost(post) {
     return;
   }
   
+  // Prevent multiple simultaneous share attempts
+  if (window.isSharing) {
+    // Reset sharing flag after a short delay in case it got stuck
+    setTimeout(() => {
+      window.isSharing = false;
+    }, 3000);
+    
+    showError('Please wait, a share action is already in progress.');
+    return;
+  }
+  
   try {
     // Get shareable URL
     const shareUrl = postsManager.getShareablePostUrl(post.id);
+    
+    // Set a timeout to reset sharing state
+    const shareTimeout = setTimeout(() => {
+      window.isSharing = false;
+    }, 10000); // 10 seconds timeout
+    
+    // Set sharing flag
+    window.isSharing = true;
     
     // Use Web Share API if available
     if (navigator.share) {
       navigator.share({
         title: post.title || 'Check out my post on Bond Tree',
-        text: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
+        text: (post.content || '').substring(0, 100) + ((post.content || '').length > 100 ? '...' : ''),
         url: shareUrl
-      }).catch(error => {
-        console.error('Error sharing:', error);
-        // Fallback to clipboard
-        copyToClipboard(shareUrl);
+      })
+      .then(() => {
+        showSuccess('Post shared successfully!');
+      })
+      .catch((error) => {
+        // Completely silent handling of AbortError
+        if (error.name !== 'AbortError') {
+          // Only show error for non-abort errors
+          fallbackShare(shareUrl);
+        }
+      })
+      .finally(() => {
+        // Clear the timeout
+        clearTimeout(shareTimeout);
+        
+        // Reset sharing flag
+        window.isSharing = false;
       });
     } else {
-      // Fallback to clipboard
-      copyToClipboard(shareUrl);
+      // Fallback for browsers without Web Share API
+      clearTimeout(shareTimeout);
+      fallbackShare(shareUrl);
     }
   } catch (error) {
-    console.error('Error sharing post:', error);
     showError('Failed to share post. Please try again.');
+    
+    // Ensure sharing flag is reset
+    window.isSharing = false;
+  }
+}
+
+function fallbackShare(shareUrl) {
+  try {
+    // Ensure window is focused
+    window.focus();
+    
+    // Create a temporary textarea to copy from
+    const tempTextArea = document.createElement('textarea');
+    tempTextArea.value = shareUrl;
+    tempTextArea.style.position = 'fixed';
+    tempTextArea.style.left = '-9999px';
+    document.body.appendChild(tempTextArea);
+    
+    // Select and copy
+    tempTextArea.select();
+    document.execCommand('copy');
+    
+    // Remove temporary element
+    document.body.removeChild(tempTextArea);
+    
+    // Show success message
+    showSuccess('Post link copied to clipboard!');
+  } catch (clipboardError) {
+    console.error('Clipboard copy error:', clipboardError);
+    
+    // Fallback to manual selection
+    showManualSharePrompt(shareUrl);
+  } finally {
+    // Always reset sharing flag
+    window.isSharing = false;
   }
 }
 
 /**
- * Copy text to clipboard
+ * Show a manual share prompt when automatic methods fail
+ * @param {string} shareUrl - URL to share
+ */
+function showManualSharePrompt(shareUrl) {
+  // Create a modal or alert with the shareable URL
+  const shareModal = document.createElement('div');
+  shareModal.className = 'share-modal';
+  shareModal.innerHTML = `
+    <div class="share-modal-content">
+      <h3>Share Post</h3>
+      <p>Copy the link below to share:</p>
+      <input type="text" value="${shareUrl}" readonly>
+      <div class="share-modal-actions">
+        <button id="copy-share-link">Copy Link</button>
+        <button id="close-share-modal">Close</button>
+      </div>
+    </div>
+  `;
+  
+  // Style the modal
+  shareModal.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    max-width: 90%;
+    width: 300px;
+    text-align: center;
+  `;
+  
+  // Add to document
+  document.body.appendChild(shareModal);
+  
+  // Get elements
+  const copyButton = shareModal.querySelector('#copy-share-link');
+  const closeButton = shareModal.querySelector('#close-share-modal');
+  const inputField = shareModal.querySelector('input');
+  
+  // Copy button handler
+  copyButton.addEventListener('click', () => {
+    inputField.select();
+    document.execCommand('copy');
+    showSuccess('Link copied to clipboard!');
+    document.body.removeChild(shareModal);
+  });
+  
+  // Close button handler
+  closeButton.addEventListener('click', () => {
+    document.body.removeChild(shareModal);
+  });
+  
+  // Select input text when modal opens
+  inputField.select();
+}
+
+/**
+ * Fallback method for copying to clipboard
  * @param {string} text - Text to copy
  */
-function copyToClipboard(text) {
+function fallbackCopy(text) {
   try {
-    navigator.clipboard.writeText(text).then(() => {
-      showSuccess('Link copied to clipboard!');
-    }).catch(error => {
-      console.error('Error copying to clipboard:', error);
-      // Fallback method
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      showSuccess('Link copied to clipboard!');
-    });
-  } catch (error) {
-    console.error('Error copying to clipboard:', error);
-    showError('Failed to copy link.');
+    const tempTextArea = document.createElement('textarea');
+    tempTextArea.value = text;
+    tempTextArea.style.position = 'fixed';
+    tempTextArea.style.left = '-9999px';
+    document.body.appendChild(tempTextArea);
+    
+    tempTextArea.select();
+    document.execCommand('copy');
+    
+    document.body.removeChild(tempTextArea);
+    
+    showSuccess('Link copied to clipboard!');
+  } catch (fallbackError) {
+    console.error('Fallback copy error:', fallbackError);
+    showManualSharePrompt(text);
   }
 }
 

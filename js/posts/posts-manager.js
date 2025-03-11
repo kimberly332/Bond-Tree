@@ -336,11 +336,11 @@ class PostsManager {
    */
   async getPosts(options = {}) {
     if (!this.currentUser) {
-      throw new Error('User must be logged in to fetch posts');
+      console.error('No current user for fetching posts');
+      return []; // Return empty array instead of throwing error
     }
     
     try {
-      // Set default options
       const queryOptions = {
         privacy: options.privacy || this.currentFilters.privacy,
         sort: options.sort || this.currentFilters.sort,
@@ -349,119 +349,36 @@ class PostsManager {
         tags: options.tags || []
       };
       
-      // Update current filters
-      this.currentFilters = {
-        privacy: queryOptions.privacy,
-        sort: queryOptions.sort
-      };
+      // Log query options for debugging
+      console.log('Posts query options:', queryOptions);
       
-      // Reset pagination if not loading more
-      if (!queryOptions.loadMore) {
-        this.lastVisible = null;
-        this.reachedEnd = false;
-      }
+      // Construct base query
+      let baseQuery = query(
+        collection(db, 'posts'),
+        where('authorId', '==', this.currentUser.uid),
+        orderBy('createdAt', 'desc')
+      );
       
-      // If we've reached the end and trying to load more, return empty array
-      if (queryOptions.loadMore && this.reachedEnd) {
-        return [];
-      }
-      
-      // Determine which posts to show based on privacy setting
-      let privacyFilter = [];
-      if (queryOptions.privacy === 'all') {
-        // All posts the user should be able to see (private, friends, public)
-        privacyFilter = [
-          where('authorId', '==', this.currentUser.uid), // All of user's own posts
-          where('privacy', '==', PRIVACY.PUBLIC) // All public posts
-          // For "friends" posts, we would need to check friends list, which requires extra logic
-        ];
-      } else if (queryOptions.privacy !== 'all') {
-        // Filter by specific privacy setting
-        if (queryOptions.privacy === PRIVACY.PRIVATE) {
-          // Only user's own private posts
-          privacyFilter = [
-            where('authorId', '==', this.currentUser.uid),
-            where('privacy', '==', PRIVACY.PRIVATE)
-          ];
-        } else if (queryOptions.privacy === PRIVACY.FRIENDS) {
-          // Only show friends posts or user's own friends posts
-          privacyFilter = [
-            where('privacy', '==', PRIVACY.FRIENDS)
-            // We'd need to also check if the authorId is in user's friends list
-          ];
-        } else if (queryOptions.privacy === PRIVACY.PUBLIC) {
-          // Only public posts
-          privacyFilter = [
-            where('privacy', '==', PRIVACY.PUBLIC)
-          ];
-        }
-      }
-      
-      // Sort options
-      const sortOption = queryOptions.sort === 'oldest' 
-        ? orderBy('createdAt', 'asc') 
-        : orderBy('createdAt', 'desc');
-      
-      // Create query
-      let postsQuery;
-      
-      // For now, simplify to query either user's own posts or all public posts
-      // This is because we can't combine OR queries easily in Firestore
-      if (queryOptions.privacy === PRIVACY.PRIVATE) {
-        postsQuery = query(
-          collection(db, 'posts'),
-          where('authorId', '==', this.currentUser.uid),
-          where('privacy', '==', PRIVACY.PRIVATE),
-          sortOption,
-          limit(queryOptions.limit)
-        );
-      } else if (queryOptions.privacy === PRIVACY.FRIENDS) {
-        // For now, show user's own "friends" posts
-        postsQuery = query(
-          collection(db, 'posts'),
-          where('authorId', '==', this.currentUser.uid),
-          where('privacy', '==', PRIVACY.FRIENDS),
-          sortOption,
-          limit(queryOptions.limit)
-        );
-      } else if (queryOptions.privacy === PRIVACY.PUBLIC) {
-        postsQuery = query(
-          collection(db, 'posts'),
-          where('privacy', '==', PRIVACY.PUBLIC),
-          sortOption,
-          limit(queryOptions.limit)
-        );
-      } else {
-        // "All" privacy - For simplicity, get user's own posts for now
-        postsQuery = query(
-          collection(db, 'posts'),
-          where('authorId', '==', this.currentUser.uid),
-          sortOption,
-          limit(queryOptions.limit)
+      // Adjust query based on privacy
+      if (queryOptions.privacy !== 'all') {
+        baseQuery = query(
+          baseQuery,
+          where('privacy', '==', queryOptions.privacy)
         );
       }
       
       // Add pagination if loading more
       if (queryOptions.loadMore && this.lastVisible) {
-        postsQuery = query(
-          collection(db, 'posts'),
-          where(postsQuery.where[0].field, '==', postsQuery.where[0].value),
-          sortOption,
+        baseQuery = query(
+          baseQuery,
           startAfter(this.lastVisible),
           limit(queryOptions.limit)
         );
+      } else {
+        baseQuery = query(baseQuery, limit(queryOptions.limit));
       }
       
-      // Execute query
-      const querySnapshot = await getDocs(postsQuery);
-      
-      // Check if we've reached the end
-      if (querySnapshot.docs.length < queryOptions.limit) {
-        this.reachedEnd = true;
-      }
-      
-      // Update last visible for pagination
-      this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+      const querySnapshot = await getDocs(baseQuery);
       
       // Convert to array of post objects
       const posts = querySnapshot.docs.map(doc => {
@@ -484,10 +401,33 @@ class PostsManager {
         };
       });
       
+      // Update last visible for pagination
+      this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
+      
+      // Check if we've reached the end
+      if (querySnapshot.docs.length < queryOptions.limit) {
+        this.reachedEnd = true;
+      }
+      
+      // Log retrieved posts
+      console.log('Retrieved posts:', {
+        count: posts.length,
+        posts: posts.map(post => post.id)
+      });
+      
       return posts;
     } catch (error) {
       console.error('Error getting posts:', error);
-      throw error;
+      
+      // Log detailed error information
+      console.error('Detailed error:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Return empty array instead of throwing error
+      return [];
     }
   }
   
