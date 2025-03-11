@@ -1165,18 +1165,37 @@ async function handleUpdatePost(e) {
  */
 function confirmDeletePost(post) {
   if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+    // Make sure we're passing the ID string, not the whole post object
     handleDeletePost(post.id);
   }
 }
 
 /**
  * Handle post deletion
- * @param {string} postId - ID of the post to delete
+ * @param {string|Object} postIdOrPost - ID of the post to delete or post object
  */
-async function handleDeletePost(postId) {
+async function handleDeletePost(postIdOrPost) {
   try {
-    // Get post ID from form or parameter
-    const id = postId || elements.editPostId.value;
+    // Get post ID from parameter (which could be an ID string or post object)
+    let id;
+    
+    if (typeof postIdOrPost === 'string') {
+      // If it's already a string, use it
+      id = postIdOrPost;
+    } else if (postIdOrPost && postIdOrPost.id) {
+      // If it's a post object, get the ID
+      id = postIdOrPost.id;
+    } else if (elements.editPostId && elements.editPostId.value) {
+      // Fall back to the edit form if available
+      id = elements.editPostId.value;
+    } else {
+      throw new Error('Invalid post ID for deletion');
+    }
+    
+    // Ensure we have a valid string ID
+    if (!id || typeof id !== 'string') {
+      throw new Error('Post ID must be a valid string');
+    }
     
     // Delete post
     await postsManager.deletePost(id);
@@ -1194,6 +1213,7 @@ async function handleDeletePost(postId) {
     showError('Failed to delete post. Please try again.');
   }
 }
+
 
 /**
  * Share a post

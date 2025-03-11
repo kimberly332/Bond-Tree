@@ -553,58 +553,70 @@ class PostsManager {
     }
   }
   
-  /**
-   * Delete a post and its associated media
-   * @param {string} postId - The ID of the post to delete
-   * @returns {Promise<boolean>} Success status
-   */
-  async deletePost(postId) {
-    if (!this.currentUser) {
-      throw new Error('User must be logged in to delete posts');
+/**
+ * Delete a post and its associated media
+ * @param {string} postId - The ID of the post to delete
+ * @returns {Promise<boolean>} Success status
+ */
+async deletePost(postId) {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to delete posts');
+  }
+  
+  try {
+    // Validate the postId
+    if (!postId || typeof postId !== 'string') {
+      throw new Error('Invalid post ID. Post ID must be a string.');
     }
     
-    try {
-      // Get the post first to check permissions and get media references
-      const docRef = doc(db, 'posts', postId);
-      const docSnap = await getDoc(docRef);
-      
-      if (!docSnap.exists()) {
-        throw new Error('Post not found');
-      }
-      
-      const postData = docSnap.data();
-      
-      // Check if user is the author
-      if (postData.authorId !== this.currentUser.uid) {
-        throw new Error('You can only delete your own posts');
-      }
-      
-      // Delete all media files from storage
-      if (postData.media && postData.media.length > 0) {
-        const deletePromises = postData.media.map(async (media) => {
-          if (media.path) {
-            try {
-              const mediaRef = ref(storage, media.path);
-              await deleteObject(mediaRef);
-            } catch (error) {
-              console.error('Error deleting media file:', error);
-              // Continue even if media deletion fails
+    console.log(`Attempting to delete post with ID: ${postId}`);
+    
+    // Get the post first to check permissions and get media references
+    const docRef = doc(db, 'posts', postId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      throw new Error('Post not found');
+    }
+    
+    const postData = docSnap.data();
+    
+    // Check if user is the author
+    if (postData.authorId !== this.currentUser.uid) {
+      throw new Error('You can only delete your own posts');
+    }
+    
+    // Try to delete media files, but continue even if this fails
+    if (postData.media && postData.media.length > 0) {
+      for (const media of postData.media) {
+        if (media.path) {
+          try {
+            const mediaRef = ref(storage, media.path);
+            await deleteObject(mediaRef);
+            console.log(`Successfully deleted media: ${media.path}`);
+          } catch (error) {
+            // Log the error but continue with post deletion
+            console.error('Error deleting media file:', error);
+            
+            // If we get a permission error, just continue
+            if (error.code === 'storage/unauthorized') {
+              console.log('Insufficient permissions to delete media. Continuing with post deletion.');
             }
           }
-        });
-        
-        await Promise.all(deletePromises);
+        }
       }
-      
-      // Delete the post document
-      await deleteDoc(docRef);
-      
-      return true;
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      throw error;
     }
+    
+    // Delete the post document from Firestore
+    await deleteDoc(docRef);
+    console.log(`Successfully deleted post document: ${postId}`);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting post:', error);
+    throw error;
   }
+}
   
   /**
    * Add a reaction to a post (like, heart, celebrate)
