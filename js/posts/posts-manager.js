@@ -100,6 +100,35 @@ class PostsManager {
   }
   
   /**
+ * Get a user document by ID
+ * @param {string} userId - The ID of the user to fetch
+ * @returns {Promise<Object|null>} The user document or null if not found
+ */
+async getUserById(userId) {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to fetch other users');
+  }
+  
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      return {
+        id: userDoc.id,
+        ...userDoc.data()
+      };
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
+}
+
+
+  /**
    * Add a media file to pending uploads
    * @param {File} file - The file to add
    * @returns {Object} The pending media object with preview URL
@@ -328,6 +357,269 @@ class PostsManager {
       throw error;
     }
   }
+
+  /**
+ * Get a single post by ID
+ * @param {string} postId - The ID of the post to get
+ * @returns {Promise<Object|null>} The post or null if not found
+ */
+async getPost(postId) {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to fetch posts');
+  }
+  
+  try {
+    const postRef = doc(db, 'posts', postId);
+    const postDoc = await getDoc(postRef);
+    
+    if (postDoc.exists()) {
+      const data = postDoc.data();
+      
+      // Convert timestamps to dates
+      const createdAt = data.createdAt instanceof Timestamp 
+        ? data.createdAt.toDate() 
+        : new Date();
+        
+      const updatedAt = data.updatedAt instanceof Timestamp
+        ? data.updatedAt.toDate()
+        : createdAt;
+      
+      return {
+        id: postDoc.id,
+        ...data,
+        createdAt,
+        updatedAt
+      };
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting post:', error);
+    throw error;
+  }
+}
+
+/**
+ * Verify a passcode for a post
+ * @param {string} passcode - The passcode to verify
+ * @param {Object} post - The post object with the stored passcode
+ * @returns {boolean} Whether the passcode is correct
+ */
+verifyPasscode(passcode, post) {
+  if (!post || !post.passcode) {
+    return false;
+  }
+  
+  // Simple direct comparison - in production you should use crypto and hashing
+  return passcode === post.passcode;
+}
+
+/**
+ * Create a new post with optional media
+ * @param {Object} postData - Data for the new post
+ * @returns {Promise<Object>} The created post
+ */
+async createPost(postData) {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to create posts');
+  }
+  
+  try {
+    // Create post object
+    const post = {
+      authorId: this.currentUser.uid,
+      authorEmail: this.currentUser.email,
+      authorName: postData.authorName || 'Anonymous',
+      title: postData.title || '',
+      content: postData.content,
+      privacy: postData.privacy || 'public', // Default to public (visible to friends)
+      tags: postData.tags || [],
+      media: [],
+      reactions: {
+        likes: 0,
+        hearts: 0,
+        celebrates: 0
+      },
+      comments: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    };
+    
+    // Add passcode if privacy is set to private
+    if (post.privacy === 'private' && postData.passcode) {
+      // Validate passcode format
+      if (!/^\d{4}$/.test(postData.passcode)) {
+        throw new Error('Passcode must be exactly 4 digits');
+      }
+      
+      // In a production app, you would hash the passcode here
+      post.passcode = postData.passcode;
+    } else if (post.privacy === 'private' && !postData.passcode) {
+      // If private but no passcode provided
+      throw new Error('Passcode is required for private posts');
+    }
+    
+    // Upload any pending media
+    if (this.pendingMedia.length > 0) {
+      const mediaPromises = this.pendingMedia.map(media => this.uploadMedia(media.file));
+      const mediaResults = await Promise.all(mediaPromises);
+      
+      post.media = mediaResults.map(result => ({
+        url: result.url,
+        type: result.type,
+        path: result.path,
+        thumbnail: result.thumbnail || result.url
+      }));
+    }
+    
+    // Add post to Firestore
+    const docRef = await addDoc(collection(db, 'posts'), post);
+    
+    // Clear pending media after successful post
+    this.clearPendingMedia();
+    
+    // Get the actual document with server timestamp resolved
+    const newPostDoc = await getDoc(docRef);
+    const newPostData = newPostDoc.data();
+    
+    // Convert timestamps to dates for client use
+    const createdAt = newPostData.createdAt instanceof Timestamp 
+      ? newPostData.createdAt.toDate() 
+      : new Date();
+      
+    const updatedAt = newPostData.updatedAt instanceof Timestamp
+      ? newPostData.updatedAt.toDate()
+      : createdAt;
+    
+    // Return the new post with converted timestamps
+    const newPost = {
+      id: docRef.id,
+      ...newPostData,
+      createdAt,
+      updatedAt
+    };
+    
+    console.log('Successfully created post:', newPost.id);
+    return newPost;
+  } catch (error) {
+    console.error('Error creating post:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing post
+ * @param {string} postId - The ID of the post to update
+ * @param {Object} updateData - The data to update
+ * @returns {Promise<Object>} The updated post
+ */
+async updatePost(postId, updateData) {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to update posts');
+  }
+  
+  try {
+    // Get the post first to check permissions
+    const docRef = doc(db, 'posts', postId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      throw new Error('Post not found');
+    }
+    
+    const postData = docSnap.data();
+    
+    // Check if user is the author
+    if (postData.authorId !== this.currentUser.uid) {
+      throw new Error('You can only update your own posts');
+    }
+    
+    // Prepare update data
+    const update = {
+      ...updateData,
+      updatedAt: serverTimestamp()
+    };
+    
+    // Handle passcode for private posts
+    if (update.privacy === 'private') {
+      if (update.passcode) {
+        // Validate passcode format
+        if (!/^\d{4}$/.test(update.passcode)) {
+          throw new Error('Passcode must be exactly 4 digits');
+        }
+        
+        // In a production app, you would hash the passcode here
+        // For this implementation, we directly store it
+      } else if (postData.privacy !== 'private') {
+        // Switching from public to private but no passcode provided
+        throw new Error('Passcode is required when making a post private');
+      } else {
+        // Keeping private but not changing passcode, use existing one
+        delete update.passcode;
+      }
+    }
+    
+    // If there are new media files to upload
+    if (this.pendingMedia.length > 0) {
+      const mediaPromises = this.pendingMedia.map(media => this.uploadMedia(media.file));
+      const mediaResults = await Promise.all(mediaPromises);
+      
+      const newMedia = mediaResults.map(result => ({
+        url: result.url,
+        type: result.type,
+        path: result.path,
+        thumbnail: result.thumbnail || result.url
+      }));
+      
+      // Combine with existing media unless explicitly removing all
+      if (!updateData.removeAllMedia) {
+        update.media = [...(postData.media || []), ...newMedia];
+      } else {
+        update.media = newMedia;
+      }
+      
+      // Clear pending media after upload
+      this.clearPendingMedia();
+    }
+    
+    // Update the post
+    await updateDoc(docRef, update);
+    
+    // Get the updated post
+    const updatedDocSnap = await getDoc(docRef);
+    const updatedData = updatedDocSnap.data();
+    
+    // Convert timestamps to dates
+    const createdAt = updatedData.createdAt instanceof Timestamp 
+      ? updatedData.createdAt.toDate() 
+      : new Date();
+      
+    const updatedAt = updatedData.updatedAt instanceof Timestamp
+      ? updatedData.updatedAt.toDate()
+      : new Date();
+    
+    return {
+      id: postId,
+      ...updatedData,
+      createdAt,
+      updatedAt
+    };
+  } catch (error) {
+    console.error('Error updating post:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a shareable URL for a post
+ * @param {string} postId - The ID of the post to share
+ * @returns {string} The shareable URL
+ */
+getShareablePostUrl(postId) {
+  // Create a shareable URL with the post ID
+  const baseUrl = window.location.origin;
+  return `${baseUrl}/posts.html?view=${postId}`;
+}
   
   /**
    * Get posts based on privacy settings and filters
@@ -428,100 +720,6 @@ class PostsManager {
     }
   }
   
-  /**
-   * Get a single post by ID
-   * @param {string} postId - The ID of the post to get
-   * @returns {Promise<Object>} The post document
-   */
-  async getPosts(options = {}) {
-    if (!this.currentUser) {
-      console.error('No current user for fetching posts');
-      return []; // Return empty array instead of throwing error
-    }
-    
-    try {
-      const queryOptions = {
-        privacy: options.privacy || this.currentFilters.privacy,
-        sort: options.sort || this.currentFilters.sort,
-        loadMore: options.loadMore || false,
-        limit: options.limit || this.postsPerPage,
-        tags: options.tags || []
-      };
-      
-      // Construct base query
-      let baseQuery = query(
-        collection(db, 'posts'),
-        where('authorId', '==', this.currentUser.uid)
-      );
-      
-      // Adjust query based on privacy
-      if (queryOptions.privacy !== 'all') {
-        baseQuery = query(
-          baseQuery,
-          where('privacy', '==', queryOptions.privacy)
-        );
-      }
-      
-      // Add ordering
-      baseQuery = query(
-        baseQuery,
-        orderBy('createdAt', 'desc')
-      );
-      
-      // Add pagination if loading more
-      if (queryOptions.loadMore && this.lastVisible) {
-        baseQuery = query(
-          baseQuery,
-          startAfter(this.lastVisible),
-          limit(queryOptions.limit)
-        );
-      } else {
-        baseQuery = query(baseQuery, limit(queryOptions.limit));
-      }
-      
-      const querySnapshot = await getDocs(baseQuery);
-      
-      // Convert to array of post objects
-      const posts = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        
-        // Convert timestamps to dates
-        const createdAt = data.createdAt instanceof Timestamp 
-          ? data.createdAt.toDate() 
-          : new Date();
-          
-        const updatedAt = data.updatedAt instanceof Timestamp
-          ? data.updatedAt.toDate()
-          : createdAt;
-        
-        return {
-          id: doc.id,
-          ...data,
-          createdAt,
-          updatedAt
-        };
-      });
-      
-      // Update last visible for pagination
-      this.lastVisible = querySnapshot.docs[querySnapshot.docs.length - 1];
-      
-      // Check if we've reached the end
-      if (querySnapshot.docs.length < queryOptions.limit) {
-        this.reachedEnd = true;
-      }
-      
-      return posts;
-    } catch (error) {
-      console.error('Error getting posts:', error);
-      
-      // If it's an index error, provide helpful guidance
-      if (error.code === 'firestore/requires-index') {
-        console.error('You need to create a composite index. Follow the link in the error message or go to Firebase Console > Firestore > Indexes');
-      }
-      
-      return [];
-    }
-  }
   
   /**
    * Update an existing post

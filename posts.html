@@ -73,24 +73,14 @@
           <label>Who can see this?</label>
           <div class="privacy-options">
             <label class="privacy-option">
-              <input type="radio" name="privacy" value="private" checked>
-              <span class="option-icon"><i class="fas fa-lock"></i></span>
-              <span class="option-text">Only Me</span>
-            </label>
-            <label class="privacy-option">
-              <input type="radio" name="privacy" value="friends">
+              <input type="radio" name="privacy" value="public" checked>
               <span class="option-icon"><i class="fas fa-user-friends"></i></span>
-              <span class="option-text">My Bonds</span>
+              <span class="option-text">Visible to Friends</span>
             </label>
             <label class="privacy-option">
-              <input type="radio" name="privacy" value="public">
-              <span class="option-icon"><i class="fas fa-globe"></i></span>
-              <span class="option-text">Everyone</span>
-            </label>
-            <label class="privacy-option">
-              <input type="radio" name="privacy" value="passcode">
+              <input type="radio" name="privacy" value="private">
               <span class="option-icon"><i class="fas fa-key"></i></span>
-              <span class="option-text">Passcode</span>
+              <span class="option-text">Friends with Passcode</span>
             </label>
           </div>
         </div>
@@ -104,7 +94,7 @@
                 maxlength="4" 
                 placeholder="Enter 4-digit passcode">
           <div class="passcode-hint">
-            Anyone with this passcode can access your post
+            Friends will need this passcode to view your post
           </div>
         </div>
         
@@ -121,10 +111,8 @@
         <div class="filter-options">
           <select id="privacy-filter" class="filter-select">
             <option value="all">All Posts</option>
-            <option value="private">Private Posts</option>
-            <option value="friends">Friend Posts</option>
-            <option value="public">Public Posts</option>
-            <option value="passcode">Passcode Posts</option>
+            <option value="public">Friend-Visible Posts</option>
+            <option value="private">Passcode-Protected Posts</option>
           </select>
           <select id="sort-filter" class="filter-select">
             <option value="newest">Newest First</option>
@@ -180,24 +168,14 @@
             <label>Who can see this?</label>
             <div class="privacy-options">
               <label class="privacy-option">
-                <input type="radio" name="edit-privacy" value="private">
-                <span class="option-icon"><i class="fas fa-lock"></i></span>
-                <span class="option-text">Only Me</span>
-              </label>
-              <label class="privacy-option">
-                <input type="radio" name="edit-privacy" value="friends">
-                <span class="option-icon"><i class="fas fa-user-friends"></i></span>
-                <span class="option-text">My Bonds</span>
-              </label>
-              <label class="privacy-option">
                 <input type="radio" name="edit-privacy" value="public">
-                <span class="option-icon"><i class="fas fa-globe"></i></span>
-                <span class="option-text">Everyone</span>
+                <span class="option-icon"><i class="fas fa-user-friends"></i></span>
+                <span class="option-text">Visible to Friends</span>
               </label>
               <label class="privacy-option">
-                <input type="radio" name="edit-privacy" value="passcode">
+                <input type="radio" name="edit-privacy" value="private">
                 <span class="option-icon"><i class="fas fa-key"></i></span>
-                <span class="option-text">Passcode</span>
+                <span class="option-text">Friends with Passcode</span>
               </label>
             </div>
           </div>
@@ -244,8 +222,8 @@
             <span id="view-post-date">Date</span>
           </div>
           <div class="post-privacy">
-            <span id="view-post-privacy-icon"><i class="fas fa-lock"></i></span>
-            <span id="view-post-privacy-text">Private</span>
+            <span id="view-post-privacy-icon"><i class="fas fa-user-friends"></i></span>
+            <span id="view-post-privacy-text">Visible to Friends</span>
           </div>
         </div>
         
@@ -293,7 +271,7 @@
         <button class="modal-close" id="close-passcode-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <p>This post is protected with a 4-digit passcode.</p>
+        <p>This post requires a 4-digit passcode to view.</p>
         
         <div class="passcode-input-container">
           <input type="text" id="passcode-input-1" class="passcode-input" maxlength="1" inputmode="numeric">

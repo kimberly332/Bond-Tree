@@ -5,7 +5,7 @@
  * - Creating, editing, and deleting posts
  * - Viewing and commenting on posts
  * - Managing media uploads
- * - Handling post privacy settings
+ * - Handling post privacy settings (public to friends, private with passcode)
  */
 
 import { auth } from '../firebase-config.js';
@@ -36,6 +36,12 @@ const appState = {
 const MAX_CONTENT_LENGTH = 1000;
 const TRUNCATE_LENGTH = 300;
 
+// Privacy types
+const PRIVACY = {
+  PUBLIC: 'public',     // Visible to friends only
+  PRIVATE: 'private'    // Visible to friends with passcode
+};
+
 // Wait for DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', initApp);
 
@@ -64,7 +70,7 @@ function initApp() {
   // Add event listeners
   addEventListeners();
 
-  // Add this line here:
+  // Setup passcode field
   setupPasscodeField();
 
   // Check authentication state with Firebase
@@ -329,17 +335,23 @@ function addEventListeners() {
     if (e.target === elements.mediaViewerModal) {
       elements.mediaViewerModal.style.display = 'none';
     }
+    
+    if (e.target === elements.passcodeModal) {
+      elements.passcodeModal.style.display = 'none';
+    }
   });
 }
 
-// Add this function at the top of your posts.js file with other functions
+/**
+ * Setup the passcode field visibility based on privacy selection
+ */
 function setupPasscodeField() {
   const privacyRadios = document.querySelectorAll('input[name="privacy"]');
   const passcodeField = document.getElementById('passcode-field');
   
   privacyRadios.forEach(radio => {
     radio.addEventListener('change', () => {
-      if (radio.value === 'passcode') {
+      if (radio.value === 'private') {
         passcodeField.style.display = 'block';
       } else {
         passcodeField.style.display = 'none';
@@ -353,7 +365,7 @@ function setupPasscodeField() {
   
   editPrivacyRadios.forEach(radio => {
     radio.addEventListener('change', () => {
-      if (radio.value === 'passcode') {
+      if (radio.value === 'private') {
         editPasscodeField.style.display = 'block';
       } else {
         editPasscodeField.style.display = 'none';
@@ -361,12 +373,6 @@ function setupPasscodeField() {
     });
   });
 }
-
-// Then call it when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-  // This will run regardless of your other initialization code
-  setupPasscodeField();
-});
 
 /**
  * Update character counter styling based on length
@@ -683,7 +689,7 @@ async function handleCreatePost(e) {
     const title = elements.postTitle.value.trim();
     const content = elements.postContent.value.trim();
     const privacyRadios = document.querySelectorAll('input[name="privacy"]');
-    let privacy = 'private'; // Default to private
+    let privacy = PRIVACY.PUBLIC; // Default to public (visible to friends)
     
     // Get selected privacy
     for (const radio of privacyRadios) {
@@ -712,13 +718,13 @@ async function handleCreatePost(e) {
       authorName: authManager.currentUser?.name || 'Anonymous'
     };
     
-    // Add passcode if passcode privacy is selected
-    if (privacy === 'passcode') {
+    // Add passcode if private post
+    if (privacy === PRIVACY.PRIVATE) {
       const passcodeInput = document.getElementById('post-passcode');
       const passcode = passcodeInput.value.trim();
       
       if (!passcode || !/^\d{4}$/.test(passcode)) {
-        showError('Please enter a valid 4-digit passcode.');
+        showError('Please enter a valid 4-digit passcode for your private post.');
         return;
       }
       
@@ -758,6 +764,11 @@ async function handleCreatePost(e) {
   }
 }
 
+/**
+ * Create a post element for display in the posts list
+ * @param {Object} post - Post data
+ * @returns {HTMLElement} The post element
+ */
 function createPostElement(post) {
   if (!post) {
     console.error('Attempted to create post element with null/undefined post');
@@ -783,25 +794,17 @@ function createPostElement(post) {
   let privacyText = '';
   
   switch (post.privacy) {
-    case 'private':
-      privacyIcon = '<i class="fas fa-lock"></i>';
-      privacyText = 'Only Me';
-      break;
-    case 'friends':
+    case PRIVACY.PUBLIC:
       privacyIcon = '<i class="fas fa-user-friends"></i>';
-      privacyText = 'My Bonds';
+      privacyText = 'Visible to Friends';
       break;
-    case 'public':
-      privacyIcon = '<i class="fas fa-globe"></i>';
-      privacyText = 'Everyone';
-      break;
-    case 'passcode':
+    case PRIVACY.PRIVATE:
       privacyIcon = '<i class="fas fa-key"></i>';
-      privacyText = 'Passcode';
+      privacyText = 'Friends with Passcode';
       break;
     default:
-      privacyIcon = '<i class="fas fa-lock"></i>';
-      privacyText = 'Only Me';
+      privacyIcon = '<i class="fas fa-user-friends"></i>';
+      privacyText = 'Visible to Friends';
   }
   
   // Create truncated content
@@ -879,11 +882,9 @@ function createPostElement(post) {
       <button class="action-btn edit-btn" aria-label="Edit post">
         <i class="fas fa-edit"></i> Edit
       </button>
-      ${post.privacy === 'public' || post.privacy === 'friends' 
-        ? `<button class="action-btn share-btn" aria-label="Share post">
-            <i class="fas fa-share"></i> Share
-           </button>` 
-        : ''}
+      <button class="action-btn share-btn" aria-label="Share post">
+        <i class="fas fa-share"></i> Share
+      </button>
       <button class="action-btn delete-btn" aria-label="Delete post">
         <i class="fas fa-trash"></i> Delete
       </button>
@@ -944,227 +945,78 @@ function createPostElement(post) {
 }
 
 /**
- * Open the edit modal for a post
- * @param {Object} post - Post data
+ * Check if current user is a friend of the post author
+ * @param {string} authorId - The ID of the post author
+ * @returns {Promise<boolean>} Whether the current user is a friend
  */
-function openEditModal(post) {
-  // Set form values
-  elements.editPostId.value = post.id;
-  elements.editPostTitle.value = post.title || '';
-  elements.editPostContent.value = post.content || '';
-  
-  // Set character count
-  elements.editCharsCount.textContent = post.content?.length || 0;
-  updateCharCounter(post.content?.length || 0, elements.editCharsCount);
-  
-  // Set privacy radios
-  const privacyRadios = document.querySelectorAll('input[name="edit-privacy"]');
-  privacyRadios.forEach(radio => {
-    radio.checked = radio.value === post.privacy;
-  });
-  
-  // Display media preview
-  elements.editMediaPreview.innerHTML = '';
-  
-  if (post.media && post.media.length > 0) {
-    post.media.forEach((media, index) => {
-      const mediaItem = document.createElement('div');
-      mediaItem.className = 'media-item';
-      mediaItem.dataset.index = index;
-      
-      // Create appropriate media element based on type
-      if (media.type === 'image') {
-        const img = document.createElement('img');
-        img.src = media.url;
-        img.alt = 'Image';
-        mediaItem.appendChild(img);
-      } else {
-        const video = document.createElement('video');
-        video.src = media.url;
-        video.setAttribute('muted', 'true');
-        video.setAttribute('controls', 'true');
-        mediaItem.appendChild(video);
-      }
-      
-      // Add type icon
-      const typeIcon = document.createElement('div');
-      typeIcon.className = 'media-type-icon';
-      typeIcon.innerHTML = media.type === 'image' ? '<i class="fas fa-image"></i>' : '<i class="fas fa-video"></i>';
-      mediaItem.appendChild(typeIcon);
-      
-      // Add remove button
-      const removeBtn = document.createElement('div');
-      removeBtn.className = 'remove-media';
-      removeBtn.innerHTML = '<i class="fas fa-times"></i>';
-      removeBtn.setAttribute('aria-label', 'Remove media');
-      
-      // Add click handler for remove button
-      removeBtn.addEventListener('click', async () => {
-        try {
-          await postsManager.removeMedia(post.id, index);
-          // Reload the post to get updated media array
-          const updatedPost = await postsManager.getPost(post.id);
-          // Reopen the modal with updated post
-          openEditModal(updatedPost);
-        } catch (error) {
-          console.error('Error removing media:', error);
-          showError('Failed to remove media. Please try again.');
-        }
-      });
-      
-      mediaItem.appendChild(removeBtn);
-      elements.editMediaPreview.appendChild(mediaItem);
-    });
-  }
-  
-  // Show modal
-  elements.editPostModal.style.display = 'flex';
-}
-
-// When a user tries to view a post
-async function openViewModal(post) {
-  // Check if post is passcode-protected
-  if (post.privacy === 'passcode') {
-    // If user is the author, allow immediate access
-    if (post.authorId === appState.currentUser?.uid) {
-      // Show the post normally
-      showPostContent(post);
-    } else {
-      // Otherwise, request passcode
-      showPasscodeModal(post.id);
-      return; // Don't show post yet
+async function checkIfUserIsFriend(authorId) {
+  try {
+    // If the current user is the author, return true
+    if (authorId === appState.currentUser?.uid) {
+      return true;
     }
-  } else {
-    // Handle normal post viewing
-    showPostContent(post);
+    
+    // First ensure we have a current user
+    if (!appState.currentUser) {
+      return false;
+    }
+    
+    // Get the user's friends list
+    const currentUserData = await authManager.refreshUserData();
+    const friendEmails = currentUserData?.friends || [];
+    
+    // If the friends list is empty, can't be friends
+    if (friendEmails.length === 0) {
+      return false;
+    }
+    
+    // Get the target user's email
+    const userDoc = await postsManager.getUserById(authorId);
+    if (!userDoc || !userDoc.email) {
+      return false;
+    }
+    
+    // Check if the author's email is in the current user's friends list
+    return friendEmails.includes(userDoc.email);
+  } catch (error) {
+    console.error('Error checking friendship status:', error);
+    return false; // Default to not friends in case of error
   }
 }
 
 /**
- * Show the full content of a post in the view modal
- * @param {Object} post - The post to display
+ * Open the view modal for a post, handling privacy settings
+ * @param {Object} post - Post data
  */
-function showPostContent(post) {
-  // Validate post object
-  if (!post) {
-    showError('Post not found');
-    return;
-  }
-
-  // Update current post in app state
-  appState.currentPost = post;
-
-  // Set post title
-  elements.viewPostTitle.textContent = post.title || 'Untitled Post';
-
-  // Set author name (fallback to email or 'Anonymous')
-  elements.viewPostAuthor.textContent = post.authorName || post.authorEmail || 'Anonymous';
-
-  // Set date
-  const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
-  elements.viewPostDate.textContent = postDate.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  // Set privacy icon and text
-  let privacyIcon = '';
-  let privacyText = '';
-
-  switch (post.privacy) {
-    case 'private':
-      privacyIcon = '<i class="fas fa-lock"></i>';
-      privacyText = 'Only Me';
-      break;
-    case 'friends':
-      privacyIcon = '<i class="fas fa-user-friends"></i>';
-      privacyText = 'My Bonds';
-      break;
-    case 'public':
-      privacyIcon = '<i class="fas fa-globe"></i>';
-      privacyText = 'Everyone';
-      break;
-    case 'passcode':
-      privacyIcon = '<i class="fas fa-key"></i>';
-      privacyText = 'Passcode Protected';
-      break;
-    default:
-      privacyIcon = '<i class="fas fa-lock"></i>';
-      privacyText = 'Only Me';
-  }
-
-  elements.viewPostPrivacyIcon.innerHTML = privacyIcon;
-  elements.viewPostPrivacyText.textContent = privacyText;
-
-  // Set post content
-  elements.viewPostContent.textContent = post.content || '';
-  elements.viewPostContent.style.whiteSpace = 'pre-wrap';
-
-  // Handle media
-  elements.viewMediaContainer.innerHTML = '';
-  if (post.media && post.media.length > 0) {
-    const mediaGallery = document.createElement('div');
-    mediaGallery.className = 'media-gallery';
-
-    post.media.forEach((media, index) => {
-      const mediaItem = document.createElement('div');
-      mediaItem.className = 'gallery-item';
-      mediaItem.dataset.index = index;
-
-      if (media.type === 'image') {
-        const img = document.createElement('img');
-        img.src = media.url;
-        img.alt = `Post image ${index + 1}`;
-        mediaItem.appendChild(img);
-      } else if (media.type === 'video') {
-        const video = document.createElement('video');
-        video.src = media.url;
-        video.setAttribute('muted', 'true');
-        video.setAttribute('controls', 'true');
-        mediaItem.appendChild(video);
-      }
-
-      mediaItem.addEventListener('click', () => {
-        openMediaViewer(post, index);
-      });
-
-      mediaGallery.appendChild(mediaItem);
-    });
-
-    elements.viewMediaContainer.appendChild(mediaGallery);
-  }
-
-  // Update post action buttons visibility
-  if (elements.viewPostActions) {
-    // Only show edit/delete buttons if user is the author
-    const isAuthor = post.authorId === appState.currentUser?.uid;
-    
-    const editBtn = elements.editPostBtn;
-    const deleteBtn = elements.viewPostActions.querySelector('.delete-btn');
-    const shareBtn = elements.sharePostBtn;
-    
-    if (editBtn) {
-      editBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+async function openViewModal(post) {
+  try {
+    // If post author is current user, always show post
+    if (post.authorId === appState.currentUser?.uid) {
+      showPostContent(post);
+      return;
     }
     
-    if (deleteBtn) {
-      deleteBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    // Check if user is a friend of the post author
+    const isUserFriend = await checkIfUserIsFriend(post.authorId);
+    
+    // If not a friend, don't show the post
+    if (!isUserFriend) {
+      showError("You need to be friends with the author to view this post.");
+      return;
     }
-
-    // Hide share button for private or passcode-protected posts
-    if (shareBtn) {
-      shareBtn.style.display = 
-        (post.privacy === 'private' || post.privacy === 'passcode') 
-          ? 'none' 
-          : 'inline-flex';
+    
+    // For private posts, require passcode unless the user is the author
+    if (post.privacy === 'private') {
+      // Show passcode modal for friend requiring passcode
+      showPasscodeModal(post.id);
+    } else {
+      // For public posts, show content to friends
+      showPostContent(post);
     }
+  } catch (error) {
+    console.error('Error opening view modal:', error);
+    showError('Could not load the post. Please try again.');
   }
-
-  // Show the modal
-  elements.viewPostModal.style.display = 'flex';
 }
 
 /**
@@ -1249,9 +1101,8 @@ async function verifyPasscode() {
     // Get the post
     const post = await postsManager.getPost(appState.currentPasscodePostId);
     
-    // Verify passcode (implementation depends on how you stored the hash)
-    // This is a placeholder - adjust based on your actual hash verification method
-    const isValid = postsManager.verifyPasscode(passcode, post.passcodeHash);
+    // Verify passcode
+    const isValid = postsManager.verifyPasscode(passcode, post);
     
     if (isValid) {
       // Close passcode modal
@@ -1272,6 +1123,208 @@ async function verifyPasscode() {
       elements.passcodeError.textContent = 'Failed to verify passcode. Please try again.';
     }
   }
+}
+
+/**
+ * Show the full content of a post in the view modal
+ * @param {Object} post - The post to display
+ */
+function showPostContent(post) {
+  // Validate post object
+  if (!post) {
+    showError('Post not found');
+    return;
+  }
+
+  // Update current post in app state
+  appState.currentPost = post;
+
+  // Set post title
+  elements.viewPostTitle.textContent = post.title || 'Untitled Post';
+
+  // Set author name (fallback to email or 'Anonymous')
+  elements.viewPostAuthor.textContent = post.authorName || post.authorEmail || 'Anonymous';
+
+  // Set date
+  const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
+  elements.viewPostDate.textContent = postDate.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  // Set privacy icon and text
+  let privacyIcon = '';
+  let privacyText = '';
+
+  switch (post.privacy) {
+    case PRIVACY.PUBLIC:
+      privacyIcon = '<i class="fas fa-user-friends"></i>';
+      privacyText = 'Visible to Friends';
+      break;
+    case PRIVACY.PRIVATE:
+      privacyIcon = '<i class="fas fa-key"></i>';
+      privacyText = 'Friends with Passcode';
+      break;
+    default:
+      privacyIcon = '<i class="fas fa-user-friends"></i>';
+      privacyText = 'Visible to Friends';
+  }
+
+  elements.viewPostPrivacyIcon.innerHTML = privacyIcon;
+  elements.viewPostPrivacyText.textContent = privacyText;
+
+  // Set post content
+  elements.viewPostContent.textContent = post.content || '';
+  elements.viewPostContent.style.whiteSpace = 'pre-wrap';
+
+  // Handle media
+  elements.viewMediaContainer.innerHTML = '';
+  if (post.media && post.media.length > 0) {
+    const mediaGallery = document.createElement('div');
+    mediaGallery.className = 'media-gallery';
+
+    post.media.forEach((media, index) => {
+      const mediaItem = document.createElement('div');
+      mediaItem.className = 'gallery-item';
+      mediaItem.dataset.index = index;
+
+      if (media.type === 'image') {
+        const img = document.createElement('img');
+        img.src = media.url;
+        img.alt = `Post image ${index + 1}`;
+        mediaItem.appendChild(img);
+      } else if (media.type === 'video') {
+        const video = document.createElement('video');
+        video.src = media.url;
+        video.setAttribute('muted', 'true');
+        video.setAttribute('controls', 'true');
+        mediaItem.appendChild(video);
+      }
+
+      mediaItem.addEventListener('click', () => {
+        openMediaViewer(post, index);
+      });
+
+      mediaGallery.appendChild(mediaItem);
+    });
+
+    elements.viewMediaContainer.appendChild(mediaGallery);
+  }
+
+  // Update post action buttons visibility
+  if (elements.viewPostActions) {
+    // Only show edit/delete buttons if user is the author
+    const isAuthor = post.authorId === appState.currentUser?.uid;
+    
+    const editBtn = elements.editPostBtn;
+    const deleteBtn = elements.viewPostActions.querySelector('.delete-btn');
+    const shareBtn = elements.sharePostBtn;
+    
+    if (editBtn) {
+      editBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    }
+    
+    if (deleteBtn) {
+      deleteBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    }
+
+    // Allow sharing for any post visible to the user
+    if (shareBtn) {
+      shareBtn.style.display = 'inline-flex';
+    }
+  }
+
+  // Show the modal
+  elements.viewPostModal.style.display = 'flex';
+}
+
+/**
+ * Open the edit modal for a post
+ * @param {Object} post - Post data
+ */
+function openEditModal(post) {
+  // Set form values
+  elements.editPostId.value = post.id;
+  elements.editPostTitle.value = post.title || '';
+  elements.editPostContent.value = post.content || '';
+  
+  // Set character count
+  elements.editCharsCount.textContent = post.content?.length || 0;
+  updateCharCounter(post.content?.length || 0, elements.editCharsCount);
+  
+  // Set privacy radios
+  const privacyRadios = document.querySelectorAll('input[name="edit-privacy"]');
+  privacyRadios.forEach(radio => {
+    radio.checked = radio.value === post.privacy;
+  });
+  
+  // Show/hide passcode field based on privacy
+  const editPasscodeField = document.getElementById('edit-passcode-field');
+  if (post.privacy === PRIVACY.PRIVATE) {
+    editPasscodeField.style.display = 'block';
+  } else {
+    editPasscodeField.style.display = 'none';
+  }
+  
+  // Display media preview
+  elements.editMediaPreview.innerHTML = '';
+  
+  if (post.media && post.media.length > 0) {
+    post.media.forEach((media, index) => {
+      const mediaItem = document.createElement('div');
+      mediaItem.className = 'media-item';
+      mediaItem.dataset.index = index;
+      
+      // Create appropriate media element based on type
+      if (media.type === 'image') {
+        const img = document.createElement('img');
+        img.src = media.url;
+        img.alt = 'Image';
+        mediaItem.appendChild(img);
+      } else {
+        const video = document.createElement('video');
+        video.src = media.url;
+        video.setAttribute('muted', 'true');
+        video.setAttribute('controls', 'true');
+        mediaItem.appendChild(video);
+      }
+      
+      // Add type icon
+      const typeIcon = document.createElement('div');
+      typeIcon.className = 'media-type-icon';
+      typeIcon.innerHTML = media.type === 'image' ? '<i class="fas fa-image"></i>' : '<i class="fas fa-video"></i>';
+      mediaItem.appendChild(typeIcon);
+      
+      // Add remove button
+      const removeBtn = document.createElement('div');
+      removeBtn.className = 'remove-media';
+      removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+      removeBtn.setAttribute('aria-label', 'Remove media');
+      
+      // Add click handler for remove button
+      removeBtn.addEventListener('click', async () => {
+        try {
+          await postsManager.removeMedia(post.id, index);
+          // Reload the post to get updated media array
+          const updatedPost = await postsManager.getPost(post.id);
+          // Reopen the modal with updated post
+          openEditModal(updatedPost);
+        } catch (error) {
+          console.error('Error removing media:', error);
+          showError('Failed to remove media. Please try again.');
+        }
+      });
+      
+      mediaItem.appendChild(removeBtn);
+      elements.editMediaPreview.appendChild(mediaItem);
+    });
+  }
+  
+  // Show modal
+  elements.editPostModal.style.display = 'flex';
 }
 
 /**
@@ -1371,7 +1424,6 @@ function showNextMedia() {
  * Handle update post form submission
  * @param {Event} e - Submit event
  */
-// In posts.js, update the handleUpdatePost function
 async function handleUpdatePost(e) {
   e.preventDefault();
   
@@ -1381,7 +1433,7 @@ async function handleUpdatePost(e) {
     const title = elements.editPostTitle.value.trim();
     const content = elements.editPostContent.value.trim();
     const privacyRadios = document.querySelectorAll('input[name="edit-privacy"]');
-    let privacy = 'private'; // Default to private
+    let privacy = PRIVACY.PUBLIC; // Default to public (visible to friends)
     
     // Get selected privacy
     for (const radio of privacyRadios) {
@@ -1409,12 +1461,12 @@ async function handleUpdatePost(e) {
       privacy
     };
     
-    // Add passcode if passcode privacy is selected
-    if (privacy === 'passcode') {
+    // Add passcode if private post
+    if (privacy === PRIVACY.PRIVATE) {
       const passcodeInput = document.getElementById('edit-post-passcode');
       const passcode = passcodeInput.value.trim();
       
-      // If changing to passcode mode or changing existing passcode
+      // If changing to private or changing existing passcode
       if (passcode) {
         if (!/^\d{4}$/.test(passcode)) {
           showError('Please enter a valid 4-digit passcode.');
@@ -1422,6 +1474,15 @@ async function handleUpdatePost(e) {
         }
         
         updateData.passcode = passcode;
+      } else {
+        // Check if this was already a private post
+        const post = await postsManager.getPost(postId);
+        if (post.privacy !== PRIVACY.PRIVATE) {
+          // Switching to private but no passcode provided
+          showError('Please enter a passcode for your private post.');
+          return;
+        }
+        // Otherwise, we're keeping the same passcode
       }
     }
     
@@ -1497,45 +1558,19 @@ async function handleDeletePost(postIdOrPost) {
   }
 }
 
-
 /**
- * Share a post with improved error handling
+ * Share a post - only shares posts that are visible to the user
  * @param {Object} post - Post data
  */
 function sharePost(post) {
-  // Cannot share private posts
-  if (post.privacy === 'private') {
-    showError('Private posts cannot be shared.');
-    return;
-  }
-  
-  // Prevent multiple simultaneous share attempts
-  if (window.isSharing) {
-    // Reset sharing flag after a short delay in case it got stuck
-    setTimeout(() => {
-      window.isSharing = false;
-    }, 3000);
-    
-    showError('Please wait, a share action is already in progress.');
-    return;
-  }
-  
   try {
     // Get shareable URL
     const shareUrl = postsManager.getShareablePostUrl(post.id);
     
-    // Set a timeout to reset sharing state
-    const shareTimeout = setTimeout(() => {
-      window.isSharing = false;
-    }, 10000); // 10 seconds timeout
-    
-    // Set sharing flag
-    window.isSharing = true;
-    
     // Use Web Share API if available
     if (navigator.share) {
       navigator.share({
-        title: post.title || 'Check out my post on Bond Tree',
+        title: post.title || 'Check out this Bond Tree post',
         text: (post.content || '').substring(0, 100) + ((post.content || '').length > 100 ? '...' : ''),
         url: shareUrl
       })
@@ -1543,37 +1578,27 @@ function sharePost(post) {
         showSuccess('Post shared successfully!');
       })
       .catch((error) => {
-        // Completely silent handling of AbortError
+        // Only show error for non-abort errors
         if (error.name !== 'AbortError') {
-          // Only show error for non-abort errors
           fallbackShare(shareUrl);
         }
-      })
-      .finally(() => {
-        // Clear the timeout
-        clearTimeout(shareTimeout);
-        
-        // Reset sharing flag
-        window.isSharing = false;
       });
     } else {
       // Fallback for browsers without Web Share API
-      clearTimeout(shareTimeout);
       fallbackShare(shareUrl);
     }
   } catch (error) {
+    console.error('Error sharing post:', error);
     showError('Failed to share post. Please try again.');
-    
-    // Ensure sharing flag is reset
-    window.isSharing = false;
   }
 }
 
+/**
+ * Fallback sharing method using clipboard
+ * @param {string} shareUrl - URL to share
+ */
 function fallbackShare(shareUrl) {
   try {
-    // Ensure window is focused
-    window.focus();
-    
     // Create a temporary textarea to copy from
     const tempTextArea = document.createElement('textarea');
     tempTextArea.value = shareUrl;
@@ -1593,96 +1618,8 @@ function fallbackShare(shareUrl) {
   } catch (clipboardError) {
     console.error('Clipboard copy error:', clipboardError);
     
-    // Fallback to manual selection
+    // Show manual share prompt
     showManualSharePrompt(shareUrl);
-  } finally {
-    // Always reset sharing flag
-    window.isSharing = false;
-  }
-}
-
-/**
- * Show a manual share prompt when automatic methods fail
- * @param {string} shareUrl - URL to share
- */
-function showManualSharePrompt(shareUrl) {
-  // Create a modal or alert with the shareable URL
-  const shareModal = document.createElement('div');
-  shareModal.className = 'share-modal';
-  shareModal.innerHTML = `
-    <div class="share-modal-content">
-      <h3>Share Post</h3>
-      <p>Copy the link below to share:</p>
-      <input type="text" value="${shareUrl}" readonly>
-      <div class="share-modal-actions">
-        <button id="copy-share-link">Copy Link</button>
-        <button id="close-share-modal">Close</button>
-      </div>
-    </div>
-  `;
-  
-  // Style the modal
-  shareModal.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    z-index: 1000;
-    max-width: 90%;
-    width: 300px;
-    text-align: center;
-  `;
-  
-  // Add to document
-  document.body.appendChild(shareModal);
-  
-  // Get elements
-  const copyButton = shareModal.querySelector('#copy-share-link');
-  const closeButton = shareModal.querySelector('#close-share-modal');
-  const inputField = shareModal.querySelector('input');
-  
-  // Copy button handler
-  copyButton.addEventListener('click', () => {
-    inputField.select();
-    document.execCommand('copy');
-    showSuccess('Link copied to clipboard!');
-    document.body.removeChild(shareModal);
-  });
-  
-  // Close button handler
-  closeButton.addEventListener('click', () => {
-    document.body.removeChild(shareModal);
-  });
-  
-  // Select input text when modal opens
-  inputField.select();
-}
-
-/**
- * Fallback method for copying to clipboard
- * @param {string} text - Text to copy
- */
-function fallbackCopy(text) {
-  try {
-    const tempTextArea = document.createElement('textarea');
-    tempTextArea.value = text;
-    tempTextArea.style.position = 'fixed';
-    tempTextArea.style.left = '-9999px';
-    document.body.appendChild(tempTextArea);
-    
-    tempTextArea.select();
-    document.execCommand('copy');
-    
-    document.body.removeChild(tempTextArea);
-    
-    showSuccess('Link copied to clipboard!');
-  } catch (fallbackError) {
-    console.error('Fallback copy error:', fallbackError);
-    showManualSharePrompt(text);
   }
 }
 
@@ -1713,6 +1650,10 @@ function closeAllModals() {
   
   if (elements.mediaViewerModal) {
     elements.mediaViewerModal.style.display = 'none';
+  }
+  
+  if (elements.passcodeModal) {
+    elements.passcodeModal.style.display = 'none';
   }
 }
 
@@ -1751,54 +1692,117 @@ function hideLoading() {
 }
 
 /**
+ * Show manual share prompt for fallback sharing
+ * @param {string} shareUrl - URL to share
+ */
+function showManualSharePrompt(shareUrl) {
+  // Create a modal with the shareable URL
+  const shareModal = document.createElement('div');
+  shareModal.className = 'share-modal';
+  shareModal.innerHTML = `
+    <div class="share-modal-content">
+      <h3>Share Post</h3>
+      <p>Copy the link below to share:</p>
+      <input type="text" value="${shareUrl}" readonly>
+      <div class="share-modal-actions">
+        <button id="copy-share-link">Copy Link</button>
+        <button id="close-share-modal">Close</button>
+      </div>
+    </div>
+  `;
+  
+  // Style the modal
+  shareModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  `;
+  
+  // Add to document
+  document.body.appendChild(shareModal);
+  
+  // Get elements
+  const copyButton = shareModal.querySelector('#copy-share-link');
+  const closeButton = shareModal.querySelector('#close-share-modal');
+  const inputField = shareModal.querySelector('input');
+  
+  // Copy button handler
+  copyButton.addEventListener('click', () => {
+    inputField.select();
+    document.execCommand('copy');
+    showSuccess('Link copied to clipboard!');
+    document.body.removeChild(shareModal);
+  });
+  
+  // Close button handler
+  closeButton.addEventListener('click', () => {
+    document.body.removeChild(shareModal);
+  });
+  
+  // Select input text when modal opens
+  inputField.select();
+}
+
+/**
  * Show error message
  * @param {string} message - Error message
  */
 function showError(message) {
-    // Create toast notification
-    const toast = document.createElement('div');
-    toast.className = 'toast toast-error';
-    toast.innerHTML = `
+  // Create toast notification
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-error';
+  toast.innerHTML = `
+    <div class="toast-content">
       <i class="fas fa-exclamation-circle"></i>
       <span>${message}</span>
-    `;
-    
-    // Add to document
-    document.body.appendChild(toast);
-    
-    // Remove after delay
+    </div>
+  `;
+  
+  // Add to document
+  document.body.appendChild(toast);
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.add('fade-out');
     setTimeout(() => {
-      toast.classList.add('fade-out');
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
-    }, 3000);
-  }
+      document.body.removeChild(toast);
+    }, 300);
+  }, 3000);
+}
 
 /**
  * Show success message
  * @param {string} message - Success message
  */
 function showSuccess(message) {
-    // Create toast notification
-    const toast = document.createElement('div');
-    toast.className = 'toast toast-success';
-    toast.innerHTML = `
+  // Create toast notification
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-success';
+  toast.innerHTML = `
+    <div class="toast-content">
       <i class="fas fa-check-circle"></i>
       <span>${message}</span>
-    `;
-    
-    // Add to document
-    document.body.appendChild(toast);
-    
-    // Remove after delay
+    </div>
+  `;
+  
+  // Add to document
+  document.body.appendChild(toast);
+  
+  // Remove after delay
+  setTimeout(() => {
+    toast.classList.add('fade-out');
     setTimeout(() => {
-      toast.classList.add('fade-out');
-      setTimeout(() => {
-        document.body.removeChild(toast);
-      }, 300);
-    }, 3000);
-  }
+      document.body.removeChild(toast);
+    }, 300);
+  }, 3000);
+}
 
 // Initialize the app when the DOM is fully loaded
 if (document.readyState === 'loading') {
@@ -1806,15 +1810,3 @@ if (document.readyState === 'loading') {
 } else {
   initApp();
 }
-
-// Update the media upload button handler to trigger the file input
-document.addEventListener('DOMContentLoaded', function() {
-    const mediaUploadBtn = document.getElementById('media-upload-btn');
-    const postMediaInput = document.getElementById('post-media');
-    
-    if (mediaUploadBtn && postMediaInput) {
-      mediaUploadBtn.addEventListener('click', function() {
-        postMediaInput.click();
-      });
-    }
-  });
