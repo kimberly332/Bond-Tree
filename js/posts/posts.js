@@ -457,32 +457,14 @@ async function loadPosts() {
     // Show loading state
     showLoading();
     
-    // Get posts from Firebase
-    const posts = await postsManager.getPosts({
+    // Get all visible posts
+    const posts = await postsManager.getAllVisiblePosts({
       privacy: appState.currentFilters.privacy,
-      sort: appState.currentFilters.sort,
-      loadMore: false
+      sort: appState.currentFilters.sort
     });
     
     // Log posts for debugging
-    console.log('Received posts:', posts);
-    
-    // Validate posts
-    if (!posts || !Array.isArray(posts)) {
-      console.error('Invalid posts data:', {
-        postsType: typeof posts,
-        postsValue: posts
-      });
-      
-      // Show empty state
-      elements.noPostsMessage.style.display = 'block';
-      elements.loadMoreContainer.style.display = 'none';
-      
-      // Hide loading state
-      hideLoading();
-      
-      return;
-    }
+    console.log('Loaded posts:', posts);
     
     // Clear existing posts
     elements.postsContainer.innerHTML = '';
@@ -504,8 +486,8 @@ async function loadPosts() {
         }
       });
       
-      // Show load more button if there are enough posts
-      elements.loadMoreContainer.style.display = posts.length >= postsManager.postsPerPage ? 'block' : 'none';
+      // No load more button for combined view
+      elements.loadMoreContainer.style.display = 'none';
     }
     
     // Hide loading state
@@ -524,6 +506,7 @@ async function loadPosts() {
     elements.loadMoreContainer.style.display = 'none';
   }
 }
+
 
 /**
  * Handle load more button click
@@ -951,19 +934,26 @@ function createPostElement(post) {
  */
 async function checkIfUserIsFriend(authorId) {
   try {
-    // If the current user is the author, return true
-    if (authorId === appState.currentUser?.uid) {
+    // If current user is the author, return true
+    if (authorId === this.currentUser?.uid) {
       return true;
     }
     
     // First ensure we have a current user
-    if (!appState.currentUser) {
+    if (!this.currentUser) {
       return false;
     }
     
-    // Get the user's friends list
-    const currentUserData = await authManager.refreshUserData();
-    const friendEmails = currentUserData?.friends || [];
+    // Get current user's document to access friends list
+    const currentUserRef = doc(db, 'users', this.currentUser.uid);
+    const currentUserDoc = await getDoc(currentUserRef);
+    
+    if (!currentUserDoc.exists()) {
+      return false;
+    }
+    
+    const userData = currentUserDoc.data();
+    const friendEmails = userData.friends || [];
     
     // If the friends list is empty, can't be friends
     if (friendEmails.length === 0) {
@@ -971,33 +961,119 @@ async function checkIfUserIsFriend(authorId) {
     }
     
     // Get the target user's email
-    const userDoc = await postsManager.getUserById(authorId);
-    if (!userDoc || !userDoc.email) {
+    const authorRef = doc(db, 'users', authorId);
+    const authorDoc = await getDoc(authorRef);
+    
+    if (!authorDoc.exists()) {
       return false;
     }
     
+    const authorData = authorDoc.data();
+    const authorEmail = authorData.email;
+    
     // Check if the author's email is in the current user's friends list
-    return friendEmails.includes(userDoc.email);
+    return friendEmails.includes(authorEmail);
   } catch (error) {
     console.error('Error checking friendship status:', error);
     return false; // Default to not friends in case of error
   }
 }
 
-/**
- * Open the view modal for a post, handling privacy settings
- * @param {Object} post - Post data
- */
+async function loadAllVisiblePosts(options = {}) {
+  try {
+    // Show loading state
+    showLoading();
+    
+    // Get user's own posts
+    const userPosts = await postsManager.getPosts({
+      privacy: appState.currentFilters.privacy,
+      sort: appState.currentFilters.sort,
+      loadMore: false
+    });
+    
+    // Get friends' public posts
+    const friendPosts = await postsManager.getFriendPosts();
+    
+    // Combine and sort posts
+    let allPosts = [...userPosts];
+    
+    // Only add friend posts if we're not filtering by privacy
+    // or if we're specifically looking for public posts
+    if (appState.currentFilters.privacy === 'all' || 
+        appState.currentFilters.privacy === 'public') {
+      allPosts = [...allPosts, ...friendPosts];
+    }
+    
+    // Sort posts based on current sort filter
+    allPosts.sort((a, b) => {
+      if (appState.currentFilters.sort === 'newest') {
+        return b.createdAt - a.createdAt;
+      } else {
+        return a.createdAt - b.createdAt;
+      }
+    });
+    
+    // Log posts for debugging
+    console.log('All visible posts:', allPosts);
+    
+    // Clear existing posts
+    elements.postsContainer.innerHTML = '';
+    
+    // Show posts or empty state
+    if (allPosts.length === 0) {
+      elements.noPostsMessage.style.display = 'block';
+      elements.loadMoreContainer.style.display = 'none';
+    } else {
+      elements.noPostsMessage.style.display = 'none';
+      
+      // Render posts
+      allPosts.forEach(post => {
+        try {
+          const postElement = createPostElement(post);
+          elements.postsContainer.appendChild(postElement);
+        } catch (elementError) {
+          console.error('Error creating post element:', elementError, post);
+        }
+      });
+      
+      // Hide load more button for combined view
+      elements.loadMoreContainer.style.display = 'none';
+    }
+    
+    // Hide loading state
+    hideLoading();
+  } catch (error) {
+    console.error('Error loading all visible posts:', error);
+    
+    // Show error message
+    showError('Failed to load posts. Please try again.');
+    
+    // Hide loading state
+    hideLoading();
+    
+    // Show empty state
+    elements.noPostsMessage.style.display = 'block';
+    elements.loadMoreContainer.style.display = 'none';
+  }
+}
+
+
 async function openViewModal(post) {
   try {
-    // If post author is current user, always show post
-    if (post.authorId === appState.currentUser?.uid) {
+    // If post has isOwnPost flag, it's the user's own post - show directly
+    if (post.isOwnPost) {
       showPostContent(post);
       return;
     }
     
-    // Check if user is a friend of the post author
-    const isUserFriend = await checkIfUserIsFriend(post.authorId);
+    // If post has isFriendPost flag, it's a friend's public post - show directly
+    if (post.isFriendPost && post.privacy === 'public') {
+      showPostContent(post);
+      return;
+    }
+    
+    // Otherwise, check explicitly if the current user is a friend of the author
+    const isUserFriend = await postsManager.checkIfUserIsFriend(post.authorId);
     
     // If not a friend, don't show the post
     if (!isUserFriend) {
@@ -1006,7 +1082,7 @@ async function openViewModal(post) {
     }
     
     // For private posts, require passcode unless the user is the author
-    if (post.privacy === 'private') {
+    if (post.privacy === 'private' && post.authorId !== appState.currentUser?.uid) {
       // Show passcode modal for friend requiring passcode
       showPasscodeModal(post.id);
     } else {

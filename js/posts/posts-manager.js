@@ -98,35 +98,174 @@ class PostsManager {
     
     this.pendingMedia = [];
   }
+
+  /**
+ * Get all posts visible to the current user (both their own and their friends' posts)
+ * @param {Object} options - Query options
+ * @returns {Promise<Array>} Array of visible posts
+ */
+async getAllVisiblePosts(options = {}) {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to fetch posts');
+  }
+  
+  try {
+    const queryOptions = {
+      privacy: options.privacy || 'all',
+      sort: options.sort || 'newest'
+    };
+    
+    // Get current user's own posts
+    const userPostsQuery = query(
+      collection(db, 'posts'),
+      where('authorId', '==', this.currentUser.uid)
+    );
+    
+    // Get friends list
+    const userDoc = await getDoc(doc(db, 'users', this.currentUser.uid));
+    if (!userDoc.exists()) {
+      throw new Error('User document not found');
+    }
+    
+    const userData = userDoc.data();
+    const friendEmails = userData.friends || [];
+    
+    // Log for debugging
+    console.log("Current user's friends:", friendEmails);
+    
+    let friendPosts = [];
+    if (friendEmails.length > 0) {
+      // Get friend user IDs
+      const friendsQuery = query(
+        collection(db, 'users'),
+        where('email', 'in', friendEmails)
+      );
+      
+      const friendsSnapshot = await getDocs(friendsQuery);
+      const friendIds = friendsSnapshot.docs.map(doc => doc.id);
+      
+      // Log for debugging
+      console.log("Friend IDs found:", friendIds);
+      
+      if (friendIds.length > 0) {
+        // Query for friend public posts
+        const friendPostsQuery = query(
+          collection(db, 'posts'),
+          where('authorId', 'in', friendIds),
+          where('privacy', '==', 'public')
+        );
+        
+        const friendPostsSnapshot = await getDocs(friendPostsQuery);
+        
+        // Convert to post objects
+        friendPosts = friendPostsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          
+          // Convert timestamps
+          const createdAt = data.createdAt instanceof Timestamp 
+            ? data.createdAt.toDate() 
+            : new Date();
+            
+          const updatedAt = data.updatedAt instanceof Timestamp
+            ? data.updatedAt.toDate()
+            : createdAt;
+          
+          return {
+            id: doc.id,
+            ...data,
+            createdAt,
+            updatedAt,
+            isFriendPost: true
+          };
+        });
+        
+        // Log for debugging
+        console.log("Friend posts found:", friendPosts.length);
+      }
+    }
+    
+    // Get user's own posts
+    const userPostsSnapshot = await getDocs(userPostsQuery);
+    
+    // Convert to post objects
+    const userPosts = userPostsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      // Convert timestamps
+      const createdAt = data.createdAt instanceof Timestamp 
+        ? data.createdAt.toDate() 
+        : new Date();
+        
+      const updatedAt = data.updatedAt instanceof Timestamp
+        ? data.updatedAt.toDate()
+        : createdAt;
+      
+      return {
+        id: doc.id,
+        ...data,
+        createdAt,
+        updatedAt,
+        isOwnPost: true
+      };
+    });
+    
+    // Log for debugging
+    console.log("User's own posts:", userPosts.length);
+    
+    // Filter posts by privacy if needed
+    let filteredUserPosts = userPosts;
+    if (queryOptions.privacy !== 'all') {
+      filteredUserPosts = userPosts.filter(post => post.privacy === queryOptions.privacy);
+    }
+    
+    // Combine user and friend posts
+    const allPosts = [...filteredUserPosts, ...friendPosts];
+    
+    // Sort posts
+    const sortedPosts = allPosts.sort((a, b) => {
+      if (queryOptions.sort === 'newest') {
+        return b.createdAt - a.createdAt;
+      } else {
+        return a.createdAt - b.createdAt;
+      }
+    });
+    
+    return sortedPosts;
+  } catch (error) {
+    console.error('Error getting all visible posts:', error);
+    throw error;
+  }
+}
   
   /**
  * Get a user document by ID
  * @param {string} userId - The ID of the user to fetch
  * @returns {Promise<Object|null>} The user document or null if not found
  */
-async getUserById(userId) {
-  if (!this.currentUser) {
-    throw new Error('User must be logged in to fetch other users');
-  }
-  
-  try {
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
+  async getUserById(userId) {
+    if (!this.currentUser) {
+      throw new Error('User must be logged in to fetch other users');
+    }
     
-    if (userDoc.exists()) {
-      return {
-        id: userDoc.id,
-        ...userDoc.data()
-      };
-    } else {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        return {
+          id: userDoc.id,
+          ...userDoc.data()
+        };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Error getting user by ID:', error);
       return null;
     }
-  } catch (error) {
-    console.error('Error getting user by ID:', error);
-    return null;
   }
-}
 
+  
 
   /**
    * Add a media file to pending uploads
@@ -619,6 +758,86 @@ getShareablePostUrl(postId) {
   // Create a shareable URL with the post ID
   const baseUrl = window.location.origin;
   return `${baseUrl}/posts.html?view=${postId}`;
+}
+
+/**
+ * Get posts from friends that are visible to the current user
+ * @returns {Promise<Array>} Array of friend posts
+ */
+async getFriendPosts() {
+  if (!this.currentUser) {
+    throw new Error('User must be logged in to fetch friend posts');
+  }
+  
+  try {
+    // Get the current user's data to access friends list
+    const currentUserRef = doc(db, 'users', this.currentUser.uid);
+    const currentUserDoc = await getDoc(currentUserRef);
+    
+    if (!currentUserDoc.exists()) {
+      console.error('Current user document not found');
+      return [];
+    }
+    
+    const userData = currentUserDoc.data();
+    const friendEmails = userData.friends || [];
+    
+    // If no friends, return empty array
+    if (friendEmails.length === 0) {
+      return [];
+    }
+    
+    // Query for users who are friends to get their UIDs
+    const friendsQuery = query(
+      collection(db, 'users'),
+      where('email', 'in', friendEmails)
+    );
+    
+    const friendsSnapshot = await getDocs(friendsQuery);
+    const friendIds = friendsSnapshot.docs.map(doc => doc.id);
+    
+    // If no friend IDs found, return empty array
+    if (friendIds.length === 0) {
+      return [];
+    }
+    
+    // Query for public posts from friends
+    const publicPostsQuery = query(
+      collection(db, 'posts'),
+      where('authorId', 'in', friendIds),
+      where('privacy', '==', 'public'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const publicPostsSnapshot = await getDocs(publicPostsQuery);
+    
+    // Map posts to include full data
+    const friendPosts = publicPostsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      // Convert timestamps
+      const createdAt = data.createdAt instanceof Timestamp 
+        ? data.createdAt.toDate() 
+        : new Date();
+        
+      const updatedAt = data.updatedAt instanceof Timestamp
+        ? data.updatedAt.toDate()
+        : createdAt;
+      
+      return {
+        id: doc.id,
+        ...data,
+        createdAt,
+        updatedAt,
+        isFriendPost: true // Add flag to identify friend posts
+      };
+    });
+    
+    return friendPosts;
+  } catch (error) {
+    console.error('Error getting friend posts:', error);
+    return [];
+  }
 }
   
   /**
@@ -1300,6 +1519,8 @@ getShareablePostUrl(postId) {
       throw error;
     }
   }
+
+  
   
   /**
    * Get a URL for sharing a post
