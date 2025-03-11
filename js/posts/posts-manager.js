@@ -167,7 +167,7 @@ async getAllVisiblePosts(options = {}) {
             const friendPostsQuery = query(
               collection(db, 'posts'),
               where('authorId', 'in', friendIds),
-              where('privacy', '==', 'public'),
+              // where('privacy', '==', 'public'),
               orderBy('createdAt', 'desc')
             );
             
@@ -517,12 +517,23 @@ async getPost(postId) {
  * @returns {boolean} Whether the passcode is correct
  */
 verifyPasscode(passcode, post) {
-  if (!post || !post.passcode) {
-    return false;
+  if (!post) {
+    throw new Error('Post not found');
   }
   
-  // Direct comparison - in production you should use crypto and hashing
-  return passcode === post.passcode;
+  if (!post.hasOwnProperty('passcode')) {
+    throw new Error('This post does not require a passcode');
+  }
+  
+  // Direct comparison
+  const isCorrect = passcode === post.passcode;
+  
+  // For debugging - remove in production
+  if (!isCorrect) {
+    console.log('Passcode verification failed: Entered:', passcode, 'Expected:', post.passcode);
+  }
+  
+  return isCorrect;
 }
 
 /**
@@ -732,10 +743,6 @@ getShareablePostUrl(postId) {
   return `${baseUrl}/posts.html?view=${postId}`;
 }
 
-/**
- * Get posts from friends that are visible to the current user
- * @returns {Promise<Array>} Array of friend posts
- */
 async getFriendPosts() {
   if (!this.currentUser) {
     throw new Error('User must be logged in to fetch friend posts');
@@ -759,7 +766,7 @@ async getFriendPosts() {
       return [];
     }
     
-    // Query for users who are friends to get their UIDs
+    // Find all users that match these email addresses
     const friendsQuery = query(
       collection(db, 'users'),
       where('email', 'in', friendEmails)
@@ -768,47 +775,55 @@ async getFriendPosts() {
     const friendsSnapshot = await getDocs(friendsQuery);
     const friendIds = friendsSnapshot.docs.map(doc => doc.id);
     
-    // If no friend IDs found, return empty array
     if (friendIds.length === 0) {
       return [];
     }
     
-    // IMPORTANT CHANGE: We now fetch ALL posts from friends regardless of privacy
-    // Remove the privacy filter from the query
-    const friendPostsQuery = query(
-      collection(db, 'posts'),
-      where('authorId', 'in', friendIds),
-      orderBy('createdAt', 'desc')
-    );
+    // Now query for ALL posts from these friends (no privacy filter)
+    // Note: For Firestore, you may need to split this into multiple queries
+    // if you have more than 10 friend IDs due to "in" clause limitations
+    let allFriendPosts = [];
     
-    const friendPostsSnapshot = await getDocs(friendPostsQuery);
-    
-    // Map posts to include full data
-    const friendPosts = friendPostsSnapshot.docs.map(doc => {
-      const data = doc.data();
+    // Process in batches of 10 (Firestore limit for "in" queries)
+    for (let i = 0; i < friendIds.length; i += 10) {
+      const batchIds = friendIds.slice(i, i + 10);
       
-      // Convert timestamps
-      const createdAt = data.createdAt instanceof Timestamp 
-        ? data.createdAt.toDate() 
-        : new Date();
+      const batchQuery = query(
+        collection(db, 'posts'),
+        where('authorId', 'in', batchIds),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const batchSnapshot = await getDocs(batchQuery);
+      
+      const batchPosts = batchSnapshot.docs.map(doc => {
+        const data = doc.data();
         
-      const updatedAt = data.updatedAt instanceof Timestamp
-        ? data.updatedAt.toDate()
-        : createdAt;
+        // Convert timestamps
+        const createdAt = data.createdAt instanceof Timestamp 
+          ? data.createdAt.toDate() 
+          : new Date();
+          
+        const updatedAt = data.updatedAt instanceof Timestamp
+          ? data.updatedAt.toDate()
+          : createdAt;
+        
+        return {
+          id: doc.id,
+          ...data,
+          createdAt,
+          updatedAt,
+          isFriendPost: true
+        };
+      });
       
-      return {
-        id: doc.id,
-        ...data,
-        createdAt,
-        updatedAt,
-        isFriendPost: true // Add flag to identify friend posts
-      };
-    });
+      allFriendPosts = [...allFriendPosts, ...batchPosts];
+    }
     
-    console.log('Friend posts retrieved, including private ones:', friendPosts.length);
-    return friendPosts;
+    return allFriendPosts;
   } catch (error) {
-    console.error('Error getting friend posts:', error);
+    console.error('Error loading friend posts:', error);
+    // Return empty array instead of throwing to prevent breaking the UI
     return [];
   }
 }
