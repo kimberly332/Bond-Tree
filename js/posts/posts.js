@@ -761,7 +761,7 @@ async function handleCreatePost(e) {
 function createPostElement(post) {
   if (!post) {
     console.error('Attempted to create post element with null/undefined post');
-    return document.createElement('div'); // Return an empty div instead of throwing an error
+    return document.createElement('div');
   }
   
   const postElement = document.createElement('div');
@@ -812,7 +812,7 @@ function createPostElement(post) {
     contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
   }
   
-  // Create HTML structure
+  // Create media HTML
   let mediaHTML = '';
   
   // Add media previews if available
@@ -856,7 +856,7 @@ function createPostElement(post) {
       `;
     }
   }
-  
+
   postElement.innerHTML = `
     <div class="post-header">
       <div>
@@ -879,9 +879,11 @@ function createPostElement(post) {
       <button class="action-btn edit-btn" aria-label="Edit post">
         <i class="fas fa-edit"></i> Edit
       </button>
-      <button class="action-btn share-btn" aria-label="Share post">
-        <i class="fas fa-share"></i> Share
-      </button>
+      ${post.privacy === 'public' || post.privacy === 'friends' 
+        ? `<button class="action-btn share-btn" aria-label="Share post">
+            <i class="fas fa-share"></i> Share
+           </button>` 
+        : ''}
       <button class="action-btn delete-btn" aria-label="Delete post">
         <i class="fas fa-trash"></i> Delete
       </button>
@@ -1142,6 +1144,7 @@ function showPostContent(post) {
     
     const editBtn = elements.editPostBtn;
     const deleteBtn = elements.viewPostActions.querySelector('.delete-btn');
+    const shareBtn = elements.sharePostBtn;
     
     if (editBtn) {
       editBtn.style.display = isAuthor ? 'inline-flex' : 'none';
@@ -1149,6 +1152,14 @@ function showPostContent(post) {
     
     if (deleteBtn) {
       deleteBtn.style.display = isAuthor ? 'inline-flex' : 'none';
+    }
+
+    // Hide share button for private or passcode-protected posts
+    if (shareBtn) {
+      shareBtn.style.display = 
+        (post.privacy === 'private' || post.privacy === 'passcode') 
+          ? 'none' 
+          : 'inline-flex';
     }
   }
 
