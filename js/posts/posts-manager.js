@@ -99,36 +99,6 @@ class PostsManager {
     this.pendingMedia = [];
   }
 
-      // Add this function near the top of your PostsManager class
-async testFirestorePermissions(postId) {
-  try {
-    console.log("Testing Firestore permissions...");
-    console.log("Current user:", auth.currentUser?.uid);
-    
-    // First try reading the document
-    const postRef = doc(db, 'posts', postId);
-    const snapshot = await getDoc(postRef);
-    
-    if (!snapshot.exists()) {
-      console.log("Document doesn't exist!");
-      return false;
-    }
-    
-    console.log("Successfully read document:", snapshot.data());
-    console.log("Document author:", snapshot.data().authorId);
-    console.log("Current user:", auth.currentUser?.uid);
-    console.log("Match:", snapshot.data().authorId === auth.currentUser?.uid);
-    
-    // Then try to delete it
-    console.log("Attempting deletion...");
-    await deleteDoc(postRef);
-    console.log("Deletion successful!");
-    return true;
-  } catch (error) {
-    console.error("Test error:", error);
-    return false;
-  }
-}
   /**
  * Get all posts visible to the current user (both their own and their friends' posts)
  * @param {Object} options - Query options
@@ -1031,19 +1001,25 @@ async getFriendPosts() {
     }
   }
   
+  /**
+   * Delete a post and its associated media
+   * @param {string} postId - The ID of the post to delete
+   * @returns {Promise<boolean>} Success status
+   */
   async deletePost(postId) {
+    if (!this.currentUser) {
+      throw new Error('User must be logged in to delete posts');
+    }
+    
     try {
-      // Force a complete re-authentication before deletion
-      if (!auth.currentUser) {
-        throw new Error('No user is currently signed in');
+      // Validate the postId
+      if (!postId || typeof postId !== 'string') {
+        throw new Error('Invalid post ID. Post ID must be a string.');
       }
       
-      // Explicitly refresh the token
-      console.log("Current user before token refresh:", auth.currentUser.uid);
-      await auth.currentUser.getIdToken(true);  // Force refresh the token
-      console.log("Token refreshed, attempting deletion...");
+      console.log(`Attempting to delete post with ID: ${postId}`);
       
-      // Get the post document
+      // Get the post first to check permissions and get media references
       const docRef = doc(db, 'posts', postId);
       const docSnap = await getDoc(docRef);
       
@@ -1052,19 +1028,40 @@ async getFriendPosts() {
       }
       
       const postData = docSnap.data();
-      console.log("Post data:", JSON.stringify({
-        authorId: postData.authorId,
-        currentUserId: auth.currentUser.uid,
-        matchesCurrentUser: postData.authorId === auth.currentUser.uid
-      }));
       
-      // Delete the post (without any additional checks)
+      // Check if user is the author
+      if (postData.authorId !== this.currentUser.uid) {
+        throw new Error('You can only delete your own posts');
+      }
+      
+      // Try to delete media files, but continue even if this fails
+      if (postData.media && postData.media.length > 0) {
+        for (const media of postData.media) {
+          if (media.path) {
+            try {
+              const mediaRef = ref(storage, media.path);
+              await deleteObject(mediaRef);
+              console.log(`Successfully deleted media: ${media.path}`);
+            } catch (error) {
+              // Log the error but continue with post deletion
+              console.error('Error deleting media file:', error);
+              
+              // If we get a permission error, just continue
+              if (error.code === 'storage/unauthorized') {
+                console.log('Insufficient permissions to delete media. Continuing with post deletion.');
+              }
+            }
+          }
+        }
+      }
+      
+      // Delete the post document from Firestore
       await deleteDoc(docRef);
-      console.log("Post deleted successfully!");
+      console.log(`Successfully deleted post document: ${postId}`);
       
       return true;
     } catch (error) {
-      console.error('Error in deletePost:', error);
+      console.error('Error deleting post:', error);
       throw error;
     }
   }

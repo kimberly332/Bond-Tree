@@ -191,9 +191,6 @@ function setupKeyboardAccessibility() {
  * @param {Object} user - Firebase user object
  */
 function handleAuthStateChange(user) {
-  // Add this line at the top of the function
-  if (user && elements.loginWarning) elements.loginWarning.style.display = 'none';
-  
   appState.currentUser = user;
   
   if (user) {
@@ -211,70 +208,147 @@ function handleAuthStateChange(user) {
  */
 function addEventListeners() {
   // Close passcode modal
-  if (elements.closePasscodeModal) {
-    // Add keyboard accessibility for the close button
-    elements.closePasscodeModal.setAttribute('tabindex', '0');
-    elements.closePasscodeModal.setAttribute('role', 'button');
-    elements.closePasscodeModal.setAttribute('aria-label', 'Close passcode modal');
+if (elements.closePasscodeModal) {
+  // Add keyboard accessibility for the close button
+  elements.closePasscodeModal.setAttribute('tabindex', '0');
+  elements.closePasscodeModal.setAttribute('role', 'button');
+  elements.closePasscodeModal.setAttribute('aria-label', 'Close passcode modal');
+  
+  // Create a reusable function to close the passcode modal
+  const closePasscodeModal = () => {
+    elements.passcodeModal.style.display = 'none';
     
-    // Create a reusable function to close the passcode modal
-    const closePasscodeModal = () => {
-      elements.passcodeModal.style.display = 'none';
-      
-      // Reset passcode inputs
-      const passcodeInputs = [
-        elements.passcodeInput1,
-        elements.passcodeInput2,
-        elements.passcodeInput3,
-        elements.passcodeInput4
-      ];
-      
-      passcodeInputs.forEach(input => {
-        input.value = '';
-        input.classList.remove('error');
-      });
-      
-      // Clear any error message
-      if (elements.passcodeError) {
-        elements.passcodeError.textContent = '';
-      }
-    };
+    // Reset passcode inputs
+    const passcodeInputs = [
+      elements.passcodeInput1,
+      elements.passcodeInput2,
+      elements.passcodeInput3,
+      elements.passcodeInput4
+    ];
     
-    // Add click event listener
-    elements.closePasscodeModal.addEventListener('click', closePasscodeModal);
+    passcodeInputs.forEach(input => {
+      input.value = '';
+      input.classList.remove('error');
+    });
     
-    // Add keyboard support (Enter or Space key)
-    elements.closePasscodeModal.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        closePasscodeModal();
-      }
-    });
-  }
+    // Clear any error message
+    if (elements.passcodeError) {
+      elements.passcodeError.textContent = '';
+    }
+  };
+  
+  // Add click event listener
+  elements.closePasscodeModal.addEventListener('click', closePasscodeModal);
+  
+  // Add keyboard support (Enter or Space key)
+  elements.closePasscodeModal.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      closePasscodeModal();
+    }
+  });
+}
 
-  // Add event listeners for the post view modal buttons
-  if (elements.editPostBtn) {
-    elements.editPostBtn.addEventListener('click', () => {
-      // Close view modal
-      elements.viewPostModal.style.display = 'none';
-      // Open edit modal with current post
-      openEditModal(appState.currentPost);
-    });
+  // Back button
+  if (elements.backButton) {
+    elements.backButton.addEventListener('click', handleBackButtonClick);
   }
-
-  if (elements.sharePostBtn) {
-    elements.sharePostBtn.addEventListener('click', () => {
-      sharePost(appState.currentPost);
-    });
+  
+  // Post form submission
+  if (elements.postForm) {
+    elements.postForm.addEventListener('submit', handleCreatePost);
   }
-
-  if (elements.downloadPostBtn) {
-    elements.downloadPostBtn.addEventListener('click', () => {
-      downloadPost(appState.currentPost);
+  
+  // Character counter for post content
+  if (elements.postContent && elements.charsCount) {
+    elements.postContent.addEventListener('input', () => {
+      const count = elements.postContent.value.length;
+      elements.charsCount.textContent = count;
+      updateCharCounter(count, elements.charsCount);
     });
   }
   
-  // Media navigation buttons
+  // Edit form character counter
+  if (elements.editPostContent && elements.editCharsCount) {
+    elements.editPostContent.addEventListener('input', () => {
+      const count = elements.editPostContent.value.length;
+      elements.editCharsCount.textContent = count;
+      updateCharCounter(count, elements.editCharsCount);
+    });
+  }
+  
+  // Media upload
+  if (elements.postMedia) {
+    elements.postMedia.addEventListener('change', handleMediaUpload);
+  }
+  
+  // Filters
+  if (elements.privacyFilter) {
+    elements.privacyFilter.addEventListener('change', handleFilterChange);
+  }
+  
+  if (elements.sortFilter) {
+    elements.sortFilter.addEventListener('change', handleFilterChange);
+  }
+  
+  // Load more button
+  if (elements.loadMoreBtn) {
+    elements.loadMoreBtn.addEventListener('click', handleLoadMore);
+  }
+  
+  // Edit post form submission
+  if (elements.editPostForm) {
+    elements.editPostForm.addEventListener('submit', handleUpdatePost);
+  }
+  
+  // Delete post button
+  if (elements.deletePostBtn) {
+    elements.deletePostBtn.addEventListener('click', handleDeletePost);
+  }
+  
+  // Close edit modal
+  if (elements.closeEditModal) {
+    elements.closeEditModal.addEventListener('click', () => {
+      elements.editPostModal.style.display = 'none';
+    });
+  }
+  
+  // Close view modal
+  if (elements.closeViewModal) {
+    elements.closeViewModal.addEventListener('click', () => {
+      elements.viewPostModal.style.display = 'none';
+    });
+  }
+  
+  // Edit button in view modal
+  if (elements.editPostBtn) {
+    elements.editPostBtn.addEventListener('click', () => {
+      if (appState.currentPost) {
+        openEditModal(appState.currentPost);
+        elements.viewPostModal.style.display = 'none';
+      }
+    });
+  }
+  
+  // Share button in view modal
+  if (elements.sharePostBtn) {
+    elements.sharePostBtn.addEventListener('click', () => {
+      if (appState.currentPost) {
+        sharePost(appState.currentPost);
+      }
+    });
+  }
+  
+  // Download button in view modal
+  if (elements.downloadPostBtn) {
+    elements.downloadPostBtn.addEventListener('click', () => {
+      if (appState.currentPost) {
+        downloadPost(appState.currentPost);
+      }
+    });
+  }
+  
+  // Media viewer navigation
   if (elements.prevMediaBtn) {
     elements.prevMediaBtn.addEventListener('click', showPreviousMedia);
   }
@@ -290,78 +364,24 @@ function addEventListeners() {
     });
   }
   
-  // Close view modal
-  if (elements.closeViewModal) {
-    elements.closeViewModal.addEventListener('click', () => {
-      elements.viewPostModal.style.display = 'none';
-    });
-  }
-  
-  // Close edit modal
-  if (elements.closeEditModal) {
-    elements.closeEditModal.addEventListener('click', () => {
+  // Click outside to close modals
+  window.addEventListener('click', (e) => {
+    if (e.target === elements.editPostModal) {
       elements.editPostModal.style.display = 'none';
-    });
-  }
-  
-  // Delete post button in edit modal
-  if (elements.deletePostBtn) {
-    elements.deletePostBtn.addEventListener('click', () => {
-      handleDeletePost(elements.editPostId.value);
-    });
-  }
-  
-  // Handle post form submission
-  if (elements.postForm) {
-    elements.postForm.addEventListener('submit', handleCreatePost);
-  }
-  
-  // Handle edit form submission
-  if (elements.editPostForm) {
-    elements.editPostForm.addEventListener('submit', handleUpdatePost);
-  }
-  
-  // Media upload
-  if (elements.postMedia) {
-    elements.postMedia.addEventListener('change', handleMediaUpload);
-  }
-  
-  // Character counter for post content
-  if (elements.postContent && elements.charsCount) {
-    elements.postContent.addEventListener('input', () => {
-      const count = elements.postContent.value.length;
-      elements.charsCount.textContent = count;
-      updateCharCounter(count, elements.charsCount);
-    });
-  }
-  
-  // Character counter for edit content
-  if (elements.editPostContent && elements.editCharsCount) {
-    elements.editPostContent.addEventListener('input', () => {
-      const count = elements.editPostContent.value.length;
-      elements.editCharsCount.textContent = count;
-      updateCharCounter(count, elements.editCharsCount);
-    });
-  }
-  
-  // Filter change handlers
-  if (elements.privacyFilter) {
-    elements.privacyFilter.addEventListener('change', handleFilterChange);
-  }
-  
-  if (elements.sortFilter) {
-    elements.sortFilter.addEventListener('change', handleFilterChange);
-  }
-  
-  // Load more button
-  if (elements.loadMoreBtn) {
-    elements.loadMoreBtn.addEventListener('click', handleLoadMore);
-  }
-  
-  // Back button
-  if (elements.backButton) {
-    elements.backButton.addEventListener('click', handleBackButtonClick);
-  }
+    }
+    
+    if (e.target === elements.viewPostModal) {
+      elements.viewPostModal.style.display = 'none';
+    }
+    
+    if (e.target === elements.mediaViewerModal) {
+      elements.mediaViewerModal.style.display = 'none';
+    }
+    
+    if (e.target === elements.passcodeModal) {
+      elements.passcodeModal.style.display = 'none';
+    }
+  });
 }
 
 /**
@@ -1700,6 +1720,10 @@ function confirmDeletePost(post) {
   }
 }
 
+/**
+ * Handle post deletion
+ * @param {string|Object} postIdOrPost - ID of the post to delete or post object
+ */
 async function handleDeletePost(postIdOrPost) {
   try {
     // Get post ID from parameter (which could be an ID string or post object)
@@ -1723,23 +1747,17 @@ async function handleDeletePost(postIdOrPost) {
       throw new Error('Post ID must be a valid string');
     }
     
-    console.log('Attempting to test permissions for post ID:', id);
+    // Delete post
+    await postsManager.deletePost(id);
     
-    // Use the test function instead of the regular delete
-    const success = await postsManager.testFirestorePermissions(id);
+    // Close modals
+    closeAllModals();
     
-    if (success) {
-      // Close modals
-      closeAllModals();
-      
-      // Show success message
-      showSuccess('Post deleted successfully!');
-      
-      // Reload posts
-      loadPosts();
-    } else {
-      showError('Permission test failed. Could not delete post.');
-    }
+    // Show success message
+    showSuccess('Post deleted successfully!');
+    
+    // Reload posts
+    loadPosts();
   } catch (error) {
     console.error('Error deleting post:', error);
     showError('Failed to delete post. Please try again.');
