@@ -870,13 +870,12 @@ function createPostElement(post) {
   
   // Special handling for private friend posts
   const isPrivateFriendPost = post.isFriendPost && post.privacy === 'private';
-if (isPrivateFriendPost) {
-  contentText = "This post is protected with a passcode. Click to view.";
-  isTruncated = false;
-  postElement.classList.add('private-friend-post');
-} else if (isTruncated) {
-  contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
-}
+  if (isPrivateFriendPost) {
+    contentText = "This post is protected with a passcode. Click to view.";
+    isTruncated = false;
+  } else if (isTruncated) {
+    contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
+  }
   
   // Create media HTML
   let mediaHTML = '';
@@ -922,41 +921,44 @@ if (isPrivateFriendPost) {
       `;
     }
   }
-// Create the HTML for the post
-postElement.innerHTML = `
-<div class="post-header">
-  <div>
-    <h3 class="post-title">${post.title || 'Untitled Post'}</h3>
-    <div class="post-date">${formattedDate}</div>
-  </div>
-  <div class="post-privacy-badge">
-    ${privacyIcon} ${privacyText}
-  </div>
-</div>
-<div class="post-content ${isTruncated ? 'truncated' : ''}">
-  ${contentText}
-</div>
-${(!isPrivateFriendPost && isTruncated) ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
-${mediaHTML}
-<div class="post-actions">
-  ${viewBtnHTML}
-  ${post.isOwnPost ? `
-    <button class="action-btn edit-btn" aria-label="Edit post">
-      <i class="fas fa-edit"></i> Edit
-    </button>
-    <button class="action-btn share-btn" aria-label="Share post">
-      <i class="fas fa-share"></i> Share
-    </button>
-    <button class="action-btn delete-btn" aria-label="Delete post">
-      <i class="fas fa-trash"></i> Delete
-    </button>
-  ` : `
-    <button class="action-btn share-btn" aria-label="Share post">
-      <i class="fas fa-share"></i> Share
-    </button>
-  `}
-</div>
-`;
+
+  // Create the HTML for the post
+  postElement.innerHTML = `
+    <div class="post-header">
+      <div>
+        <h3 class="post-title">${post.title || 'Untitled Post'}</h3>
+        <div class="post-date">${formattedDate}</div>
+      </div>
+      <div class="post-privacy-badge">
+        ${privacyIcon} ${privacyText}
+      </div>
+    </div>
+    <div class="post-content ${isTruncated ? 'truncated' : ''}">
+      ${contentText}
+    </div>
+    ${(!isPrivateFriendPost && isTruncated) ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
+    ${mediaHTML}
+    <div class="post-actions">
+      <button class="action-btn view-btn" aria-label="View post">
+        <i class="fas fa-eye"></i> ${isPrivateFriendPost ? 'Enter Passcode' : 'View'}
+      </button>
+      ${post.isOwnPost ? `
+        <button class="action-btn edit-btn" aria-label="Edit post">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="action-btn share-btn" aria-label="Share post">
+          <i class="fas fa-share"></i> Share
+        </button>
+        <button class="action-btn delete-btn" aria-label="Delete post">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      ` : `
+        <button class="action-btn share-btn" aria-label="Share post">
+          <i class="fas fa-share"></i> Share
+        </button>
+      `}
+    </div>
+  `;
   
   // Add event listeners for buttons
   // 1. View button
@@ -1229,7 +1231,6 @@ async function verifyPasscode() {
   if (!/^\d{4}$/.test(passcode)) {
     if (elements.passcodeError) {
       elements.passcodeError.textContent = 'Please enter a 4-digit passcode';
-      elements.passcodeError.style.display = 'block'; // Make sure it's visible
     }
     passcodeInputs.forEach(input => input.classList.add('error'));
     return;
@@ -1246,24 +1247,12 @@ async function verifyPasscode() {
       // Close passcode modal
       elements.passcodeModal.style.display = 'none';
       
-      // Clear any previous errors
-      if (elements.passcodeError) {
-        elements.passcodeError.textContent = '';
-        elements.passcodeError.style.display = 'none';
-      }
-      
       // Show the post
       showPostContent(post);
     } else {
       // Show error
       if (elements.passcodeError) {
         elements.passcodeError.textContent = 'Incorrect passcode';
-        elements.passcodeError.style.display = 'block';
-        // Add a subtle shake animation to the inputs
-        passcodeInputs.forEach(input => {
-          input.classList.add('shake-error');
-          setTimeout(() => input.classList.remove('shake-error'), 500);
-        });
       }
       passcodeInputs.forEach(input => input.classList.add('error'));
     }
@@ -1271,7 +1260,6 @@ async function verifyPasscode() {
     console.error('Error verifying passcode:', error);
     if (elements.passcodeError) {
       elements.passcodeError.textContent = 'Failed to verify passcode. Please try again.';
-      elements.passcodeError.style.display = 'block';
     }
   }
 }
