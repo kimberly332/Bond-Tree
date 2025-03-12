@@ -58,7 +58,7 @@ h1 {
 
 .section {
   background-color: white;
-  border-radius: 10px;
+  border-radius: 15px;
   padding: 15px;
   margin-bottom: 20px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
@@ -188,7 +188,7 @@ footer {
 }
 
 /* ===== Back Button ===== */
-.back-btn {
+/* .back-btn {
   position: fixed;
   top: 15px;
   left: 15px;
@@ -209,11 +209,11 @@ footer {
 
 .back-btn::before {
   content: none;
-}
+} */
 
-.back-btn:hover {
+/* .back-btn:hover {
   background-color: #e0e0e0;
-}
+} */
 
 /* ===== Button Styles ===== */
 button {
@@ -496,12 +496,12 @@ button:disabled {
     padding: 10px;
   }
   
-  .back-btn {
+  /* .back-btn {
     top: 10px;
     left: 10px;
     width: 36px;
     height: 36px;
-  }
+  } */
   
   .mood-ball {
     width: 150px;
