@@ -66,3 +66,93 @@ export function initLanguageSelector(containerId, options = {}) {
     textSpan.textContent = languageManager.translate('language.languageSelection');
     button.appendChild(textSpan);
   }
+  
+  // Create dropdown
+  const dropdown = document.createElement('ul');
+  dropdown.className = settings.dropdownClass;
+  dropdown.setAttribute('role', 'menu');
+  dropdown.style.display = 'none';
+  
+  // Add language options
+  const languages = languageManager.getLanguages();
+  const currentLang = languageManager.getCurrentLanguage();
+  
+  settings.languages.forEach(langCode => {
+    const language = languages[langCode];
+    if (!language) return;
+    
+    const listItem = document.createElement('li');
+    listItem.setAttribute('role', 'menuitem');
+    
+    const langButton = document.createElement('button');
+    langButton.className = 'language-option';
+    langButton.dataset.lang = langCode;
+    if (langCode === currentLang) {
+      langButton.classList.add(settings.activeClass);
+    }
+    
+    // Create language name element
+    const langName = document.createElement('span');
+    langName.textContent = language.name;
+    langButton.appendChild(langName);
+    
+    // Add click handler
+    langButton.addEventListener('click', () => {
+      // Change language
+      languageManager.changeLanguage(langCode);
+      
+      // Update active state
+      dropdown.querySelectorAll('.language-option').forEach(btn => {
+        btn.classList.remove(settings.activeClass);
+      });
+      langButton.classList.add(settings.activeClass);
+      
+      // Close dropdown
+      dropdown.style.display = 'none';
+      button.setAttribute('aria-expanded', 'false');
+    });
+    
+    listItem.appendChild(langButton);
+    dropdown.appendChild(listItem);
+  });
+  
+  // Toggle dropdown on button click
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', (!isExpanded).toString());
+    dropdown.style.display = isExpanded ? 'none' : 'block';
+    
+    // Close dropdown when clicking outside
+    if (!isExpanded) {
+      const closeDropdown = (e) => {
+        if (!selectorContainer.contains(e.target)) {
+          dropdown.style.display = 'none';
+          button.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', closeDropdown);
+        }
+      };
+      
+      // Use setTimeout to avoid immediate trigger
+      setTimeout(() => {
+        document.addEventListener('click', closeDropdown);
+      }, 0);
+    }
+  });
+  
+  // Assemble the selector
+  selectorContainer.appendChild(button);
+  selectorContainer.appendChild(dropdown);
+  container.appendChild(selectorContainer);
+  
+  // Watch for language changes
+  languageManager.addObserver(() => {
+    if (settings.showText) {
+      const textSpan = button.querySelector('.language-text');
+      if (textSpan) {
+        textSpan.textContent = languageManager.translate('language.languageSelection');
+      }
+    }
+  });
+  
+  return selectorContainer;
+}
