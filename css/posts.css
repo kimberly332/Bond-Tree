@@ -1135,6 +1135,57 @@ a:focus {
     background-color: #e74c3c;
     color: white;
   }
+
+  /* Post card container */
+  .post-card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  /* Post title and date */
+  .post-card .post-header h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+  }
+  
+  .post-card .post-date {
+    font-size: 0.75rem;
+    margin-bottom: 10px;
+  }
+  
+  /* Passcode message */
+  .post-card .post-content {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 14px 0;
+  }
+  
+  /* Button container */
+  .post-card .button-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  
+  /* Make buttons full width and increase tap target size */
+  .post-card .button-container button {
+    width: 100%;
+    padding: 12px;
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+  
+  /* Add more vertical spacing between elements */
+  .post-card > * {
+    margin-bottom: 10px;
+  }
+  
+  /* Privacy badge */
+  .post-card .post-privacy-badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+  }
   
 }
 
