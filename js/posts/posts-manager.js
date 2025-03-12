@@ -115,13 +115,79 @@ async getAllVisiblePosts(options = {}) {
       sort: options.sort || 'newest'
     };
     
-    // STEP 1: Get the user's own posts (this is always allowed)
+    // Get current user's own posts
     const userPostsQuery = query(
       collection(db, 'posts'),
       where('authorId', '==', this.currentUser.uid)
     );
     
+    // Get friends list
+    const userDoc = await getDoc(doc(db, 'users', this.currentUser.uid));
+    if (!userDoc.exists()) {
+      throw new Error('User document not found');
+    }
+    
+    const userData = userDoc.data();
+    const friendEmails = userData.friends || [];
+    
+    // Log for debugging
+    console.log("Current user's friends:", friendEmails);
+    
+    let friendPosts = [];
+    if (friendEmails.length > 0) {
+      // Get friend user IDs
+      const friendsQuery = query(
+        collection(db, 'users'),
+        where('email', 'in', friendEmails)
+      );
+      
+      const friendsSnapshot = await getDocs(friendsQuery);
+      const friendIds = friendsSnapshot.docs.map(doc => doc.id);
+      
+      // Log for debugging
+      console.log("Friend IDs found:", friendIds);
+      
+      if (friendIds.length > 0) {
+        // Query for friend public posts
+        const friendPostsQuery = query(
+          collection(db, 'posts'),
+          where('authorId', 'in', friendIds),
+          where('privacy', '==', 'public')
+        );
+        
+        const friendPostsSnapshot = await getDocs(friendPostsQuery);
+        
+        // Convert to post objects
+        friendPosts = friendPostsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          
+          // Convert timestamps
+          const createdAt = data.createdAt instanceof Timestamp 
+            ? data.createdAt.toDate() 
+            : new Date();
+            
+          const updatedAt = data.updatedAt instanceof Timestamp
+            ? data.updatedAt.toDate()
+            : createdAt;
+          
+          return {
+            id: doc.id,
+            ...data,
+            createdAt,
+            updatedAt,
+            isFriendPost: true
+          };
+        });
+        
+        // Log for debugging
+        console.log("Friend posts found:", friendPosts.length);
+      }
+    }
+    
+    // Get user's own posts
     const userPostsSnapshot = await getDocs(userPostsQuery);
+    
+    // Convert to post objects
     const userPosts = userPostsSnapshot.docs.map(doc => {
       const data = doc.data();
       
@@ -143,6 +209,7 @@ async getAllVisiblePosts(options = {}) {
       };
     });
     
+<<<<<<< HEAD
     // STEP 2: Get friends list
     let friendPosts = [];
     try {
@@ -200,17 +267,21 @@ async getAllVisiblePosts(options = {}) {
       console.error('Error loading friend posts:', friendError);
       // Continue with just user posts if there's an error with friend posts
     }
+=======
+    // Log for debugging
+    console.log("User's own posts:", userPosts.length);
+>>>>>>> parent of 911e3fa (Fixing visibilities.)
     
-    // STEP 3: Filter posts by privacy if needed
+    // Filter posts by privacy if needed
     let filteredUserPosts = userPosts;
     if (queryOptions.privacy !== 'all') {
       filteredUserPosts = userPosts.filter(post => post.privacy === queryOptions.privacy);
     }
     
-    // STEP 4: Combine user and friend posts
+    // Combine user and friend posts
     const allPosts = [...filteredUserPosts, ...friendPosts];
     
-    // STEP 5: Sort posts
+    // Sort posts
     const sortedPosts = allPosts.sort((a, b) => {
       if (queryOptions.sort === 'newest') {
         return b.createdAt - a.createdAt;
@@ -333,6 +404,23 @@ async getAllVisiblePosts(options = {}) {
     // Add salt
     const salt = Date.now().toString(36);
     return `${hash.toString(16)}_${salt}`;
+  }
+
+  /**
+   * Verify a passcode
+   * @param {string} passcode - The passcode to verify
+   * @param {string} storedHash - The stored hash
+   * @returns {boolean} - Whether the passcode is correct
+   */
+  verifyPasscode(passcode, storedHash) {
+    const [hashPart] = storedHash.split('_');
+    let hash = 0;
+    for (let i = 0; i < passcode.length; i++) {
+      const char = passcode.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hashPart === hash.toString(16);
   }
   
   /**
@@ -521,6 +609,7 @@ verifyPasscode(passcode, post) {
     throw new Error('Post not found');
   }
   
+<<<<<<< HEAD
   if (!post.hasOwnProperty('passcode')) {
     throw new Error('This post does not require a passcode');
   }
@@ -534,6 +623,10 @@ verifyPasscode(passcode, post) {
   }
   
   return isCorrect;
+=======
+  // Simple direct comparison - in production you should use crypto and hashing
+  return passcode === post.passcode;
+>>>>>>> parent of 911e3fa (Fixing visibilities.)
 }
 
 /**
@@ -779,6 +872,7 @@ async getFriendPosts() {
       return [];
     }
     
+<<<<<<< HEAD
     // Now query for ALL posts from these friends (no privacy filter)
     // Note: For Firestore, you may need to split this into multiple queries
     // if you have more than 10 friend IDs due to "in" clause limitations
@@ -787,6 +881,21 @@ async getFriendPosts() {
     // Process in batches of 10 (Firestore limit for "in" queries)
     for (let i = 0; i < friendIds.length; i += 10) {
       const batchIds = friendIds.slice(i, i + 10);
+=======
+    // Query for public posts from friends
+    const publicPostsQuery = query(
+      collection(db, 'posts'),
+      where('authorId', 'in', friendIds),
+      where('privacy', '==', 'public'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const publicPostsSnapshot = await getDocs(publicPostsQuery);
+    
+    // Map posts to include full data
+    const friendPosts = publicPostsSnapshot.docs.map(doc => {
+      const data = doc.data();
+>>>>>>> parent of 911e3fa (Fixing visibilities.)
       
       const batchQuery = query(
         collection(db, 'posts'),
@@ -820,7 +929,11 @@ async getFriendPosts() {
       allFriendPosts = [...allFriendPosts, ...batchPosts];
     }
     
+<<<<<<< HEAD
     return allFriendPosts;
+=======
+    return friendPosts;
+>>>>>>> parent of 911e3fa (Fixing visibilities.)
   } catch (error) {
     console.error('Error loading friend posts:', error);
     // Return empty array instead of throwing to prevent breaking the UI
