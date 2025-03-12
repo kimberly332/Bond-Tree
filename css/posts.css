@@ -1121,24 +1121,3 @@ a:focus {
     width: 100%;
   }
 }
-
-/* Add this to posts.css */
-.private-friend-post {
-  position: relative;
-  background-color: #f7f9fc;
-  border: 1px solid #e1e8ed;
-}
-
-.private-friend-post::before {
-  content: '🔒';
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 20px;
-  z-index: 1;
-}
-
-.private-friend-post .post-content {
-  font-style: italic;
-  color: #666;
-}

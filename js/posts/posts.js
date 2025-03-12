@@ -452,9 +452,6 @@ function handleBackButtonClick(e) {
 /**
  * Load posts based on current filters
  */
-/**
- * Load posts based on current filters
- */
 async function loadPosts() {
   try {
     // Show loading state
@@ -466,83 +463,21 @@ async function loadPosts() {
       sort: appState.currentFilters.sort
     });
     
-    // Process the posts based on privacy settings
-    const processedPosts = posts.map(post => {
-      // If it's the user's own post, show it
-      if (post.authorId === appState.currentUser.uid) {
-        return { ...post, isOwnPost: true };
-      }
-      
-      // If it's a friend's post
-      if (post.isFriendPost) {
-        // If public, show it as is
-        if (post.privacy === 'public') {
-          return post;
-        }
-        
-        // If private, only show limited info in the list but require passcode to view details
-        if (post.privacy === 'private') {
-          // Create a copy with limited content
-          return {
-            ...post,
-            requiresPasscode: true,
-            originalContent: post.content, // Save original content
-            content: "This post is protected with a passcode. Click to enter passcode and view.", // Replace with message
-            isPrivateFriendPost: true
-          };
-        }
-      }
-      
-      return post;
-    });
-    
-    // Filter posts based on privacy setting if needed
-    let displayPosts = processedPosts;
-    
-    if (appState.currentFilters.privacy !== 'all') {
-      displayPosts = processedPosts.filter(post => {
-        // For own posts, filter by exact privacy match
-        if (post.isOwnPost) {
-          return post.privacy === appState.currentFilters.privacy;
-        }
-        
-        // For friend posts, handle differently
-        if (post.isFriendPost) {
-          if (appState.currentFilters.privacy === 'public') {
-            // Only show public friend posts
-            return post.privacy === 'public';
-          } else if (appState.currentFilters.privacy === 'private') {
-            // Only show private friend posts
-            return post.isPrivateFriendPost;
-          }
-        }
-        
-        return true;
-      });
-    }
-    
-    // Sort the filtered posts
-    if (appState.currentFilters.sort === 'newest') {
-      displayPosts.sort((a, b) => b.createdAt - a.createdAt);
-    } else {
-      displayPosts.sort((a, b) => a.createdAt - b.createdAt);
-    }
-    
     // Log posts for debugging
-    console.log('Loaded posts:', displayPosts.length);
+    console.log('Loaded posts:', posts);
     
     // Clear existing posts
     elements.postsContainer.innerHTML = '';
     
     // Show posts or empty state
-    if (displayPosts.length === 0) {
+    if (posts.length === 0) {
       elements.noPostsMessage.style.display = 'block';
       elements.loadMoreContainer.style.display = 'none';
     } else {
       elements.noPostsMessage.style.display = 'none';
       
       // Render posts
-      displayPosts.forEach(post => {
+      posts.forEach(post => {
         try {
           const postElement = createPostElement(post);
           elements.postsContainer.appendChild(postElement);
@@ -551,12 +486,8 @@ async function loadPosts() {
         }
       });
       
-      // Show load more button if not filtered view and we have enough posts
-      if (displayPosts.length >= postsManager.postsPerPage && !postsManager.reachedEnd) {
-        elements.loadMoreContainer.style.display = 'block';
-      } else {
-        elements.loadMoreContainer.style.display = 'none';
-      }
+      // No load more button for combined view
+      elements.loadMoreContainer.style.display = 'none';
     }
     
     // Hide loading state
@@ -831,11 +762,6 @@ function createPostElement(post) {
   postElement.className = 'post-card';
   postElement.dataset.id = post.id;
   
-  // Add 'private-friend-post' class for styling if it's a private post from a friend
-  if (post.isFriendPost && post.privacy === 'private') {
-    postElement.classList.add('private-friend-post');
-  }
-  
   // Format date
   const postDate = post.createdAt ? new Date(post.createdAt) : new Date();
   const formattedDate = postDate.toLocaleDateString('en-US', {
@@ -851,11 +777,11 @@ function createPostElement(post) {
   let privacyText = '';
   
   switch (post.privacy) {
-    case 'public':
+    case PRIVACY.PUBLIC:
       privacyIcon = '<i class="fas fa-user-friends"></i>';
       privacyText = 'Visible to Friends';
       break;
-    case 'private':
+    case PRIVACY.PRIVATE:
       privacyIcon = '<i class="fas fa-key"></i>';
       privacyText = 'Friends with Passcode';
       break;
@@ -866,22 +792,17 @@ function createPostElement(post) {
   
   // Create truncated content
   let contentText = post.content || '';
-  let isTruncated = contentText.length > TRUNCATE_LENGTH;
+  const isTruncated = contentText.length > TRUNCATE_LENGTH;
   
-  // Special handling for private friend posts
-  const isPrivateFriendPost = post.isFriendPost && post.privacy === 'private';
-  if (isPrivateFriendPost) {
-    contentText = "This post is protected with a passcode. Click to view.";
-    isTruncated = false;
-  } else if (isTruncated) {
+  if (isTruncated) {
     contentText = contentText.substring(0, TRUNCATE_LENGTH) + '...';
   }
   
   // Create media HTML
   let mediaHTML = '';
   
-  // Add media previews if available (and not private friend post)
-  if (post.media && post.media.length > 0 && !isPrivateFriendPost) {
+  // Add media previews if available
+  if (post.media && post.media.length > 0) {
     if (post.media.length > 4) {
       // Show first 3 and a count for the rest
       mediaHTML = `
@@ -922,7 +843,6 @@ function createPostElement(post) {
     }
   }
 
-  // Create the HTML for the post
   postElement.innerHTML = `
     <div class="post-header">
       <div>
@@ -936,27 +856,21 @@ function createPostElement(post) {
     <div class="post-content ${isTruncated ? 'truncated' : ''}">
       ${contentText}
     </div>
-    ${(!isPrivateFriendPost && isTruncated) ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
+    ${isTruncated ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
     ${mediaHTML}
     <div class="post-actions">
       <button class="action-btn view-btn" aria-label="View post">
-        <i class="fas fa-eye"></i> ${isPrivateFriendPost ? 'Enter Passcode' : 'View'}
+        <i class="fas fa-eye"></i> View
       </button>
-      ${post.isOwnPost ? `
-        <button class="action-btn edit-btn" aria-label="Edit post">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button class="action-btn share-btn" aria-label="Share post">
-          <i class="fas fa-share"></i> Share
-        </button>
-        <button class="action-btn delete-btn" aria-label="Delete post">
-          <i class="fas fa-trash"></i> Delete
-        </button>
-      ` : `
-        <button class="action-btn share-btn" aria-label="Share post">
-          <i class="fas fa-share"></i> Share
-        </button>
-      `}
+      <button class="action-btn edit-btn" aria-label="Edit post">
+        <i class="fas fa-edit"></i> Edit
+      </button>
+      <button class="action-btn share-btn" aria-label="Share post">
+        <i class="fas fa-share"></i> Share
+      </button>
+      <button class="action-btn delete-btn" aria-label="Delete post">
+        <i class="fas fa-trash"></i> Delete
+      </button>
     </div>
   `;
   
@@ -969,7 +883,7 @@ function createPostElement(post) {
     });
   }
   
-  // 2. Edit button (only for own posts)
+  // 2. Edit button
   const editButton = postElement.querySelector('.edit-btn');
   if (editButton) {
     editButton.addEventListener('click', () => {
@@ -985,7 +899,7 @@ function createPostElement(post) {
     });
   }
   
-  // 4. Delete button (only for own posts)
+  // 4. Delete button
   const deleteButton = postElement.querySelector('.delete-btn');
   if (deleteButton) {
     deleteButton.addEventListener('click', () => {
@@ -993,7 +907,7 @@ function createPostElement(post) {
     });
   }
   
-  // 5. Read more link (for truncated content)
+  // 5. Read more link
   const readMoreLink = postElement.querySelector('.read-more');
   if (readMoreLink) {
     readMoreLink.addEventListener('click', (e) => {
@@ -1144,18 +1058,41 @@ async function loadAllVisiblePosts(options = {}) {
 }
 
 
-function openViewModal(post) {
-  // Store the current post
-  appState.currentPost = post;
-  
-  // If it's a private friend post, show passcode modal
-  if (post.isFriendPost && post.privacy === 'private') {
-    showPasscodeModal(post.id);
-    return;
+async function openViewModal(post) {
+  try {
+    // If post has isOwnPost flag, it's the user's own post - show directly
+    if (post.isOwnPost) {
+      showPostContent(post);
+      return;
+    }
+    
+    // If post has isFriendPost flag, it's a friend's public post - show directly
+    if (post.isFriendPost && post.privacy === 'public') {
+      showPostContent(post);
+      return;
+    }
+    
+    // Otherwise, check explicitly if the current user is a friend of the author
+    const isUserFriend = await postsManager.checkIfUserIsFriend(post.authorId);
+    
+    // If not a friend, don't show the post
+    if (!isUserFriend) {
+      showError("You need to be friends with the author to view this post.");
+      return;
+    }
+    
+    // For private posts, require passcode unless the user is the author
+    if (post.privacy === 'private' && post.authorId !== appState.currentUser?.uid) {
+      // Show passcode modal for friend requiring passcode
+      showPasscodeModal(post.id);
+    } else {
+      // For public posts, show content to friends
+      showPostContent(post);
+    }
+  } catch (error) {
+    console.error('Error opening view modal:', error);
+    showError('Could not load the post. Please try again.');
   }
-  
-  // Otherwise show post content directly
-  showPostContent(post);
 }
 
 /**
