@@ -1,7 +1,16 @@
-// firestore.rules
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if current user is friends with the author
+    function isFriend(authorId) {
+      let authorDoc = get(/databases/$(database)/documents/users/$(authorId));
+      let currentUserDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      let authorEmail = authorDoc.data.email;
+      
+      // Check if author's email is in current user's friends list
+      return authorEmail in currentUserDoc.data.friends;
+    }
+    
     // Allow read access to user documents for username availability check
     match /users/{userId} {
       allow read: if true;
@@ -9,12 +18,7 @@ service cloud.firestore {
     
     // Existing user document write rules
     match /users/{userId} {
-      allow read: if request.auth != null && 
-        (resource.data.authorId == request.auth.uid || 
-         resource.data.privacy == "public" ||
-         (resource.data.privacy == "friends" && 
-          resource.data.authorId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.friends) ||
-         resource.data.privacy == "passcode"); // Allow reading passcode-protected posts
+      allow read: if request.auth != null;
   
       allow create: if request.auth != null 
                     && request.resource.data.username.size() >= 3 
@@ -28,20 +32,13 @@ service cloud.firestore {
       allow delete: if request.auth.uid == userId;
     }
     
-    // Posts collection rules - UPDATED to allow friends to see private posts
+    // Posts collection rules - UPDATED for email-based friendship check
     match /posts/{postId} {
-      // Allow reading posts if:
-      // 1. The user is authenticated and is the author
-      // 2. The post is public
-      // 3. The post is for friends and the user is a friend of the author
-      // 4. The post is private and the user is a friend of the author
       allow read: if request.auth != null && 
         (
           resource.data.authorId == request.auth.uid || 
           resource.data.privacy == "public" ||
-          (
-            resource.data.authorId in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.friends
-          )
+          isFriend(resource.data.authorId)
         );
           
       // Allow creating posts if authenticated and setting themselves as author
