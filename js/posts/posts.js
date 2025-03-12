@@ -207,6 +207,48 @@ function handleAuthStateChange(user) {
  * Add event listeners for UI interactions
  */
 function addEventListeners() {
+  // Close passcode modal
+if (elements.closePasscodeModal) {
+  // Add keyboard accessibility for the close button
+  elements.closePasscodeModal.setAttribute('tabindex', '0');
+  elements.closePasscodeModal.setAttribute('role', 'button');
+  elements.closePasscodeModal.setAttribute('aria-label', 'Close passcode modal');
+  
+  // Create a reusable function to close the passcode modal
+  const closePasscodeModal = () => {
+    elements.passcodeModal.style.display = 'none';
+    
+    // Reset passcode inputs
+    const passcodeInputs = [
+      elements.passcodeInput1,
+      elements.passcodeInput2,
+      elements.passcodeInput3,
+      elements.passcodeInput4
+    ];
+    
+    passcodeInputs.forEach(input => {
+      input.value = '';
+      input.classList.remove('error');
+    });
+    
+    // Clear any error message
+    if (elements.passcodeError) {
+      elements.passcodeError.textContent = '';
+    }
+  };
+  
+  // Add click event listener
+  elements.closePasscodeModal.addEventListener('click', closePasscodeModal);
+  
+  // Add keyboard support (Enter or Space key)
+  elements.closePasscodeModal.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      closePasscodeModal();
+    }
+  });
+}
+
   // Back button
   if (elements.backButton) {
     elements.backButton.addEventListener('click', handleBackButtonClick);
