@@ -1208,7 +1208,6 @@ a:focus {
   .filter-select {
     width: 100%;
   }
-<<<<<<< HEAD
   
   .passcode-input-container {
     gap: 8px;
@@ -1219,6 +1218,4 @@ a:focus {
     height: 55px;
     font-size: 20px;
   }
-=======
->>>>>>> parent of 911e3fa (Fixing visibilities.)
 }
