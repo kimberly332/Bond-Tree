@@ -450,11 +450,10 @@ footer {
 .post-card {
   background-color: #f9f9f9;
   border-radius: 12px;
-  /* padding: 20px; */
+  padding: 25px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  padding: 25px;
 }
 
 .post-card:hover {
@@ -918,34 +917,142 @@ a:focus {
   outline-offset: 2px;
 }
 
-/* Passcode input styling */
+/* ===== Enhanced Passcode Input Styling ===== */
 .passcode-input-container {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin: 20px 0;
+  gap: 12px;
+  margin: 25px 0;
 }
 
 .passcode-input {
-  width: 50px;
-  height: 60px;
-  font-size: 24px;
+  width: 60px;
+  height: 70px;
+  font-size: 28px;
   text-align: center;
-  border: 2px solid #ddd;
-  border-radius: 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
   background-color: #f9f9f9;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .passcode-input:focus {
   border-color: #4a90e2;
   outline: none;
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+  transform: translateY(-2px);
 }
 
+.passcode-input.error {
+  border-color: #e74c3c;
+  background-color: #fff0f0;
+}
+
+/* Shake animation for incorrect passcode */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake-error {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Error message styling */
 #passcode-error {
   color: #e74c3c;
   text-align: center;
+  margin: 10px 0 15px;
+  font-weight: 500;
+  min-height: 20px; /* Prevent layout shift when error appears */
+  transition: all 0.3s ease;
+}
+
+/* Submit Button Styling */
+#submit-passcode {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 14px 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 250px;
+  margin: 10px auto;
+  display: block;
+}
+
+#submit-passcode:hover {
+  background-color: #3a7bc8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Passcode modal styling improvements */
+.passcode-modal-content {
+  padding: 30px;
+  text-align: center;
+}
+
+.passcode-modal-content h3 {
   margin-bottom: 15px;
+  color: #4a90e2;
+}
+
+.passcode-modal-content p {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  max-width: 80%;
+  margin: 0 auto 25px;
+}
+
+#post-passcode {
+  font-size: 18px;
+  letter-spacing: 0.5em;
+  text-align: center;
+}
+
+/* Improved Private Friend Post Styling */
+.private-friend-post {
+  position: relative;
+  background-color: #f7f9fc;
+  border: 1px solid #e1e8ed;
+  border-left: 4px solid #4a90e2;
+}
+
+.private-friend-post::before {
+  content: '🔒';
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 20px;
+  z-index: 1;
+}
+
+.private-friend-post .post-content {
+  font-style: italic;
+  color: #666;
+  background-color: #f8f8f8;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 3px solid #ccc;
+}
+
+/* Add a subtle lock icon to the "Enter Passcode" button */
+.private-friend-post .view-btn i {
+  margin-right: 5px;
+}
+
+.private-friend-post .view-btn {
+  background-color: #4a90e2;
+  color: white;
+  font-weight: 600;
 }
 
 .passcode-hint {
@@ -955,13 +1062,40 @@ a:focus {
   font-style: italic;
 }
 
-#post-passcode {
-  font-size: 18px;
-  letter-spacing: 0.5em;
-  text-align: center;
+/* Post filter styles */
+.posts-filter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 0 10px;
 }
 
-/* Passcode icon for post cards */
+.filter-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background-color: white;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* Post passcode indicator */
 .post-passcode-indicator {
   display: inline-flex;
   align-items: center;
@@ -974,6 +1108,7 @@ a:focus {
   margin-right: 5px;
 }
 
+/* Reduce motion for accessibility */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
@@ -1022,6 +1157,12 @@ a:focus {
     width: calc(100% - 30px);
     max-width: none;
   }
+  
+  .passcode-input {
+    width: 50px;
+    height: 60px;
+    font-size: 24px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1059,60 +1200,7 @@ a:focus {
     top: 10px;
     left: 10px;
   }
-}
-
-/* Post filter styles */
-.posts-filter {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-  padding: 0 10px;
-}
-
-.filter-options {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.filter-select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background-color: white;
-  font-family: inherit;
-  cursor: pointer;
-  min-width: 180px;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .posts-filter {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   
-  .filter-options {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .filter-select {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 480px) {
   .filter-options {
     flex-direction: column;
   }
@@ -1120,25 +1208,14 @@ a:focus {
   .filter-select {
     width: 100%;
   }
-}
-
-/* Add this to posts.css */
-.private-friend-post {
-  position: relative;
-  background-color: #f7f9fc;
-  border: 1px solid #e1e8ed;
-}
-
-.private-friend-post::before {
-  content: '🔒';
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 20px;
-  z-index: 1;
-}
-
-.private-friend-post .post-content {
-  font-style: italic;
-  color: #666;
+  
+  .passcode-input-container {
+    gap: 8px;
+  }
+  
+  .passcode-input {
+    width: 45px;
+    height: 55px;
+    font-size: 20px;
+  }
 }
