@@ -1,0 +1,361 @@
+/* Bond Tree Authentication Stylesheet */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap');
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --primary-color: #4a90e2;
+  --secondary-color: #ffc107;
+  --accent-color: #05a268;
+  --light-bg: #f5f5f7;
+  --light-card: #ffffff;
+  --dark-text: #333333;
+  --dark-text-secondary: #666666;
+  --card-radius: 16px;
+  --btn-radius: 12px;
+  --transition-smooth: 0.3s ease;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--light-bg);
+  color: var(--dark-text);
+  line-height: 1.6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 15px;
+  overflow-x: hidden;
+  width: 100%;
+  min-height: calc(var(--vh, 1vh) * 100); /* Fix for iOS Safari 100vh issue */
+}
+
+/* Modal height fix for mobile browsers */
+.modal-overlay, 
+.note-modal, 
+.friend-note-modal {
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Authentication Container */
+.auth-container {
+  background-color: var(--light-card);
+  border-radius: 24px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  padding: 30px;
+  text-align: center;
+}
+
+.logo {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  margin-bottom: 10px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+}
+
+.tagline {
+  color: var(--dark-text-secondary);
+  font-size: 1rem;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.app-description {
+  color: var(--dark-text-secondary);
+  font-size: 0.9rem;
+  max-width: 320px;
+  margin: 15px auto 25px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* Form Styling */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form h2 {
+  margin-bottom: 15px;
+  color: var(--dark-text);
+  font-family: 'Poppins', sans-serif;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--dark-text);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: var(--btn-radius);
+  font-size: 1rem;
+  background-color: #ffffff;
+  color: var(--dark-text);
+  transition: border-color var(--transition-smooth);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.toggle-form {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: var(--dark-text-secondary);
+}
+
+.toggle-form a {
+  color: var(--primary-color);
+  text-decoration: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin-bottom: 15px;
+  display: none;
+}
+
+/* Dashboard Styles */
+.dashboard {
+  display: none;
+  text-align: center;
+}
+
+.dashboard h2 {
+  margin-bottom: 10px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: var(--dark-text);
+}
+
+.dashboard p {
+  color: var(--dark-text-secondary);
+  margin-bottom: 1em;
+}
+
+.dashboard-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+/* Full width element that spans both columns */
+.dashboard-buttons > div[style*="grid-column"] {
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* Button Icon Styles */
+.btn-icon {
+  font-size: 24px;
+}
+
+i.btn-icon {
+  line-height: unset;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+}
+
+.modal-container {
+  background-color: var(--light-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  position: sticky;
+  top: 0;
+  background-color: var(--light-card);
+  z-index: 10;
+}
+
+.modal-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1.5rem;
+  margin: 0;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#loading-container {
+  background-color: var(--light-bg) !important;
+}
+
+/* Friend Requests Styles */
+.friend-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.friend-request-card {
+  background-color: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.friend-request-card.accepted {
+  background-color: #e8f5e9;
+  border-color: #a5d6a7;
+}
+
+.friend-request-card.rejected {
+  background-color: #ffebee;
+  border-color: #ffcdd2;
+  opacity: 0.8;
+}
+
+.friend-request-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 1rem;
+  color: var(--dark-text);
+}
+
+.friend-request-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--dark-text-secondary);
+}
+
+.friend-request-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.empty-message {
+  text-align: center;
+  color: var(--dark-text-secondary);
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Friend Requests Badge */
+.request-badge {
+  background-color: #f44336;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+#friend-requests-btn {
+  position: relative;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 20px 15px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .dashboard-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-group input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+  
+  .modal-container {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  
+  .friend-request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .friend-request-actions {
+    width: 100%;
+    margin-top: 10px;
+    justify-content: space-between;
+  }
+  
+  .friend-request-actions button {
+    min-height: 44px;
+    min-width: 44px;
+    flex: 1;
+    margin: 0 5px;
+  }
+}
