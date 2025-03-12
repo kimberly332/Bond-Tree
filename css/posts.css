@@ -1038,7 +1038,7 @@ a:focus {
     width: 150px;
     height: 150px;
   }
-  
+
   .posts-filter {
     flex-direction: column;
     align-items: flex-start;
@@ -1047,6 +1047,11 @@ a:focus {
   .filter-options {
     width: 100%;
     justify-content: space-between;
+  }
+  
+  .filter-select {
+    flex: 1;
+    min-width: 0;
   }
   
   .post-actions {
@@ -1104,6 +1109,33 @@ a:focus {
     width: 70px;
     height: 70px;
   }
+
+  .filter-options {
+    flex-direction: column;
+  }
+  
+  .filter-select {
+    width: 100%;
+  }
+
+  .post-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .post-actions .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .post-actions .btn.delete-btn {
+    background-color: #e74c3c;
+    color: white;
+  }
+  
 }
 
 /* Post filter styles */
@@ -1139,49 +1171,12 @@ a:focus {
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .posts-filter {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .filter-options {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .filter-select {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .filter-options {
-    flex-direction: column;
-  }
-  
-  .filter-select {
-    width: 100%;
-  }
-}
-
 /* Add this to posts.css */
 .private-friend-post {
   position: relative;
   background-color: #f7f9fc;
   border: 1px solid #e1e8ed;
 }
-
-/* .private-friend-post::before {
-  content: '🔒';
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 20px;
-  z-index: 1;
-} */
 
 .private-friend-post .post-content {
   font-style: italic;

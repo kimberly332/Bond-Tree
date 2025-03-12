@@ -193,7 +193,7 @@ function setupKeyboardAccessibility() {
 function handleAuthStateChange(user) {
   // Add this line at the top of the function
   if (user && elements.loginWarning) elements.loginWarning.style.display = 'none';
-  
+
   appState.currentUser = user;
   
   if (user) {
@@ -984,21 +984,21 @@ function createPostElement(post) {
     ${(!isPrivateFriendPost && isTruncated) ? '<a class="read-more" href="#" aria-label="Read more of this post">Read more</a>' : ''}
     ${mediaHTML}
     <div class="post-actions">
-      <button class="action-btn view-btn" aria-label="View post">
+      <button class="btn view-btn" aria-label="View post">
         <i class="fas fa-eye"></i> ${isPrivateFriendPost ? 'Enter Passcode' : 'View'}
       </button>
       ${post.isOwnPost ? `
-        <button class="action-btn edit-btn" aria-label="Edit post">
+        <button class="btn edit-btn" aria-label="Edit post">
           <i class="fas fa-edit"></i> Edit
         </button>
-        <button class="action-btn share-btn" aria-label="Share post">
+        <button class="btn share-btn" aria-label="Share post">
           <i class="fas fa-share"></i> Share
         </button>
-        <button class="action-btn delete-btn" aria-label="Delete post">
+        <button class="btn delete-btn" aria-label="Delete post">
           <i class="fas fa-trash"></i> Delete
         </button>
       ` : `
-        <button class="action-btn share-btn" aria-label="Share post">
+        <button class="btn share-btn" aria-label="Share post">
           <i class="fas fa-share"></i> Share
         </button>
       `}
