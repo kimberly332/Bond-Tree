@@ -439,9 +439,28 @@ input[type="color"]::-webkit-color-swatch {
 
 /* ====== Responsive Adjustments ====== */
 @media (max-width: 768px) {
+  .mood-colors, 
+  .custom-moods-grid {
+    grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+    gap: 10px;
+  }
+
   .custom-moods-container {
     margin-top: 35px;
     margin-bottom: 35px;
+  }
+
+  .color-sample,
+  .post-media-item {
+    width: min(50px, 15vw);
+    height: min(50px, 15vw);
+  }
+  
+  .back-btn {
+    top: 12px;
+    left: 12px;
+    width: 38px;
+    height: 38px;
   }
 }
 
@@ -486,5 +505,25 @@ input[type="color"]::-webkit-color-swatch {
   .modal-content {
     width: 95%;
     padding: 20px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .back-btn {
+    top: 10px;
+    left: 10px;
+    width: 36px;
+    height: 36px;
+  }
+  
+  .mood-ball,
+  .saved-mood-ball {
+    width: 150px;
+    height: 150px;
   }
 }
