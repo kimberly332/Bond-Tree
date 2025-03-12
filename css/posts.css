@@ -74,6 +74,7 @@ h1 {
   margin: 0 auto;
   padding: 15px;
   flex: 1;
+  overflow-x: hidden;
 }
 
 .section {
@@ -102,31 +103,6 @@ footer {
   font-size: 0.9rem;
   background-color: #f0f0f0;
   margin-top: 20px;
-}
-
-/* Back button */
-.back-btn {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  z-index: 10;
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.back-btn:hover {
-  background-color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* ===== Form Elements ===== */
@@ -1071,11 +1047,6 @@ a:focus {
   .post-media-item {
     width: 70px;
     height: 70px;
-  }
-  
-  .back-btn {
-    top: 10px;
-    left: 10px;
   }
 }
 

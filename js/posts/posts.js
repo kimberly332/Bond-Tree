@@ -494,9 +494,6 @@ function handleBackButtonClick(e) {
 /**
  * Load posts based on current filters
  */
-/**
- * Load posts based on current filters
- */
 async function loadPosts() {
   try {
     // Show loading state
@@ -576,11 +573,13 @@ async function loadPosts() {
     // Clear existing posts
     elements.postsContainer.innerHTML = '';
     
-    // Show posts or empty state
+    // Hide or show posts container based on post count
     if (displayPosts.length === 0) {
+      elements.postsContainer.style.display = 'none';
       elements.noPostsMessage.style.display = 'block';
       elements.loadMoreContainer.style.display = 'none';
     } else {
+      elements.postsContainer.style.display = 'block';
       elements.noPostsMessage.style.display = 'none';
       
       // Render posts
@@ -612,7 +611,8 @@ async function loadPosts() {
     // Hide loading state
     hideLoading();
     
-    // Show empty state
+    // Hide posts container and show empty state
+    elements.postsContainer.style.display = 'none';
     elements.noPostsMessage.style.display = 'block';
     elements.loadMoreContainer.style.display = 'none';
   }
