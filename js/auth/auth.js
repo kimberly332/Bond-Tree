@@ -1,10 +1,6 @@
 // Import AuthManager and auth from the optimized auth-manager.js
 import AuthManager, { auth } from '../auth/auth-manager.js';
 import { showNoteModal } from '../mood/mood-ball.js';
-import languageManager from '../i18n/language-manager.js';
-
-// Shorthand translate function
-const t = (key, params = {}) => languageManager.translate(key, params);
 
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -79,13 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Basic format validation
       if (username.length > 0) {
         if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
-          usernameStatus.textContent = t('auth.usernameRequirements');
+          usernameStatus.textContent = 'Username must be 3-15 characters with only letters, numbers, and underscores';
           usernameStatus.style.color = '#e74c3c';
           return;
         }
         
         // Show checking message
-        usernameStatus.textContent = t('auth.usernameChecking');
+        usernameStatus.textContent = 'Checking availability...';
         usernameStatus.style.color = '#3498db';
         
         // Set a small delay to avoid too many requests while typing
@@ -93,10 +89,10 @@ document.addEventListener('DOMContentLoaded', () => {
           const isAvailable = await authManager.checkUsernameAvailability(username);
           
           if (isAvailable) {
-            usernameStatus.textContent = t('auth.usernameAvailable');
+            usernameStatus.textContent = 'Username is available!';
             usernameStatus.style.color = '#2ecc71';
           } else {
-            usernameStatus.textContent = t('auth.usernameTaken');
+            usernameStatus.textContent = 'Username is already taken';
             usernameStatus.style.color = '#e74c3c';
           }
         }, 500); // Wait 500ms after the user stops typing
@@ -143,12 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
           userNameSpan.textContent = authManager.currentUser.name;
           loginError.style.display = 'none';
         } else {
-          loginError.textContent = result.message || t('auth.invalidCredentials');
+          loginError.textContent = result.message || 'Invalid username/email or password';
           loginError.style.display = 'block';
         }
       } catch (error) {
         console.error('Login error:', error);
-        loginError.textContent = error.message || t('auth.invalidCredentials');
+        loginError.textContent = `Error: ${error.message || 'Invalid username/email or password'}`;
         loginError.style.display = 'block';
       } finally {
         loginBtn.disabled = false;
@@ -167,41 +163,41 @@ document.addEventListener('DOMContentLoaded', () => {
         
       // Validate inputs
       if (!name || !email || !password || !username) {
-        signupError.textContent = t('auth.requiredField');
+        signupError.textContent = 'Please fill in all fields';
         signupError.style.display = 'block';
         return;
       }
 
       // Check if username is valid
       if (usernameStatus.style.color !== 'rgb(46, 204, 113)') { // The green color hex #2ecc71
-        signupError.textContent = t('auth.usernameRequirements');
+        signupError.textContent = 'Please choose a valid and available username';
         signupError.style.display = 'block';
         return;
       }
 
       // Check password strength
       if (password.length < 6) {
-        signupError.textContent = t('auth.minPasswordLength');
+        signupError.textContent = 'Password must be at least 6 characters long';
         signupError.style.display = 'block';
         return;
       }
 
       // Validate username format
       if (!/^[a-zA-Z0-9_]{3,15}$/.test(username)) {
-        signupError.textContent = t('auth.usernameRequirements');
+        signupError.textContent = 'Username must be 3-15 characters and contain only letters, numbers, and underscores';
         signupError.style.display = 'block';
         return;
       }
 
       if (password !== confirmPassword) {
-        signupError.textContent = t('auth.passwordsDontMatch');
+        signupError.textContent = 'Passwords do not match';
         signupError.style.display = 'block';
         return;
       }
 
       // Disable button during signup
       signupBtn.disabled = true;
-      signupBtn.textContent = t('common.loading');
+      signupBtn.textContent = "Creating Account...";
       
       try {
         // Attempt to sign up
@@ -221,11 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (error) {
         console.error('Signup error:', error);
-        signupError.textContent = t('auth.unexpectedError');
+        signupError.textContent = 'An unexpected error occurred. Please try again.';
         signupError.style.display = 'block';
       } finally {
         signupBtn.disabled = false;
-        signupBtn.textContent = t('auth.createAccount');
+        signupBtn.textContent = "Create Account";
       }
     });
   }
@@ -239,11 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
           dashboardForm.style.display = 'none';
           loginForm.style.display = 'block';
         } else {
-          alert(t('auth.logoutError') + ': ' + result.message);
+          alert('Error logging out: ' + result.message);
         }
       } catch (error) {
         console.error('Logout error:', error);
-        alert(t('auth.logoutError') + ': ' + error.message);
+        alert('Error logging out: ' + error.message);
       }
     });
   }
@@ -261,19 +257,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add Friend functionality
   if (addFriendBtn) {
     addFriendBtn.addEventListener('click', async () => {
-      const friendIdentifier = prompt(t('friends.enterFriendIdentifier'));
+      const friendIdentifier = prompt('Enter your friend\'s username or email:');
       
       if (friendIdentifier) {
         try {
           const result = await authManager.sendFriendRequest(friendIdentifier);
           if (result.success) {
-            alert(t('friends.requestSent'));
+            alert('Friend request sent successfully!');
           } else {
-            alert(result.message || t('friends.requestFailed'));
+            alert(result.message || 'Could not send friend request. They may not exist or a request is already pending.');
           }
         } catch (error) {
           console.error('Add friend error:', error);
-          alert(t('friends.requestError') + ': ' + error.message);
+          alert('Error sending friend request: ' + error.message);
         }
       }
     });
@@ -282,19 +278,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Send Friend Request functionality
   if (sendFriendRequestBtn) {
     sendFriendRequestBtn.addEventListener('click', async () => {
-      const friendIdentifierPrompt = prompt(t('friends.enterFriendIdentifier'));
+      const friendIdentifierPrompt = prompt('Enter your friend\'s username or email:');
       
       if (friendIdentifierPrompt) {
         try {
           const result = await authManager.sendFriendRequest(friendIdentifierPrompt);
           if (result.success) {
-            alert(t('friends.requestSent'));
+            alert('Friend request sent successfully!');
           } else {
-            alert(result.message || t('friends.requestFailed'));
+            alert(result.message || 'Could not send friend request. Please check the username or email and try again.');
           }
         } catch (error) {
           console.error('Send friend request error:', error);
-          alert(t('friends.requestError') + ': ' + error.message);
+          alert('Error sending friend request: ' + error.message);
         }
       }
     });
@@ -343,12 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update the user name
             if (userNameSpan) {
               userNameSpan.textContent = authManager.currentUser.name;
-              
-              // Update welcome message with translation
-              const welcomeElem = document.querySelector('[data-i18n="dashboard.welcome"]');
-              if (welcomeElem) {
-                welcomeElem.textContent = t('dashboard.welcome', { name: authManager.currentUser.name });
-              }
             }
             
             // Display the username
@@ -358,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (authManager.currentUser.username) {
                 usernameSpan.textContent = authManager.currentUser.username;
               } else {
-                usernameSpan.textContent = t('auth.noUsername');
+                usernameSpan.textContent = "No username set";
               }
               
               // For debugging - log what we're seeing
@@ -430,13 +420,13 @@ async function showFriendRequestsModal(authManager) {
   const modalHTML = `
     <div class="modal-container">
       <div class="modal-header">
-        <h2 class="modal-title">${t('friends.friendRequests')}</h2>
+        <h2 class="modal-title">Friend Requests</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <div id="friend-requests-container">
           <div class="loading-indicator" style="text-align: center; padding: 20px;">
-            ${t('common.loading')}
+            Loading friend requests...
           </div>
         </div>
       </div>
@@ -476,7 +466,7 @@ async function showFriendRequestsModal(authManager) {
     if (!friendRequests || friendRequests.length === 0) {
       requestsContainer.innerHTML = `
         <div class="empty-message">
-          <p>${t('friends.noFriendRequests')}</p>
+          <p>You have no pending friend requests.</p>
         </div>
       `;
       return;
@@ -492,8 +482,8 @@ async function showFriendRequestsModal(authManager) {
               <p>${request.from}</p>
             </div>
             <div class="friend-request-actions">
-              <button class="accept-request" data-email="${request.from}">${t('friends.acceptFriendRequest')}</button>
-              <button class="reject-request" data-email="${request.from}">${t('friends.rejectFriendRequest')}</button>
+              <button class="accept-request" data-email="${request.from}">Accept</button>
+              <button class="reject-request" data-email="${request.from}">Reject</button>
             </div>
           </div>
         `).join('')}
@@ -510,7 +500,7 @@ async function showFriendRequestsModal(authManager) {
       button.addEventListener('click', async () => {
         const email = button.getAttribute('data-email');
         button.disabled = true;
-        button.textContent = t('common.loading');
+        button.textContent = 'Accepting...';
         
         try {
           const result = await authManager.acceptFriendRequest(email);
@@ -522,7 +512,7 @@ async function showFriendRequestsModal(authManager) {
               <div class="friend-request-info">
                 <h3>${requestCard.querySelector('h3').textContent}</h3>
                 <p>${email}</p>
-                <p style="color: #4CAF50; margin-top: 5px; font-weight: bold;">${t('friends.requestAccepted')}</p>
+                <p style="color: #4CAF50; margin-top: 5px; font-weight: bold;">Friend request accepted!</p>
               </div>
             `;
             
@@ -541,15 +531,15 @@ async function showFriendRequestsModal(authManager) {
               }
             }, 1500);
           } else {
-            alert(result.message || t('friends.acceptError'));
+            alert(result.message || 'Could not accept friend request.');
             button.disabled = false;
-            button.textContent = t('friends.acceptFriendRequest');
+            button.textContent = 'Accept';
           }
         } catch (error) {
           console.error('Error accepting friend request:', error);
-          alert(t('friends.acceptError') + ': ' + error.message);
+          alert('Error accepting friend request: ' + error.message);
           button.disabled = false;
-          button.textContent = t('friends.acceptFriendRequest');
+          button.textContent = 'Accept';
         }
       });
     });
@@ -558,7 +548,7 @@ async function showFriendRequestsModal(authManager) {
       button.addEventListener('click', async () => {
         const email = button.getAttribute('data-email');
         button.disabled = true;
-        button.textContent = t('common.loading');
+        button.textContent = 'Rejecting...';
         
         try {
           const result = await authManager.rejectFriendRequest(email);
@@ -570,7 +560,7 @@ async function showFriendRequestsModal(authManager) {
               <div class="friend-request-info">
                 <h3>${requestCard.querySelector('h3').textContent}</h3>
                 <p>${email}</p>
-                <p style="color: #f44336; margin-top: 5px; font-weight: bold;">${t('friends.requestRejected')}</p>
+                <p style="color: #f44336; margin-top: 5px; font-weight: bold;">Friend request rejected</p>
               </div>
             `;
             
@@ -589,15 +579,15 @@ async function showFriendRequestsModal(authManager) {
               }
             }, 1500);
           } else {
-            alert(result.message || t('friends.rejectError'));
+            alert(result.message || 'Could not reject friend request.');
             button.disabled = false;
-            button.textContent = t('friends.rejectFriendRequest');
+            button.textContent = 'Reject';
           }
         } catch (error) {
           console.error('Error rejecting friend request:', error);
-          alert(t('friends.rejectError') + ': ' + error.message);
+          alert('Error rejecting friend request: ' + error.message);
           button.disabled = false;
-          button.textContent = t('friends.rejectFriendRequest');
+          button.textContent = 'Reject';
         }
       });
     });
@@ -606,7 +596,7 @@ async function showFriendRequestsModal(authManager) {
     console.error('Error showing friend requests modal:', error);
     requestsContainer.innerHTML = `
       <div class="empty-message">
-        <p>${t('friends.loadError')}</p>
+        <p>Error loading friend requests. Please try again later.</p>
         <p style="color: red; font-size: 0.8rem;">${error.message}</p>
       </div>
     `;
@@ -645,7 +635,7 @@ function createFriendCard(name, mood, isCurrentUser) {
   if (!isCurrentUser) {
     cardHTML += `
       <button class="delete-friend-btn" data-email="${mood.userEmail}">
-        ${t('friends.removeFriend')}
+        Unfriend
       </button>
     `;
   }
@@ -709,7 +699,7 @@ function showCustomNoteModal(moodData) {
     <div class="note-modal-content friend-note-modal-content">
       <div class="note-header friend-note-header">
         <div class="note-date friend-note-date">${moodData.date} at ${moodData.time}</div>
-        <button class="note-close friend-note-close" aria-label="${t('common.close')}">&times;</button>
+        <button class="note-close friend-note-close" aria-label="Close">&times;</button>
       </div>
       <div class="note-body friend-note-body">${moodData.notes}</div>
     </div>
@@ -781,11 +771,11 @@ function getMoodGradient(moods) {
 // Helper function to get mood name
 function getMoodName(moods) {
   if (!moods || moods.length === 0) {
-    return t('mood.noMood');
+    return 'No Mood';
   }
   
   if (moods.length === 1) {
-    return moods[0].name || t('mood.unknownMood');
+    return moods[0].name || 'Unknown Mood';
   }
   
   // For multiple moods, create a compound name with all moods
@@ -825,14 +815,278 @@ function getBondshipHealth(friendsData) {
 // Helper function to get bondship status text
 function getBondshipStatus(health) {
   if (health >= 80) {
-    return t('friends.blossomingBondship');
+    return 'Blossoming Bondship!';
   } else if (health >= 60) {
-    return t('friends.healthyBondship');
+    return 'A Healthy Bondship!';
   } else if (health >= 40) {
-    return t('friends.growingBondship');
+    return 'Growing Bondship!';
   } else if (health >= 20) {
-    return t('friends.newBondship');
+    return 'New Bondship!';
   } else {
-    return t('friends.plantYourBondship');
+    return 'Plant Your Bondship!';
+  }
+}
+
+// Tree SVG generator
+function generateTreeSvg(health) {
+  // Calculate stage (1-10)
+  const stage = Math.max(1, Math.min(10, Math.ceil(health / 10)));
+  
+  // Opacity variations based on health
+  const opacity = Math.max(0.3, stage / 10);
+
+  return `<img src="assets/images/bond-tree-logo.svg" alt="">`;
+}
+
+// Updated function to show Friends Modal
+function showFriendsModal(authManager) {
+  // Remove any existing modal first
+  const existingModal = document.querySelector('.modal-overlay');
+  if (existingModal) {
+    document.body.removeChild(existingModal);
+  }
+  
+  // Create the modal structure
+  const modalOverlay = document.createElement('div');
+  modalOverlay.className = 'modal-overlay';
+  
+  const modalHTML = `
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">Friend's Mood</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="bondship-container">
+          <!-- Tree and status will be added dynamically -->
+          <div class="loading-indicator" style="text-align: center; padding: 20px;">
+            Loading friends data...
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  modalOverlay.innerHTML = modalHTML;
+  document.body.appendChild(modalOverlay);
+  
+  // Add close button functionality
+  const closeButton = modalOverlay.querySelector('.modal-close');
+  closeButton.addEventListener('click', () => {
+    document.body.removeChild(modalOverlay);
+  });
+  
+  // Click outside to close
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      document.body.removeChild(modalOverlay);
+    }
+  });
+  
+  // Get the bondship container
+  const bondshipContainer = modalOverlay.querySelector('.bondship-container');
+  
+  try {
+    // First check the friends array directly from the auth manager
+    console.log("Current user's friends array:", authManager.getFriends());
+    
+    // Get friends data asynchronously with more detailed logging
+    authManager.getFriendsData().then(friendsData => {
+      console.log("Retrieved friend data:", friendsData);
+      
+      // Remove loading indicator
+      const loadingIndicator = modalOverlay.querySelector('.loading-indicator');
+      if (loadingIndicator) {
+        loadingIndicator.remove();
+      }
+      
+      // Display empty state if no friends
+      if (!friendsData || friendsData.length === 0) {
+        bondshipContainer.innerHTML = `
+          <div class="empty-message">
+            <p>You have no friends added yet. Use the "Add Friend" button to connect with others.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      // Calculate bondship health based on friends data
+      const health = getBondshipHealth(friendsData);
+      
+      // Create the tree and status section
+      const treeHTML = `
+        <div class="bondship-tree">
+          <div class="tree-container">
+            <div class="tree-icon">
+              ${generateTreeSvg(health)}
+            </div>
+          </div>
+        </div>
+        <div class="bondship-status">
+          <h3>${getBondshipStatus(health)}</h3>
+        </div>
+        <div class="friend-cards-container">
+          <!-- Friend cards will be added here -->
+        </div>
+      `;
+      
+      bondshipContainer.innerHTML = treeHTML;
+      
+      // Get the cards container
+      const cardsContainer = bondshipContainer.querySelector('.friend-cards-container');
+      
+      // Add current user card first
+      const currentUserMoods = authManager.currentUser.savedMoods || [];
+      console.log("Current user moods:", currentUserMoods.length);
+      
+      const latestUserMood = currentUserMoods.length > 0 ? 
+        currentUserMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+      
+      if (latestUserMood) {
+        const userCard = createFriendCard('Me', latestUserMood, true);
+        cardsContainer.appendChild(userCard);
+      }
+      
+      // Add friend cards with added debugging
+      friendsData.forEach(friend => {
+        console.log(`Processing friend: ${friend.name}`, friend);
+        const latestMood = friend.savedMoods && friend.savedMoods.length > 0 ? 
+          friend.savedMoods.sort((a, b) => b.timestamp - a.timestamp)[0] : null;
+        
+        console.log(`Latest mood for ${friend.name}:`, latestMood);
+        
+        if (latestMood) {
+          // Add the user's email to the mood object
+          latestMood.userEmail = friend.email;
+          
+          const friendCard = createFriendCard(friend.name, latestMood, false);
+          cardsContainer.appendChild(friendCard);
+        } else {
+          // Create a card even if the friend has no moods
+          console.log(`${friend.name} has no moods, creating empty card`);
+          const emptyMood = {
+            date: "No mood yet",
+            userEmail: friend.email,
+            moods: []
+          };
+          const friendCard = createFriendCard(friend.name, emptyMood, false);
+          cardsContainer.appendChild(friendCard);
+        }
+      });
+
+      // IMPORTANT: Set up note indicators AFTER all cards are added to the DOM
+      setupNoteIndicators();
+      
+      // Add event listeners to delete friend buttons
+      const deleteButtons = cardsContainer.querySelectorAll('.delete-friend-btn');
+      deleteButtons.forEach(button => {
+        button.addEventListener('click', async (e) => {
+          e.stopPropagation(); // Prevent modal from closing
+          
+          const email = button.getAttribute('data-email');
+          const friendName = button.closest('.friend-card').querySelector('.friend-name').textContent;
+          
+          // Confirm deletion
+          if (confirm(`Are you sure you want to remove ${friendName} from your friends list?`)) {
+            button.disabled = true;
+            button.textContent = 'Removing...';
+            
+            try {
+              const result = await authManager.deleteFriend(email);
+              if (result.success) {
+                // Remove the friend card from the UI
+                button.closest('.friend-card').remove();
+                
+                // Check if there are any friends left
+                if (cardsContainer.children.length <= 1) { // Only current user left
+                  // Reload the modal to show empty state
+                  document.body.removeChild(modalOverlay);
+                  showFriendsModal(authManager);
+                }
+              } else {
+                alert(result.message || 'Could not remove friend.');
+                button.disabled = false;
+                button.textContent = 'Unfriend';
+              }
+            } catch (error) {
+              console.error('Error removing friend:', error);
+              alert('Error removing friend: ' + error.message);
+              button.disabled = false;
+              button.textContent = 'Unfriend';
+            }
+          }
+        });
+      });
+    }).catch(error => {
+      console.error('Error showing friends modal:', error);
+      bondshipContainer.innerHTML = `
+        <div class="empty-message">
+          <p>Error loading friends data. Please try again later.</p>
+          <p style="color: red; font-size: 0.8rem;">${error.message}</p>
+        </div>
+      `;
+    });
+  } catch (error) {
+    console.error('Error showing friends modal:', error);
+    bondshipContainer.innerHTML = `
+      <div class="empty-message">
+        <p>Error loading friends data. Please try again later.</p>
+        <p style="color: red; font-size: 0.8rem;">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+// Helper function to update the notification badge
+function updateFriendRequestsBadge(authManager) {
+  const friendRequestsBtn = document.getElementById('friend-requests-btn');
+  if (!friendRequestsBtn) return;
+  
+  const requestCount = authManager.getFriendRequests().length;
+  
+  // Remove any existing badge
+  const existingBadge = friendRequestsBtn.querySelector('.request-badge');
+  if (existingBadge) {
+    existingBadge.remove();
+  }
+  
+  // Add badge if there are requests
+  if (requestCount > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'request-badge';
+    badge.textContent = requestCount;
+    badge.style.cssText = `
+      background-color: #f44336;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 0.75rem;
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      font-weight: bold;
+    `;
+    
+    // Make the button position relative if it's not already
+    if (window.getComputedStyle(friendRequestsBtn).position === 'static') {
+      friendRequestsBtn.style.position = 'relative';
+    }
+    
+    friendRequestsBtn.appendChild(badge);
+    
+    // Add a subtle animation to draw attention
+    friendRequestsBtn.style.animation = 'pulse 2s infinite';
+    const styleSheet = document.createElement('style');
+    styleSheet.innerHTML = `
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+      }
+    `;
+    document.head.appendChild(styleSheet);
+  } else {
+    // Remove any animation
+    friendRequestsBtn.style.animation = '';
   }
 }
