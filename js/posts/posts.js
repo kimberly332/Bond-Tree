@@ -210,140 +210,47 @@ function handleAuthStateChange(user) {
  * Add event listeners for UI interactions
  */
 function addEventListeners() {
-  // Back button
-  if (elements.backButton) {
-    elements.backButton.addEventListener('click', handleBackButtonClick);
-  }
+  // Close passcode modal
+if (elements.closePasscodeModal) {
+  // Add keyboard accessibility for the close button
+  elements.closePasscodeModal.setAttribute('tabindex', '0');
+  elements.closePasscodeModal.setAttribute('role', 'button');
+  elements.closePasscodeModal.setAttribute('aria-label', 'Close passcode modal');
   
-  // Post form submission
-  if (elements.postForm) {
-    elements.postForm.addEventListener('submit', handleCreatePost);
-  }
-  
-  // Character counter for post content
-  if (elements.postContent && elements.charsCount) {
-    elements.postContent.addEventListener('input', () => {
-      const count = elements.postContent.value.length;
-      elements.charsCount.textContent = count;
-      updateCharCounter(count, elements.charsCount);
-    });
-  }
-  
-  // Edit form character counter
-  if (elements.editPostContent && elements.editCharsCount) {
-    elements.editPostContent.addEventListener('input', () => {
-      const count = elements.editPostContent.value.length;
-      elements.editCharsCount.textContent = count;
-      updateCharCounter(count, elements.editCharsCount);
-    });
-  }
-  
-  // Media upload
-  if (elements.postMedia) {
-    elements.postMedia.addEventListener('change', handleMediaUpload);
-  }
-  
-  // Filters
-  if (elements.privacyFilter) {
-    elements.privacyFilter.addEventListener('change', handleFilterChange);
-  }
-  
-  if (elements.sortFilter) {
-    elements.sortFilter.addEventListener('change', handleFilterChange);
-  }
-  
-  // Load more button
-  if (elements.loadMoreBtn) {
-    elements.loadMoreBtn.addEventListener('click', handleLoadMore);
-  }
-  
-  // Edit post form submission
-  if (elements.editPostForm) {
-    elements.editPostForm.addEventListener('submit', handleUpdatePost);
-  }
-  
-  // Delete post button
-  if (elements.deletePostBtn) {
-    elements.deletePostBtn.addEventListener('click', handleDeletePost);
-  }
-  
-  // Close edit modal
-  if (elements.closeEditModal) {
-    elements.closeEditModal.addEventListener('click', () => {
-      elements.editPostModal.style.display = 'none';
-    });
-  }
-  
-  // Close view modal
-  if (elements.closeViewModal) {
-    elements.closeViewModal.addEventListener('click', () => {
-      elements.viewPostModal.style.display = 'none';
-    });
-  }
-  
-  // Edit button in view modal
-  if (elements.editPostBtn) {
-    elements.editPostBtn.addEventListener('click', () => {
-      if (appState.currentPost) {
-        openEditModal(appState.currentPost);
-        elements.viewPostModal.style.display = 'none';
-      }
-    });
-  }
-  
-  // Share button in view modal
-  if (elements.sharePostBtn) {
-    elements.sharePostBtn.addEventListener('click', () => {
-      if (appState.currentPost) {
-        sharePost(appState.currentPost);
-      }
-    });
-  }
-  
-  // Download button in view modal
-  if (elements.downloadPostBtn) {
-    elements.downloadPostBtn.addEventListener('click', () => {
-      if (appState.currentPost) {
-        downloadPost(appState.currentPost);
-      }
-    });
-  }
-  
-  // Media viewer navigation
-  if (elements.prevMediaBtn) {
-    elements.prevMediaBtn.addEventListener('click', showPreviousMedia);
-  }
-  
-  if (elements.nextMediaBtn) {
-    elements.nextMediaBtn.addEventListener('click', showNextMedia);
-  }
-  
-  // Close media viewer
-  if (elements.closeMediaViewer) {
-    elements.closeMediaViewer.addEventListener('click', () => {
-      elements.mediaViewerModal.style.display = 'none';
-    });
-  }
-  
-  // Click outside to close modals
-  window.addEventListener('click', (e) => {
-    if (e.target === elements.editPostModal) {
-      elements.editPostModal.style.display = 'none';
-    }
+  // Create a reusable function to close the passcode modal
+  const closePasscodeModal = () => {
+    elements.passcodeModal.style.display = 'none';
     
-    if (e.target === elements.viewPostModal) {
-      elements.viewPostModal.style.display = 'none';
-    }
+    // Reset passcode inputs
+    const passcodeInputs = [
+      elements.passcodeInput1,
+      elements.passcodeInput2,
+      elements.passcodeInput3,
+      elements.passcodeInput4
+    ];
     
-    if (e.target === elements.mediaViewerModal) {
-      elements.mediaViewerModal.style.display = 'none';
-    }
+    passcodeInputs.forEach(input => {
+      input.value = '';
+      input.classList.remove('error');
+    });
     
-    if (e.target === elements.passcodeModal) {
-      elements.passcodeModal.style.display = 'none';
+    // Clear any error message
+    if (elements.passcodeError) {
+      elements.passcodeError.textContent = '';
+    }
+  };
+  
+  // Add click event listener
+  elements.closePasscodeModal.addEventListener('click', closePasscodeModal);
+  
+  // Add keyboard support (Enter or Space key)
+  elements.closePasscodeModal.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      closePasscodeModal();
     }
   });
-}
+}}
 
 /**
  * Setup the passcode field visibility based on privacy selection

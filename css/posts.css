@@ -646,7 +646,7 @@ footer {
 .modal-content {
   background-color: white;
   border-radius: 16px;
-  width: 95%;
+  /* width: 95%; */
   max-width: 600px;
   max-height: 90vh; /* Keep vertical restriction */
   overflow-y: auto; /* Allow vertical scrolling */
@@ -692,6 +692,8 @@ footer {
   max-width: 100%;
   overflow-x: hidden; /* Prevent horizontal scrolling */
   box-sizing: border-box; /* Include padding in width calculation */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Ensure inputs and other content don't extend beyond container */
@@ -1192,15 +1194,6 @@ a:focus {
   position: relative;
   background-color: #f7f9fc;
   border: 1px solid #e1e8ed;
-}
-
-.private-friend-post::before {
-  content: '🔒';
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 20px;
-  z-index: 1;
 }
 
 .private-friend-post .post-content {
