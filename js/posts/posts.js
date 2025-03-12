@@ -1184,25 +1184,25 @@ function showPasscodeModal(postId) {
     elements.passcodeError.textContent = '';
   }
   
-  // Set up passcode input navigation
-  passcodeInputs.forEach((input, index) => {
-    input.addEventListener('input', function() {
-      // Only allow numeric input
-      this.value = this.value.replace(/[^0-9]/g, '');
-      
-      // Auto-move to next input when filled
-      if (this.value.length === 1 && index < passcodeInputs.length - 1) {
-        passcodeInputs[index + 1].focus();
-      }
-    });
+  // Add this to your existing passcode input setup
+passcodeInputs.forEach((input, index) => {
+  input.addEventListener('input', function() {
+    // Only allow numeric input
+    this.value = this.value.replace(/[^0-9]/g, '');
     
-    // Allow backspace to move to previous input
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Backspace' && this.value.length === 0 && index > 0) {
-        passcodeInputs[index - 1].focus();
-      }
-    });
+    // Auto-move to next input when filled
+    if (this.value.length === 1 && index < passcodeInputs.length - 1) {
+      passcodeInputs[index + 1].focus();
+    }
   });
+  
+  // Allow backspace to move to previous input
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Backspace' && this.value.length === 0 && index > 0) {
+      passcodeInputs[index - 1].focus();
+    }
+  });
+});
   
   // Set up submit button
   if (elements.submitPasscodeBtn) {
@@ -1231,8 +1231,11 @@ async function verifyPasscode() {
   if (!/^\d{4}$/.test(passcode)) {
     if (elements.passcodeError) {
       elements.passcodeError.textContent = 'Please enter a 4-digit passcode';
+      passcodeInputs.forEach(input => {
+        input.classList.add('shake-error');
+        input.classList.add('error');
+      });
     }
-    passcodeInputs.forEach(input => input.classList.add('error'));
     return;
   }
   
@@ -1244,22 +1247,44 @@ async function verifyPasscode() {
     const isValid = postsManager.verifyPasscode(passcode, post);
     
     if (isValid) {
+      // Clear error states
+      passcodeInputs.forEach(input => {
+        input.classList.remove('error');
+        input.classList.remove('shake-error');
+      });
+      
       // Close passcode modal
       elements.passcodeModal.style.display = 'none';
       
       // Show the post
       showPostContent(post);
     } else {
-      // Show error
+      // Show error for incorrect passcode
       if (elements.passcodeError) {
-        elements.passcodeError.textContent = 'Incorrect passcode';
+        elements.passcodeError.textContent = 'Incorrect passcode. Please try again.';
+        elements.passcodeError.style.display = 'block';
       }
-      passcodeInputs.forEach(input => input.classList.add('error'));
+      
+      // Shake and highlight inputs
+      passcodeInputs.forEach(input => {
+        input.classList.add('shake-error');
+        input.classList.add('error');
+        
+        // Remove shake animation after it completes
+        input.addEventListener('animationend', () => {
+          input.classList.remove('shake-error');
+        }, { once: true });
+      });
+      
+      // Clear inputs
+      passcodeInputs.forEach(input => input.value = '');
+      passcodeInputs[0].focus();
     }
   } catch (error) {
     console.error('Error verifying passcode:', error);
     if (elements.passcodeError) {
       elements.passcodeError.textContent = 'Failed to verify passcode. Please try again.';
+      elements.passcodeError.style.display = 'block';
     }
   }
 }
