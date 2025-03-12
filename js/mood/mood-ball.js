@@ -90,6 +90,11 @@ function initApp() {
   // Add touch event handlers for mobile
   setupTouchInteractions();
   
+   // Hide login warning during auth check
+   if (elements.loginWarning) {
+    elements.loginWarning.style.display = 'none';
+  }
+
   // Check authentication state with Firebase
   auth.onAuthStateChanged(handleAuthStateChange);
 }
@@ -166,6 +171,12 @@ function setupKeyboardAccessibility() {
  */
 async function handleAuthStateChange(user) {
   try {
+    // Immediately hide the login warning if user is logged in
+    // This prevents the flash when a user is already authenticated
+    if (user && elements.loginWarning) {
+      elements.loginWarning.style.display = 'none';
+    }
+    
     if (!user) {
       showLoginWarning();
       return;

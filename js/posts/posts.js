@@ -191,6 +191,9 @@ function setupKeyboardAccessibility() {
  * @param {Object} user - Firebase user object
  */
 function handleAuthStateChange(user) {
+  // Add this line at the top of the function
+  if (user && elements.loginWarning) elements.loginWarning.style.display = 'none';
+  
   appState.currentUser = user;
   
   if (user) {

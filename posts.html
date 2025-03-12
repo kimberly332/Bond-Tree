@@ -26,10 +26,21 @@
   <link rel="icon" href="assets/images/bond-tree-logo.svg">
 </head>
 <body>
-  <div id="login-warning" style="display: none; color: red; text-align: center; padding: 20px; background: white; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 30px auto; max-width: 500px;">
-    <h3>Please log in first!</h3>
-    <p>You need to be logged in to use this feature.</p>
-    <button href="index.html">Go to Login</button>
+  <div id="login-warning" class="login-warning-overlay" style="display: none;">
+    <div class="login-warning-container">
+      <div class="login-warning-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <h3>Authentication Required</h3>
+      <p>Please sign in to access this feature and continue your Bond Tree journey.</p>
+      <div class="login-warning-buttons">
+        <a href="index.html" class="btn btn-primary">Go to Login</a>
+      </div>
+    </div>
   </div>
 
   <!-- Back button -->
