@@ -11,28 +11,25 @@ service cloud.firestore {
       return authorEmail in currentUserDoc.data.friends;
     }
     
-    // Allow read access to user documents for username availability check
+    // User document rules - COMBINED into a single block
     match /users/{userId} {
-      allow read: if true;
-    }
-    
-    // Existing user document write rules
-    match /users/{userId} {
-      allow read: if request.auth != null;
-  
+      // Read permissions
+      allow read: if true;  // Anyone can read user documents
+      
+      // Write permissions
       allow create: if request.auth != null 
                     && request.resource.data.username.size() >= 3 
                     && request.resource.data.username.size() <= 15
                     && request.resource.data.username.matches('^[a-zA-Z0-9_]+$');
       
       allow update: if request.auth.uid == userId || 
-              // Allow adding/removing friend requests and sent requests
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests', 'friends', 'sentFriendRequests']);
-              
+                    // Allow adding/removing friend requests and sent requests
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friendRequests', 'friends', 'sentFriendRequests']);
+      
       allow delete: if request.auth.uid == userId;
     }
     
-    // Posts collection rules - UPDATED for email-based friendship check
+    // Posts collection rules
     match /posts/{postId} {
       allow read: if request.auth != null && 
         (
