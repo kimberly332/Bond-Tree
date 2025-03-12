@@ -19,133 +19,378 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/auth.css">
   <link rel="stylesheet" href="css/bond-tree-enhanced-friends.css">
-  <link rel="stylesheet" href="css/unified-buttons.css">
-  <link rel="stylesheet" href="css/language-selector.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="css/unified-buttons.css">
+  <!-- Additional styles for friends modal -->
+  <style>
+    /* Friends Modal Styles - Inline to ensure they're available */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal-container {
+      background-color: #fff;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+    
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      position: sticky;
+      top: 0;
+      background-color: #fff;
+      z-index: 10;
+    }
+    
+    .modal-title {
+      font-size: 1.5rem;
+      margin: 0;
+      color: #4a90e2;
+      text-align: center;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #666;
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+    
+    .friends-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .friend-card {
+      border: 1px solid #eee;
+      border-radius: 16px;
+      padding: 15px;
+      background-color: #fff;
+    }
+    
+    .friend-info {
+      margin-bottom: 15px;
+    }
+    
+    .friend-name {
+      font-size: 1.2rem;
+      margin: 0 0 5px 0;
+      color: #333;
+    }
+    
+    .friend-email {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 0;
+    }
+    
+    .moods-title {
+      font-size: 1rem;
+      color: #4a90e2;
+      margin: 10px 0;
+    }
+    
+    .moods-container {
+      display: flex;
+      overflow-x: auto;
+      gap: 12px;
+      padding: 5px 0;
+    }
+    
+    .mood-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 60px;
+    }
+    
+    .mood-ball {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 5px;
+    }
+    
+    .mood-section {
+      position: absolute;
+      width: 100%;
+      left: 0;
+    }
+    
+    .mood-date {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 2px;
+    }
+    
+    .mood-time {
+      font-size: 0.65rem;
+      color: #888;
+      display: block;
+      margin-bottom: 2px;
+    }
+    
+    .mood-names {
+      font-size: 0.65rem;
+      color: #999;
+      text-align: center;
+      max-width: 60px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .empty-message {
+      text-align: center;
+      color: #666;
+      padding: 15px 0;
+    }
+    
+    .no-moods {
+      color: #999;
+      font-style: italic;
+    }
+    
+    /* Note indicator in friends modal */
+    .mood-note-indicator {
+      cursor: pointer;
+      font-size: 0.8rem;
+      display: inline-block;
+      margin-top: 3px;
+      color: #888;
+      transition: transform 0.2s;
+    }
+    
+    .mood-note-indicator:hover {
+      transform: scale(1.2);
+      color: #4a90e2;
+    }
+    
+    /* Friend Note Modal Styles - FIXED */
+    .friend-note-modal {
+      position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    }
+    
+    .friend-note-modal-content {
+      background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    }
+    
+    .friend-note-header {
+      display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    position: relative;
+    padding: 15px 40px 15px 15px; /* Extra padding for close button */
+    }
+    
+    .friend-note-date {
+      font-weight: bold;
+      color: #4a90e2;
+      text-align: center;
+    }
+    
+    .friend-note-close {
+      font-family: 'Nunito', sans-serif;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #777;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 20px;
+    }
+    
+    .friend-note-close:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      color: #333;
+    }
+    
+    .friend-note-body {
+      padding: 15px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Loading spinner styling */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-top: 4px solid #4a90e2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+  </style>
   <link rel="icon" href="assets/images/bond-tree-logo.svg">
 </head>
 <body>
 <div id="loading-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f7;">
     <div style="text-align: center;">
-        <div style="font-size: 2rem; color: #4a90e2; margin-bottom: 20px; font-family: 'Poppins', sans-serif; font-weight: 600;" data-i18n="common.appName">Bond Tree</div>
+        <div style="font-size: 2rem; color: #4a90e2; margin-bottom: 20px; font-family: 'Poppins', sans-serif; font-weight: 600;">Bond Tree</div>
         <div class="loading-spinner"></div>
     </div>
 </div>
   <div class="auth-container" style="display: none;">
-    <div id="language-selector-container" style="position: absolute; top: 10px; right: 10px;"></div>
-    <div class="logo" data-i18n="common.appName">Bond Tree</div>
-    <div class="tagline" data-i18n="common.tagline">Grow Connections, Share Emotions</div>
-    <div class="app-description" data-i18n="auth.appDescription">
+    <div class="logo">Bond Tree</div>
+    <div class="tagline">Grow Connections, Share Emotions</div>
+    <div class="app-description">
       Bond Tree helps you track your emotional well-being and connect with friends. Share your daily moods, see how friends are feeling, and grow meaningful connections through emotional awareness.
     </div>
     
     <div id="login-form" class="auth-form">
-      <h2 data-i18n="auth.login">Login</h2>
+      <h2>Login</h2>
       <div id="login-error" class="error-message"></div>
       
       <div class="form-group">
-        <label for="login-email" data-i18n="auth.email">Email or Username</label>
-        <input type="text" id="login-email" required data-i18n-placeholder="auth.email">
+        <label for="login-email">Email or Username</label>
+        <input type="text" id="login-email" required>
       </div>
       
       <div class="form-group">
-        <label for="login-password" data-i18n="auth.password">Password</label>
-        <input type="password" id="login-password" required data-i18n-placeholder="auth.password">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" required>
       </div>
       
-      <button class="btn btn-primary btn-block" id="login-btn" data-i18n="auth.login">Log In</button>
+      <button class="btn btn-primary btn-block" id="login-btn">Log In</button>
       
       <div class="toggle-form">
-        <span data-i18n="auth.dontHaveAccount">Don't have an account?</span> <a id="show-signup" data-i18n="auth.signup">Sign Up</a>
+        Don't have an account? <a id="show-signup">Sign Up</a>
       </div>
     </div>
     
     <div id="signup-form" class="auth-form" style="display: none;">
-      <h2 data-i18n="auth.signup">Sign Up</h2>
+      <h2>Sign Up</h2>
       <div id="signup-error" class="error-message"></div>
       
       <div class="form-group">
-        <label for="signup-name" data-i18n="auth.fullName">Full Name</label>
-        <input type="text" id="signup-name" required data-i18n-placeholder="auth.fullName">
+        <label for="signup-name">Full Name</label>
+        <input type="text" id="signup-name" required>
       </div>
 
       <div class="form-group">
-        <label for="signup-username" data-i18n="auth.username">Username</label>
-        <input type="text" id="signup-username" placeholder="Choose a unique username" required data-i18n-placeholder="auth.username">
-        <small style="color: #888; font-size: 0.8rem;" data-i18n="auth.usernameNote">This will be your unique ID for others to find you</small>
+        <label for="signup-username">Username</label>
+        <input type="text" id="signup-username" placeholder="Choose a unique username" required>
+        <small style="color: #888; font-size: 0.8rem;">This will be your unique ID for others to find you</small>
         <span id="username-status" style="display: block; font-size: 0.85rem; margin-top: 5px;"></span>
       </div>
       <div class="form-group">
-        <label for="signup-email" data-i18n="auth.email">Email</label>
-        <input type="email" id="signup-email" required data-i18n-placeholder="auth.email">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" required>
       </div>
       
       <div class="form-group">
-        <label for="signup-password" data-i18n="auth.password">Password</label>
-        <input type="password" id="signup-password" required data-i18n-placeholder="auth.password">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" required>
       </div>
       
       <div class="form-group">
-        <label for="signup-confirm-password" data-i18n="auth.confirmPassword">Confirm Password</label>
-        <input type="password" id="signup-confirm-password" required data-i18n-placeholder="auth.confirmPassword">
+        <label for="signup-confirm-password">Confirm Password</label>
+        <input type="password" id="signup-confirm-password" required>
       </div>
       
-      <button class="btn btn-primary btn-block" id="signup-btn" data-i18n="auth.createAccount">Create Account</button>
+      <button class="btn btn-primary btn-block" id="signup-btn">Create Account</button>
       
       <div class="toggle-form">
-        <span data-i18n="auth.alreadyHaveAccount">Already have an account?</span> <a id="show-login" data-i18n="auth.login">Log In</a>
+        Already have an account? <a id="show-login">Log In</a>
       </div>
     </div>
     
     <div id="dashboard" class="dashboard">
-        <h2 data-i18n="dashboard.welcome" data-i18n-params='{"name": "{{name}}"}'>Welcome, <span id="user-name"></span>!</h2>
-        <p><span data-i18n="auth.yourUsername">Your Username:</span> <span id="user-username" style="font-weight: bold; color: #4a90e2;"></span></p>
+        <h2>Welcome, <span id="user-name"></span>!</h2>
+        <p>Your Username: <span id="user-username" style="font-weight: bold; color: #4a90e2;"></span></p>
         <div class="dashboard-buttons">
           <button id="create-mood-btn" class="dashboard-btn mood">
             <i class="fas fa-smile-beam btn-icon"></i>
-            <span data-i18n="dashboard.createMood">Create Mood</span>
+            Create Mood
           </button>
           <button class="dashboard-btn friend" id="add-friend-btn">
             <i class="fas fa-user-plus btn-icon"></i>
-            <span data-i18n="dashboard.addBond">Add Bond</span>
+            Add Bond
           </button>
           <button class="dashboard-btn request" id="friend-requests-btn">
             <i class="fas fa-bell btn-icon"></i>
-            <span data-i18n="dashboard.bondingRequests">Bonding Requests</span>
+            Bonding Requests
           </button>
           <button class="dashboard-btn view" id="view-friends-btn">
             <i class="fas fa-tree btn-icon"></i>
-            <span data-i18n="dashboard.viewBondships">View Bondships</span>
+            View Bondships
           </button>
           <button class="dashboard-btn journal" id="journal-btn">
             <i class="fas fa-book-open btn-icon"></i>
-            <span data-i18n="dashboard.myJournal">My Journal</span>
+            My Journal
           </button>
           <div id="logout-btn-container">
             <button class="btn btn-danger" id="logout-btn">
               <i class="fas fa-sign-out-alt"></i>
-              <span data-i18n="auth.logout">Log Out</span>
+              Log Out
             </button>
           </div>
         </div>
-    </div>
-  </div>
-
-  <!-- Login warning overlay -->
-  <div id="login-warning" class="login-warning-overlay" style="display: none;">
-    <div class="login-warning-container">
-      <div class="login-warning-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-      </div>
-      <h3 data-i18n="auth.authRequired">Authentication Required</h3>
-      <p data-i18n="auth.authRequiredMsg">Please sign in to access this feature and continue your Bond Tree journey.</p>
-      <div class="login-warning-buttons">
-        <a href="index.html" class="btn btn-primary" data-i18n="auth.goToLogin">Go to Login</a>
-      </div>
     </div>
   </div>
 
@@ -154,26 +399,5 @@
   <script type="module" src="js/auth/auth.js"></script>
   <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
   <script type="module" src="js/dashboard-buttons.js"></script>
-  
-  <!-- Translation modules -->
-  <script type="module" src="js/i18n/en.js"></script>
-  <script type="module" src="js/i18n/zh_TW.js"></script>
-  <script type="module" src="js/i18n/language-manager.js"></script>
-  <script type="module" src="js/i18n/language-selector.js"></script>
-  <script type="module">
-    import { initTranslations } from './js/i18n/i18n-init.js';
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      initTranslations({
-        translatePage: true,
-        translateImages: true,
-        addLanguageSelector: true,
-        selectorContainerId: 'language-selector-container',
-        selectorOptions: {
-          position: 'static'
-        }
-      });
-    });
-  </script>
 </body>
 </html>
